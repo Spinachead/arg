@@ -9,7 +9,7 @@ def smart_split_documents(documents):
     for doc in documents:
         source = doc.metadata.get("source", "")
 
-        if source.endswith('.md') or source.endswith('.xmind'):
+        if source.endswith('.md') or source.endswith('.xmind') or source.endswith('.markdown'):
             # Markdown 和脑图：按标题分块（保留层级）
             splitter = RecursiveCharacterTextSplitter(
                 separators=["\n## ", "\n### ", "\n#### ", "\n---", "\n\n"],
