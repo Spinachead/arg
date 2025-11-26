@@ -23,14 +23,12 @@ def build_or_update_vectorstore(doc_dir: str, persist_dir: str = "./chroma_db"):
     # 4. 创建或更新向量库
     if os.path.exists(persist_dir):
         print("🔄 更新现有向量库...")
+        # 正确关闭可能存在的数据库连接
         vectorstore = Chroma(
             persist_directory=persist_dir,
             embedding_function=embedding
         )
-        # 删除旧数据（简单方案：重建；生产环境可用 delete(ids)）
-        # 这里为简化，直接重建
-        import shutil
-        shutil.rmtree(persist_dir)
+        vectorstore.delete_collection()
 
     print("🆕 创建新向量库...")
     vectorstore = Chroma.from_documents(
@@ -41,3 +39,6 @@ def build_or_update_vectorstore(doc_dir: str, persist_dir: str = "./chroma_db"):
 
     print(f"✅ 向量库构建完成！共 {len(chunks)} 个片段")
     return vectorstore
+
+if __name__ == "__main__":
+    build_or_update_vectorstore("documents")

@@ -1,10 +1,10 @@
 # rag_chain.py（简化版）
 import torch.cuda
+from pathlib import Path
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.chat_models import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 
 def create_rag_chain():
@@ -13,8 +13,9 @@ def create_rag_chain():
         model_name="BAAI/bge-small-zh-v1.5",
         model_kwargs={"device": device}
     )
+    persist_dir = str((Path(__file__).parent / "chroma_db").resolve())
     vectorstore = Chroma(
-        persist_directory="./chroma_db",
+        persist_directory=persist_dir,
         embedding_function=embedding
     )
     retriever = vectorstore.as_retriever(
@@ -38,12 +39,13 @@ def create_rag_chain():
         context = "\n\n".join(doc.page_content for doc in docs)
         return context, sources
 
-    def prepare_inputs(input_data):
-        # 从LangServe的标准输入格式中提取question
-        if isinstance(input_data, dict):
-            question = input_data.get("input", "")
+    def prepare_inputs(question: str):
+        """兼容 LangServe 默认的字符串输入。"""
+        if isinstance(question, dict):
+            # 允许 /rag/playground 这类场景传递 {"input": "..."} 结构
+            question = question.get("input", "")
         else:
-            question = str(input_data)
+            question = str(question)
             
         docs = retriever.invoke(question)
         context, sources = format_docs(docs)
