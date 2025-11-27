@@ -2,6 +2,7 @@
 from fastapi import FastAPI
 from rag_chain import create_rag_chain
 from langserve import add_routes
+from fastapi.middleware.cors import CORSMiddleware
 
 # 确保 Ollama 正在运行！
 app = FastAPI(
@@ -10,6 +11,18 @@ app = FastAPI(
     description="基于 Qwen + 本地文档的问答 API"
 )
 
+#添加CORS中间件
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 在生产环境中应该指定具体的域名
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+
+
 # 创建 RAG Chain（首次会构建向量库）
 rag_chain = create_rag_chain()
 
@@ -17,12 +30,29 @@ rag_chain = create_rag_chain()
 add_routes(
     app,
     rag_chain,
-    path="/rag"
+    path="/api"
 )
 
 @app.get("/")
 async def root():
     return {"message": "RAG Server is running. Visit /docs for API documentation or /rag/playground for playground."}
+
+@app.post("/api/chat")
+async def chat():
+    return {"status": 'Success', "data": {'id':"chat-1", 'role':"assistant", 'text': '这是来自模拟api的响应数据', 'dateTime': "1111111"}, "message": "Success"}
+
+@app.post("/api/config")
+async def config():
+    return {"status": 'Success', "data":{'apiModel': 'Mock-API', 'socksProxy': 'false', 'httpsProxy': 'false'}, "message": "Success"}
+
+@app.post("/api/session")
+async def session():
+    return {"status": 'Success', "data":{'auth': 'true', 'model': 'Mock-API'}, "message": "null"}
+
+@app.post("/api/verify")
+async def verify():
+    return {"status": 'Success', "data": None, "message": "Verify successfully"}
+
 
 if __name__ == "__main__":
     import uvicorn
