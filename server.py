@@ -37,9 +37,26 @@ add_routes(
 async def root():
     return {"message": "RAG Server is running. Visit /docs for API documentation or /rag/playground for playground."}
 
-@app.post("/api/chat")
-async def chat():
-    return {"status": 'Success', "data": {'id':"chat-1", 'role':"assistant", 'text': '这是来自模拟api的响应数据', 'dateTime': "1111111"}, "message": "Success"}
+@app.post("/api/chat-process")
+async def chat(request: dict):
+    question = request.get("input", "")
+    if not question:
+        return {"status": 'Error', "data": None, "message": "Question input is required"}
+    
+    try:
+        response = rag_chain.invoke(question)
+        return {
+            "status": 'Success', 
+            "data": {
+                'id': "chat-1", 
+                'role': "assistant", 
+                'text': response, 
+                'dateTime': "1111111"
+            }, 
+            "message": "Success"
+        }
+    except Exception as e:
+        return {"status": 'Error', "data": None, "message": str(e)}
 
 @app.post("/api/config")
 async def config():

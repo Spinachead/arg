@@ -43,7 +43,7 @@ def create_rag_chain():
         """兼容 LangServe 默认的字符串输入。"""
         if isinstance(question, dict):
             # 允许 /rag/playground 这类场景传递 {"input": "..."} 结构
-            question = question.get("prompt", "")
+            question = question.get("input", "")
         else:
             question = str(question)
             
