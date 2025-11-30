@@ -1,13 +1,14 @@
 # server.py
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, AsyncIterable
 import asyncio
 import json
-from rag_chain import create_rag_chain
+from rag_chain import create_rag_chain_with_memory
 from langserve import add_routes
 from fastapi.middleware.cors import CORSMiddleware
+from langchain_core.messages import HumanMessage
 
 # 确保 Ollama 正在运行！
 app = FastAPI(
@@ -33,7 +34,7 @@ class ChatProcessRequest(BaseModel):
     top_p: Optional[float] = 0.9
 
 # 创建 RAG Chain（首次会构建向量库）
-rag_chain = create_rag_chain()
+rag_chain = create_rag_chain_with_memory()
 
 # 挂载到 /rag 路径
 add_routes(
@@ -52,15 +53,22 @@ async def chat_process(request: ChatProcessRequest):
         return {"status": "Error", "data": None, "message": "Question input is required"}
     
     try:
-        # 直接调用 rag_chain 处理请求
-        response = rag_chain.invoke(request.prompt)
+        # 获取会话ID，用于记忆功能
+        session_id = request.options.get("sessionId", "default_session") if request.options else "default_session"
+        config = {"configurable": {"thread_id": session_id}}
+        
+        # 使用带记忆功能的 RAG 链处理请求
+        input_data = {
+            "messages": [HumanMessage(content=request.prompt)]
+        }
+        response = rag_chain.invoke(input_data, config=config)
         
         return {
             "status": "Success", 
             "data": {
                 "id": "chat-1", 
                 "role": "assistant", 
-                "text": response, 
+                "text": response["messages"][-1].content, 
                 "dateTime": "1111111"
             }, 
             "message": "Success"
@@ -81,15 +89,23 @@ async def chat_process_stream(request: ChatProcessRequest):
                 yield f"{json.dumps(error_data)}\n"
                 return
 
-            # 获取响应
-            response = rag_chain.invoke(request.prompt)
+            # 获取会话ID，用于记忆功能
+            session_id = request.options.get("sessionId", "default_session") if request.options else "default_session"
+            config = {"configurable": {"thread_id": session_id}}
+            
+            # 使用带记忆功能的 RAG 链处理请求
+            input_data = {
+                "messages": [HumanMessage(content=request.prompt)]
+            }
+            response = rag_chain.invoke(input_data, config=config)
+            result = response["messages"][-1].content
 
             # 流式输出，按字符逐个输出
-            for i, char in enumerate(response):
+            for i, char in enumerate(result):
                 chat_data = {
                     "id": "chat-1",
                     "role": "assistant",
-                    "text": response[:i + 1],
+                    "text": result[:i + 1],
                     "dateTime": "1111111"
                 }
                 yield f"{json.dumps(chat_data)}\n"

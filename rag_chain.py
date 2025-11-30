@@ -1,13 +1,28 @@
-# rag_chain.py（简化版）
+# rag_chain_with_memory.py
 import torch.cuda
 from pathlib import Path
+from typing import TypedDict, Annotated
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.chat_models import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+from langgraph.graph import StateGraph, START, END
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.graph.message import add_messages
 
-def create_rag_chain():
+
+# 定义状态结构（包含对话历史）
+class RagState(TypedDict):
+    messages: Annotated[list[BaseMessage], add_messages]  # 对话历史
+    context: str  # RAG检索到的文档
+    sources: str  # 文档来源
+    question: str  # 当前问题
+
+
+def create_rag_chain_with_memory():
+    # 初始化嵌入和向量库
     device = "cuda" if torch.cuda.is_available() else "cpu"
     embedding = HuggingFaceEmbeddings(
         model_name="BAAI/bge-small-zh-v1.5",
@@ -18,47 +33,113 @@ def create_rag_chain():
         persist_directory=persist_dir,
         embedding_function=embedding
     )
-    retriever = vectorstore.as_retriever(
-        search_kwargs={"k": 4}  # 返回最相关的 4 个片段
-    )
-
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
     llm = ChatOllama(model="qwen:1.8b", temperature=0.7)
 
-    template = """你是一个专业助手，请严格根据以下上下文回答问题。
-如果上下文没有相关信息，请回答“根据提供的资料无法回答”。
+    # 步骤1：检索相关文档
+    def retrieve_docs(state: RagState) -> RagState:
+        """从最后一条用户消息检索相关文档"""
+        # 获取最后一条用户消息作为查询
+        last_message = state["messages"][-1].content
+        docs = retriever.invoke(last_message)
+
+        # 格式化文档
+        sources = ", ".join(set(doc.metadata["source"] for doc in docs))
+        context = "\n\n".join(doc.page_content for doc in docs)
+
+        return {
+            "context": context,
+            "sources": sources,
+            "question": last_message,
+        }
+
+    # 步骤2：使用RAG提示调用LLM
+    def rag_response(state: RagState) -> RagState:
+        """基于检索内容和对话历史生成回复"""
+        template = """你是一个专业助手，请严格根据以下上下文回答问题。
+如果上下文没有相关信息，请回答"根据提供的资料无法回答"。
 
 上下文（来自 {sources}）：
 {context}
 
+对话历史：
+{history}
+
 问题：{question}
 """
-    prompt = ChatPromptTemplate.from_template(template)
 
-    def format_docs(docs):
-        sources = ", ".join(set(doc.metadata["source"] for doc in docs))
-        context = "\n\n".join(doc.page_content for doc in docs)
-        return context, sources
+        # 构建对话历史
+        history = "\n".join([
+            f"{msg.__class__.__name__}: {msg.content}"
+            for msg in state["messages"][:-1]  # 排除最后一条（当前问题）
+        ])
+        print(history)
 
-    def prepare_inputs(question: str):
-        """兼容 LangServe 默认的字符串输入。"""
-        if isinstance(question, dict):
-            # 允许 /rag/playground 这类场景传递 {"input": "..."} 结构
-            question = question.get("input", "")
-        else:
-            question = str(question)
-            
-        docs = retriever.invoke(question)
-        context, sources = format_docs(docs)
+        prompt = ChatPromptTemplate.from_template(template)
+        chain = prompt | llm | StrOutputParser()
+
+        response = chain.invoke({
+            "context": state["context"],
+            "sources": state["sources"],
+            "question": state["question"],
+            "history": history if history else "无"
+        })
+
+        # 将LLM响应添加到消息历史
         return {
-            "context": context,
-            "sources": sources,
-            "question": question
+            "messages": [AIMessage(content=response)],
+            "context": state["context"],
+            "sources": state["sources"],
+            "question": state["question"]
         }
 
-    rag_chain = (
-        prepare_inputs
-        | prompt
-        | llm
-        | StrOutputParser()
-    )
-    return rag_chain
+    # 构建LangGraph
+    builder = StateGraph(RagState)
+    builder.add_node("retrieve", retrieve_docs)
+    builder.add_node("respond", rag_response)
+
+    # 定义流程：START -> 检索 -> 响应 -> END
+    builder.add_edge(START, "retrieve")
+    builder.add_edge("retrieve", "respond")
+    builder.add_edge("respond", END)
+
+    # 添加内存checkpointer
+    checkpointer = InMemorySaver()
+    graph = builder.compile(checkpointer=checkpointer)
+
+    return graph
+
+
+# 向后兼容的函数名
+create_rag_chain = create_rag_chain_with_memory
+
+
+# 使用示例
+if __name__ == "__main__":
+    graph = create_rag_chain_with_memory()
+
+    # 配置线程ID（表示同一个对话会话）
+    config = {"configurable": {"thread_id": "user_123"}}
+
+    # 第一条消息
+    input1 = {
+        "messages": [HumanMessage(content="什么是机器学习？")]
+    }
+    result1 = graph.invoke(input1, config=config)
+    print("问题1:", input1["messages"][0].content)
+    print("回复1:", result1["messages"][-1].content)
+    print()
+
+    # 第二条消息（记忆仍然存在）
+    input2 = {
+        "messages": [HumanMessage(content="那深度学习呢？")]
+    }
+    result2 = graph.invoke(input2, config=config)
+    print("问题2:", input2["messages"][0].content)
+    print("回复2:", result2["messages"][-1].content)
+
+    # 验证历史记录
+    state = graph.get_state(config)
+    print("\n完整对话历史：")
+    for msg in state.values["messages"]:
+        print(f"  {msg.__class__.__name__}: {msg.content[:50]}...")
