@@ -2,13 +2,15 @@
 import torch.cuda
 from pathlib import Path
 from typing import TypedDict, Annotated
+
+from langchain.agents import create_agent
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.chat_models import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
-from langgraph.graph import StateGraph, START, END
+from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph.message import add_messages
 
@@ -21,7 +23,7 @@ class RagState(TypedDict):
     question: str  # 当前问题
 
 
-def create_rag_chain_with_memory():
+def create_rag_chain():
     # 初始化嵌入和向量库
     device = "cuda" if torch.cuda.is_available() else "cpu"
     embedding = HuggingFaceEmbeddings(
@@ -35,6 +37,11 @@ def create_rag_chain_with_memory():
     )
     retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
     llm = ChatOllama(model="qwen:1.8b", temperature=0.7)
+    checkpointer = InMemorySaver()
+    agent = create_agent(
+        model=llm,
+        checkpointer=checkpointer,
+    )
 
     # 步骤1：检索相关文档
     def retrieve_docs(state: RagState) -> RagState:
@@ -76,7 +83,7 @@ def create_rag_chain_with_memory():
         print(history)
 
         prompt = ChatPromptTemplate.from_template(template)
-        chain = prompt | llm | StrOutputParser()
+        chain = prompt | agent | StrOutputParser()
 
         response = chain.invoke({
             "context": state["context"],
@@ -93,53 +100,33 @@ def create_rag_chain_with_memory():
             "question": state["question"]
         }
 
-    # 构建LangGraph
-    builder = StateGraph(RagState)
-    builder.add_node("retrieve", retrieve_docs)
-    builder.add_node("respond", rag_response)
-
-    # 定义流程：START -> 检索 -> 响应 -> END
-    builder.add_edge(START, "retrieve")
-    builder.add_edge("retrieve", "respond")
-    builder.add_edge("respond", END)
-
-    # 添加内存checkpointer
-    checkpointer = InMemorySaver()
-    graph = builder.compile(checkpointer=checkpointer)
-
-    return graph
-
-
-# 向后兼容的函数名
-create_rag_chain = create_rag_chain_with_memory
+    return agent
 
 
 # 使用示例
 if __name__ == "__main__":
-    graph = create_rag_chain_with_memory()
-
+    agent = create_rag_chain()
     # 配置线程ID（表示同一个对话会话）
-    config = {"configurable": {"thread_id": "user_123"}}
+    config = RunnableConfig({"configurable": {"thread_id": "user_123"}})
 
     # 第一条消息
     input1 = {
-        "messages": [HumanMessage(content="什么是机器学习？")]
+        "messages": [HumanMessage(content="我的名字叫Bob？")]
     }
-    result1 = graph.invoke(input1, config=config)
+    result1 = agent.invoke(input1, config=config)
     print("问题1:", input1["messages"][0].content)
     print("回复1:", result1["messages"][-1].content)
     print()
 
     # 第二条消息（记忆仍然存在）
     input2 = {
-        "messages": [HumanMessage(content="那深度学习呢？")]
+        "messages": [HumanMessage(content="我今年12岁了？")]
     }
-    result2 = graph.invoke(input2, config=config)
+    result2 = agent.invoke(input2, config=config)
     print("问题2:", input2["messages"][0].content)
     print("回复2:", result2["messages"][-1].content)
 
-    # 验证历史记录
-    state = graph.get_state(config)
-    print("\n完整对话历史：")
-    for msg in state.values["messages"]:
-        print(f"  {msg.__class__.__name__}: {msg.content[:50]}...")
+
+    final_response = agent.invoke({"messages": [HumanMessage(content="你知道我的名字吗,只说出名字就好")]}, config)
+
+    final_response["messages"][-1].pretty_print()
