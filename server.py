@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any, AsyncIterable
 import asyncio
 import json
-from rag_chain import create_rag_chain_with_memory
+from rag_chain import create_rag_graph
 from langserve import add_routes
 from fastapi.middleware.cors import CORSMiddleware
 from langchain_core.messages import HumanMessage
@@ -34,7 +34,7 @@ class ChatProcessRequest(BaseModel):
     top_p: Optional[float] = 0.9
 
 # 创建 RAG Chain（首次会构建向量库）
-rag_chain = create_rag_chain_with_memory()
+rag_chain = create_rag_graph()
 
 # 挂载到 /rag 路径
 add_routes(

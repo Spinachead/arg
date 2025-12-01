@@ -1,30 +1,30 @@
-# rag_chain_with_memory.py
-import torch.cuda
+from typing import Literal
 from pathlib import Path
-from typing import TypedDict, Annotated
+import torch.cuda
 
-from langchain.agents import create_agent
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.chat_models import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
-from langchain_core.runnables import RunnableConfig
+from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph.message import add_messages
+from typing_extensions import TypedDict, Annotated
 
 
-# 定义状态结构（包含对话历史）
+
+# 定义状态结构
 class RagState(TypedDict):
-    messages: Annotated[list[BaseMessage], add_messages]  # 对话历史
-    context: str  # RAG检索到的文档
-    sources: str  # 文档来源
-    question: str  # 当前问题
+    messages: Annotated[list[BaseMessage], add_messages]
+    context: str
+    sources: str
+    question: str
 
 
-def create_rag_chain():
-    # 初始化嵌入和向量库
+def create_rag_graph():
+    # 初始化
     device = "cuda" if torch.cuda.is_available() else "cpu"
     embedding = HuggingFaceEmbeddings(
         model_name="BAAI/bge-small-zh-v1.5",
@@ -37,21 +37,15 @@ def create_rag_chain():
     )
     retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
     llm = ChatOllama(model="qwen:1.8b", temperature=0.7)
-    checkpointer = InMemorySaver()
-    agent = create_agent(
-        model=llm,
-        checkpointer=checkpointer,
-    )
 
-    # 步骤1：检索相关文档
+    # 节点1：检索相关文档
     def retrieve_docs(state: RagState) -> RagState:
         """从最后一条用户消息检索相关文档"""
-        # 获取最后一条用户消息作为查询
         last_message = state["messages"][-1].content
         docs = retriever.invoke(last_message)
 
         # 格式化文档
-        sources = ", ".join(set(doc.metadata["source"] for doc in docs))
+        sources = ", ".join(set(doc.metadata.get("source", "未知") for doc in docs))
         context = "\n\n".join(doc.page_content for doc in docs)
 
         return {
@@ -60,9 +54,9 @@ def create_rag_chain():
             "question": last_message,
         }
 
-    # 步骤2：使用RAG提示调用LLM
+    # 节点2：生成回复
     def rag_response(state: RagState) -> RagState:
-        """基于检索内容和对话历史生成回复"""
+        """基于检索内容生成回复"""
         template = """你是一个专业助手，请严格根据以下上下文回答问题。
 如果上下文没有相关信息，请回答"根据提供的资料无法回答"。
 
@@ -75,15 +69,14 @@ def create_rag_chain():
 问题：{question}
 """
 
-        # 构建对话历史
+        # 构建对话历史（排除当前问题）
         history = "\n".join([
             f"{msg.__class__.__name__}: {msg.content}"
-            for msg in state["messages"][:-1]  # 排除最后一条（当前问题）
+            for msg in state["messages"][:-1]
         ])
-        print(history)
 
         prompt = ChatPromptTemplate.from_template(template)
-        chain = prompt | agent | StrOutputParser()
+        chain = prompt | llm | StrOutputParser()
 
         response = chain.invoke({
             "context": state["context"],
@@ -92,41 +85,55 @@ def create_rag_chain():
             "history": history if history else "无"
         })
 
-        # 将LLM响应添加到消息历史
+        # 返回状态更新：新增 AI 消息
         return {
             "messages": [AIMessage(content=response)],
-            "context": state["context"],
-            "sources": state["sources"],
-            "question": state["question"]
         }
 
-    return agent
+    # 构建图
+    builder = StateGraph(RagState)
+    builder.add_node("retrieve_docs", retrieve_docs)
+    builder.add_node("rag_response", rag_response)
+
+    # 定义流程
+    builder.add_edge(START, "retrieve_docs")
+    builder.add_edge("retrieve_docs", "rag_response")
+    builder.add_edge("rag_response", END)
+
+    # 编译图并配置检查点
+    checkpointer = InMemorySaver()
+    graph = builder.compile(checkpointer=checkpointer)
+
+    return graph
 
 
 # 使用示例
 if __name__ == "__main__":
-    agent = create_rag_chain()
-    # 配置线程ID（表示同一个对话会话）
-    config = RunnableConfig({"configurable": {"thread_id": "user_123"}})
+    graph = create_rag_graph()
+    config = {"configurable": {"thread_id": "user_123"}}
 
     # 第一条消息
-    input1 = {
-        "messages": [HumanMessage(content="我的名字叫Bob？")]
-    }
-    result1 = agent.invoke(input1, config=config)
-    print("问题1:", input1["messages"][0].content)
+    result1 = graph.invoke(
+        {"messages": [HumanMessage(content="我的名字叫姜波")]},
+        config=config
+    )
+    print("问题1:", result1["messages"][-2].content)
     print("回复1:", result1["messages"][-1].content)
     print()
 
-    # 第二条消息（记忆仍然存在）
-    input2 = {
-        "messages": [HumanMessage(content="我今年12岁了？")]
-    }
-    result2 = agent.invoke(input2, config=config)
-    print("问题2:", input2["messages"][0].content)
+    # 第二条消息 - 自动包含历史
+    result2 = graph.invoke(
+        {"messages": [HumanMessage(content="我今年12岁了")]},
+        config=config
+    )
+    print("问题2:", result2["messages"][-2].content)
     print("回复2:", result2["messages"][-1].content)
+    print()
 
-
-    final_response = agent.invoke({"messages": [HumanMessage(content="你知道我的名字吗,只说出名字就好")]}, config)
-
-    final_response["messages"][-1].pretty_print()
+    # 第三条消息
+    result3 = graph.invoke(
+        {"messages": [HumanMessage(content="说出我今年多大了叫什么名字，只说我的名字和年龄不要说其他的")]},
+        config=config
+    )
+    print("问题3:", result3["messages"][-2].content)
+    result3["messages"][-1].pretty_print()
