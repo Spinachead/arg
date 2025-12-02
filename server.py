@@ -1,5 +1,6 @@
 # server.py
 import pprint
+from datetime import datetime
 
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
@@ -78,52 +79,6 @@ async def chat_process(request: ChatProcessRequest):
     except Exception as e:
         return {"status": "Error", "data": None, "message": str(e)}
 
-# @app.post("/api/chat-process")
-# async def chat_process_stream(request: ChatProcessRequest):
-#     async def generate_response() -> AsyncIterable[str]:
-#         try:
-#             if not request.prompt:
-#                 error_data = {
-#                     'status': 'Error',
-#                     'data': None,
-#                     'message': 'Question input is required'
-#                 }
-#                 yield f"{json.dumps(error_data)}\n"
-#                 return
-#
-#             # 获取会话ID，用于记忆功能
-#             session_id = request.options.get("sessionId", "default_session") if request.options else "default_session"
-#             config = {"configurable": {"thread_id": session_id}}
-#
-#             # 使用带记忆功能的 RAG 链处理请求
-#             input_data = {
-#                 "messages": [HumanMessage(content=request.prompt)]
-#             }
-#             response = rag_chain.invoke(input_data, config=config)
-#             result = response["messages"][-1].content
-#
-#             # 流式输出，按字符逐个输出
-#             for i, char in enumerate(result):
-#                 chat_data = {
-#                     "id": "chat-1",
-#                     "role": "assistant",
-#                     "text": result[:i + 1],
-#                     "dateTime": "1111111"
-#                 }
-#                 yield f"{json.dumps(chat_data)}\n"
-#                 await asyncio.sleep(0.01)  # 控制输出速度
-#
-#         except Exception as e:
-#             error_data = {
-#                 'status': 'Error',
-#                 'data': None,
-#                 'message': str(e)
-#             }
-#             yield f"{json.dumps(error_data)}\n"
-#
-#     return StreamingResponse(generate_response(), media_type="text/event-stream")
-
-
 @app.post("/api/chat-process")
 async def chat_process_stream(request: ChatProcessRequest):
     async def generate_response() -> AsyncIterable[str]:
@@ -145,62 +100,110 @@ async def chat_process_stream(request: ChatProcessRequest):
             input_data = {
                 "messages": [HumanMessage(content=request.prompt)]
             }
-            print(input_data)
+            response = rag_chain.invoke(input_data, config=config)
+            result = response["messages"][-1].content
 
-            # 使用 stream 方法进行真正的流式输出
-            accumulated_content = ""
-            full_response = ""
+            # 流式输出，按字符逐个输出
+            for i, char in enumerate(result):
+                chat_data = {
+                    "id": "chat-1",
+                    "role": "assistant",
+                    "text": result[:i + 1],
+                    "dateTime": "1111111"
+                }
+                yield f"{json.dumps(chat_data)}\n"
+                await asyncio.sleep(0.01)  # 控制输出速度
+
+        except Exception as e:
+            error_data = {
+                'status': 'Error',
+                'data': None,
+                'message': str(e)
+            }
+            yield f"{json.dumps(error_data)}\n"
+
+    return StreamingResponse(generate_response(), media_type="text/event-stream")
+
+
+@app.post("/api/chat-process2")
+async def chat_process_stream(request: ChatProcessRequest):
+    async def generate_response() -> AsyncIterable[str]:
+        try:
+            if not request.prompt:
+                error_data = {
+                    'status': 'Error',
+                    'data': None,
+                    'message': 'Question input is required'
+                }
+                yield f"{json.dumps(error_data)}\n"
+                return
+
+            # 获取会话ID，用于记忆功能
+            session_id = request.options.get("sessionId", "default_session") if request.options else "default_session"
+            config = {"configurable": {"thread_id": session_id}}
+
+            # 使用带记忆功能的 RAG 链处理请求
+            input_data = {
+                "messages": [HumanMessage(content=request.prompt)]
+            }
             
-            # 处理流式响应
-            for chunk in rag_chain.stream(input_data, config=config):
-                print("chunk", chunk)
-                # 检查chunk是否包含消息
-                if isinstance(chunk, dict) and "messages" in chunk:
-                    if chunk["messages"]:
-                        latest_message = chunk["messages"][-1]
-                        if hasattr(latest_message, 'content'):
-                            new_content = latest_message.content
-                            delta = new_content[len(accumulated_content):]
-                            if delta:
-                                accumulated_content = new_content
-                                chat_data = {
-                                    "id": "chat-1",
-                                    "role": "assistant",
-                                    "text": accumulated_content,
-                                    "dateTime": "1111111"
-                                }
-                                yield f"{json.dumps(chat_data)}\n"
-                elif isinstance(chunk, dict):
-                    # 处理嵌套结构的chunk（如 {'rag_response': {'messages': [...]}}）
-                    for key, value in chunk.items():
-                        if isinstance(value, dict) and "messages" in value:
-                            if value["messages"]:
-                                latest_message = value["messages"][-1]
-                                if hasattr(latest_message, 'content'):
-                                    new_content = latest_message.content
-                                    delta = new_content[len(full_response):]
-                                    if delta:
-                                        full_response = new_content
-                                        chat_data = {
-                                            "id": "chat-1",
-                                            "role": "assistant",
-                                            "text": full_response,
-                                            "dateTime": "1111111"
-                                        }
-                                        yield f"{json.dumps(chat_data)}\n"
-                        elif hasattr(value, 'content'):
-                            print("执行到这里")
-                            new_content = value.content
-                            delta = new_content[len(full_response):]
-                            if delta:
-                                full_response = new_content
-                                chat_data = {
-                                    "id": "chat-1",
-                                    "role": "assistant",
-                                    "text": full_response,
-                                    "dateTime": "1111111"
-                                }
-                                yield f"{json.dumps(chat_data)}\n"
+            # 使用真正的流式方法
+            full_content = ""
+            for chunk in rag_chain.stream(input_data, config=config, stream_mode="messages"):
+                # chunk 是一个元组 (step, data)
+                if isinstance(chunk, tuple) and len(chunk) == 2:
+                    step, data = chunk
+                else:
+                    # 兼容不同的返回格式
+                    data = chunk
+                    
+                # 根据实际返回的数据结构调整访问方式
+                content = ""
+                if isinstance(data, dict):
+                    if "messages" in data and len(data["messages"]) > 0:
+                        # 如果是消息列表，获取最后一个消息的内容
+                        message = data["messages"][-1]
+                        content = getattr(message, 'content', str(message))
+                    elif "content" in data:
+                        # 如果直接包含content字段
+                        content = data["content"]
+                
+                # 如果有新内容，则处理并发送
+                if content and content != full_content:
+                    # 获取新增的内容
+                    new_content = content[len(full_content):]
+                    full_content = content
+                    
+                    # 逐字符发送新增内容，实现打字机效果
+                    for char in new_content:
+                        chat_data = {
+                            "id": "chat-1",
+                            "conversationId": session_id,
+                            "text": full_content[:len(full_content)-len(new_content)+1],
+                            "dateTime": datetime.now().isoformat(),
+                            "detail": {
+                                "choices": [{
+                                    "finish_reason": None
+                                }]
+                            }
+                        }
+                        yield f"{json.dumps(chat_data)}\n"
+                        await asyncio.sleep(0.01)  # 控制打字机效果的速度
+
+            # 发送最终完成的消息
+            if full_content:
+                chat_data = {
+                    "id": "chat-1",
+                    "conversationId": session_id,
+                    "text": full_content,
+                    "dateTime": datetime.now().isoformat(),
+                    "detail": {
+                        "choices": [{
+                            "finish_reason": "stop"
+                        }]
+                    }
+                }
+                yield f"{json.dumps(chat_data)}\n"
 
         except Exception as e:
             error_data = {
@@ -222,7 +225,8 @@ async def session():
     return {"status": 'Success', "data":{'auth': 'true', 'model': 'Mock-API'}, "message": "null"}
 
 @app.post("/api/verify")
-async def verify():
+async def verify(req):
+    token = req.body
     return {"status": 'Success', "data": None, "message": "Verify successfully"}
 
 
