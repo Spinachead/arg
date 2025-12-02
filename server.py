@@ -12,6 +12,8 @@ from rag_chain import create_rag_graph
 from langserve import add_routes
 from fastapi.middleware.cors import CORSMiddleware
 from langchain_core.messages import HumanMessage
+from dotenv import load_dotenv
+load_dotenv()
 
 # 确保 Ollama 正在运行！
 app = FastAPI(
@@ -225,9 +227,22 @@ async def session():
     return {"status": 'Success', "data":{'auth': 'true', 'model': 'Mock-API'}, "message": "null"}
 
 @app.post("/api/verify")
-async def verify(req):
-    token = req.body
-    return {"status": 'Success', "data": None, "message": "Verify successfully"}
+async def verify(req: Request):
+    try:
+        body = await req.json()
+        token = body.get("token")
+        
+        if not token:
+            raise ValueError('Secret key is empty')
+
+        import os
+        auth_secret_key = os.getenv("AUTH_SECRET_KEY")
+        if auth_secret_key != token:
+            raise ValueError('密钥无效 | Secret key is invalid')
+
+        return {"status": 'Success', "message": "Verify successfully", "data": None}
+    except Exception as e:
+        return {"status": 'Fail', "message": str(e), "data": None}
 
 
 if __name__ == "__main__":
