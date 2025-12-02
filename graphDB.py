@@ -6,13 +6,18 @@ from langgraph.store.postgres import PostgresStore
 from langgraph.store.base import BaseStore
 from dotenv import load_dotenv
 import os
+import uuid
+from langchain_community.chat_models import ChatOllama
+
 load_dotenv()
 
 DB_URI = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}?sslmode=disable"
 
 print(DB_URI)
 
-model = init_chat_model(model="claude-haiku-4-5-20251001")
+# model = init_chat_model(model="claude-haiku-4-5-20251001")
+# model = init_chat_model(model="qwen:1.8b", base_url="http://localhost:11434", provider="ollama")
+model = ChatOllama(model="qwen:1.8b", temperature=0.7)
 
 # DB_URI = "postgresql://postgres:postgres@localhost:5442/postgres?sslmode=disable"
 
@@ -20,8 +25,8 @@ with (
     PostgresStore.from_conn_string(DB_URI) as store,
     PostgresSaver.from_conn_string(DB_URI) as checkpointer,
 ):
-    store.setup()
-    checkpointer.setup()
+    # store.setup()
+    # checkpointer.setup()
 
     def call_model(
         state: MessagesState,
