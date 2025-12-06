@@ -14,7 +14,7 @@ from typing_extensions import Literal
 from langchain_chatchat.agents.output_parsers import StructuredGLM3ChatOutputParser, QwenChatAgentOutputParserCustom
 from langchain_chatchat.agents.output_parsers.platform_knowledge_output_parsers import \
     PlatformKnowledgeOutputParserCustom
-from langchain_chatchat.agents.output_parsers.structured_chat_output_parsers import StructuredChatOutputParserLC
+# from langchain_chatchat.agents.output_parsers.structured_chat_output_parsers import StructuredChatOutputParserLC
 from langchain_chatchat.agents.output_parsers.tools_output.code_interpreter import (
     CodeInterpreterAgentAction,
 )

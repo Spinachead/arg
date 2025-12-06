@@ -17,8 +17,7 @@ from typing import (
 )
 import os
 import sys
-from langchain import hub
-from langchain.agents import AgentExecutor
+from langchain_classic.agents import AgentExecutor
 from langchain_core.agents import AgentAction
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.language_models import BaseLanguageModel
