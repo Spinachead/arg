@@ -2,19 +2,21 @@
 import pprint
 from datetime import datetime
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, File, Form
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import Optional, Dict, Any, AsyncIterable
+from typing import Optional, Dict, Any, AsyncIterable, List
 import asyncio
 import json
+from scripts.regsetup import description
+from starlette.datastructures import UploadFile
 from rag_chain import create_rag_graph
 from langserve import add_routes
 from fastapi.middleware.cors import CORSMiddleware
 from langchain_core.messages import HumanMessage
 from dotenv import load_dotenv
 import os
-
+from utils import validate_kb_name
 load_dotenv()
 
 # 导入 is_not_empty_string 函数
@@ -267,6 +269,33 @@ async def verify(req: Request):
         return {"status": 'Success', "message": "Verify successfully", "data": None}
     except Exception as e:
         return {"status": 'Fail', "message": str(e), "data": None}
+
+@app.post("/api/uploadDocs")
+async def upload_docs(
+        files: List[UploadFile] = File(..., description="上传文件"),
+        knowledge_base_name: str = Form(
+            ..., description="知识库名称", examples=["samples"]
+        ),
+        override: bool = Form(False, description="覆盖已有文件"),
+        to_vector_store: bool = Form(True, description="上传文件后是否进行向量化"),
+        chunk_size: int = Form(750, description="知识库中单段文本最大长度"),
+        chunk_overlap: int = Form(150, description="知识库中相邻文本重合长度"),
+        zh_title_enhance: bool = Form(False, description="是否开启中文标题加强"),
+        docs: str = Form("", description="自定义的docs，需要转为json字符串"),
+        not_refresh_vs_cache: bool = Form(False, description="暂不保存向量库（用于FAISS）"),
+
+):
+    try:
+        if not validate_kb_name(knowledge_base_name):
+            return {"status": 'Fail', "message": "知识库名称不合法", "data": None}
+
+        kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
+
+        pass
+    except Exception as e:
+        return {"status": 'Fail', "message": str(e), "data": None}
+
+
 
 
 if __name__ == "__main__":
