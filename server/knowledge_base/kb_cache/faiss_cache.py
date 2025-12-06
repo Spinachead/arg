@@ -1,7 +1,7 @@
 import os
 
-from langchain.docstore.in_memory import InMemoryDocstore
-from langchain.schema import Document
+from langchain_community.docstore.in_memory import InMemoryDocstore
+from langchain_core.documents import Document
 from langchain.vectorstores.faiss import FAISS
 
 from settings import Settings

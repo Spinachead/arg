@@ -281,7 +281,7 @@ def make_text_splitter(splitter_name, chunk_size, chunk_overlap):
                     Settings.kb_settings.text_splitter_dict[splitter_name]["tokenizer_name_or_path"]
                     == "gpt2"
                 ):
-                    from langchain.text_splitter import CharacterTextSplitter
+                    from langchain_text_splitters import CharacterTextSplitter
                     from transformers import GPT2TokenizerFast
 
                     tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")

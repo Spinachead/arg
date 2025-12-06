@@ -10,11 +10,8 @@ from typing import Any, List, Sequence, Tuple, Union
 from langchain.agents.agent import AgentExecutor, RunnableAgent
 from langchain.agents.output_parsers import ToolsAgentOutputParser
 from langchain.agents.structured_chat.output_parser import StructuredChatOutputParser
-from langchain.prompts.chat import BaseChatPromptTemplate
-from langchain.schema import (
-    AgentAction,
-    AgentFinish
-)
+from langchain_core.prompts import BaseChatPromptTemplate
+from langchain_core.agents import AgentAction, AgentFinish
 from langchain_chatchat.utils.try_parse_json_object import try_parse_json_object
 
 logger = logging.getLogger()

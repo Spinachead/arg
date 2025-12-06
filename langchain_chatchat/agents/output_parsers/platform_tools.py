@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
 from typing import List, Union
 
-from langchain.agents.agent import MultiActionAgentOutputParser, AgentOutputParser
-from langchain.agents.output_parsers.tools import ToolAgentAction
+from langchain_core.agents import AgentAction, AgentFinish
+from langchain_core.agents.output_parsers import MultiActionAgentOutputParser, AgentOutputParser
+from langchain_core.agents.output_parsers.tools import ToolAgentAction
 from langchain.agents.structured_chat.output_parser import StructuredChatOutputParser
 from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.messages import BaseMessage
 from langchain_core.outputs import ChatGeneration, Generation
+from pydantic.v1 import Field
 
-from server.pydantic_v1 import Field, model_schema, typing
+from server.pydantic_v1 import model_schema, typing
 from typing_extensions import Literal
 
 from langchain_chatchat.agents.output_parsers import StructuredGLM3ChatOutputParser, QwenChatAgentOutputParserCustom
 from langchain_chatchat.agents.output_parsers.platform_knowledge_output_parsers import \
     PlatformKnowledgeOutputParserCustom
-# from langchain_chatchat.agents.output_parsers.structured_chat_output_parsers import StructuredChatOutputParserLC
+from langchain_chatchat.agents.output_parsers.structured_chat_output_parsers import StructuredChatOutputParserLC
 from langchain_chatchat.agents.output_parsers.tools_output.code_interpreter import (
     CodeInterpreterAgentAction,
 )

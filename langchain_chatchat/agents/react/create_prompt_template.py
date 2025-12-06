@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import langchain_core.messages
 import langchain_core.prompts
-from langchain.prompts.chat import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 
-from server.pydantic_v1 import Field, model_schema, typing
+from server.pydantic_v1 import model_schema, typing
 
 
 def create_prompt_glm3_template(model_name: str, template: dict):

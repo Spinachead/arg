@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Tuple
 
 import chromadb
 from chromadb.api.types import GetResult, QueryResult
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 from langchain_chroma import Chroma
 
 from settings import Settings

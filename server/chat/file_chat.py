@@ -6,9 +6,11 @@ from typing import AsyncIterable, List, Optional
 
 import nest_asyncio
 from fastapi import Body, File, Form, UploadFile
-from langchain.callbacks import AsyncIteratorCallbackHandler
-from langchain.chains import LLMChain
-from langchain.prompts.chat import ChatPromptTemplate
+try:
+    from langchain_core.callbacks.streaming_stdout import AsyncIteratorCallbackHandler
+except ImportError:
+    from langchain.callbacks import AsyncIteratorCallbackHandler
+from langchain_core.prompts import ChatPromptTemplate
 from sse_starlette.sse import EventSourceResponse
 
 from settings import Settings
@@ -196,12 +198,12 @@ async def file_chat(
                 [i.to_msg_template() for i in history] + [input_msg]
             )
 
-            chain = LLMChain(prompt=chat_prompt, llm=model)
+            chain = chat_prompt | model
 
             # Begin a task that runs in the background.
             task = asyncio.create_task(
                 wrap_done(
-                    chain.acall({"context": context, "question": query}), callback.done
+                    chain.ainvoke({"context": context, "question": query}), callback.done
                 ),
             )
 

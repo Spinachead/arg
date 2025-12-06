@@ -7,7 +7,7 @@ import sys, os
 
 from fastapi import Body, File, Form, Query, UploadFile
 from fastapi.responses import FileResponse
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 from sse_starlette import EventSourceResponse
 
 from settings import Settings

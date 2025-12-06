@@ -1,5 +1,5 @@
 from langchain_core.runnables import RunnableConfig
-from langchain.chat_models import init_chat_model
+from langchain_community.chat_models import ChatOllama
 from langgraph.graph import StateGraph, MessagesState, START
 from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.store.postgres import PostgresStore
@@ -15,8 +15,6 @@ DB_URI = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.ge
 
 print(DB_URI)
 
-# model = init_chat_model(model="claude-haiku-4-5-20251001")
-# model = init_chat_model(model="qwen:1.8b", base_url="http://localhost:11434", provider="ollama")
 model = ChatOllama(model="qwen:1.8b", temperature=0.7)
 
 # DB_URI = "postgresql://postgres:postgres@localhost:5442/postgres?sslmode=disable"

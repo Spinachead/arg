@@ -2,9 +2,11 @@ import asyncio
 from typing import AsyncIterable, Optional
 
 from fastapi import Body
-from langchain.callbacks import AsyncIteratorCallbackHandler
-from langchain.chains import LLMChain
-from langchain.prompts import PromptTemplate
+try:
+    from langchain_core.callbacks.streaming_stdout import AsyncIteratorCallbackHandler
+except ImportError:
+    from langchain.callbacks import AsyncIteratorCallbackHandler
+from langchain_core.prompts import PromptTemplate
 from sse_starlette.sse import EventSourceResponse
 
 from server.utils import get_OpenAI, get_prompt_template, wrap_done, build_logger
@@ -51,11 +53,11 @@ async def completion(
 
             prompt_template = get_prompt_template("llm_model", prompt_name)
             prompt = PromptTemplate.from_template(prompt_template, template_format="jinja2")
-            chain = LLMChain(prompt=prompt, llm=model)
+            chain = prompt | model
 
             # Begin a task that runs in the background.
             task = asyncio.create_task(
-                wrap_done(chain.acall({"input": query}), callback.done),
+                wrap_done(chain.ainvoke({"input": query}), callback.done),
             )
 
             if stream:

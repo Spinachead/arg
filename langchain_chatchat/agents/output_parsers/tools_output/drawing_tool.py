@@ -3,7 +3,7 @@ import logging
 from collections import deque
 from typing import Deque, List, Union
 
-from langchain.agents.output_parsers.tools import ToolAgentAction
+from langchain_core.agents.output_parsers.tools import ToolAgentAction
 from langchain_core.exceptions import OutputParserException
 from langchain_core.messages import (
     BaseMessage,

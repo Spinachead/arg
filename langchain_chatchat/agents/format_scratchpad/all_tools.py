@@ -2,7 +2,7 @@
 import json
 from typing import List, Sequence, Tuple, Union
 
-from langchain.agents.output_parsers.tools import ToolAgentAction
+from langchain_core.agents.output_parsers.tools import ToolAgentAction
 from langchain_core.agents import AgentAction
 from langchain_core.messages import (
     AIMessage,

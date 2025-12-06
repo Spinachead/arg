@@ -5,7 +5,7 @@ import logging
 import re
 from typing import Any, Dict, List, Union
 
-from langchain.agents import create_agent
+# from langchain.agents import create_agent  # 在 langchain 1.0 中，create_agent 可能已移动或改名
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.tools import tool
 from pydantic.v1 import BaseModel, Field

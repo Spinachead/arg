@@ -1,7 +1,7 @@
 import os
 from typing import Dict, List, Optional
 
-from langchain.schema import Document
+from langchain_core.documents import Document
 from langchain.vectorstores.milvus import Milvus
 
 from settings import Settings

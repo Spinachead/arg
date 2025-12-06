@@ -1,7 +1,7 @@
 from typing import Dict, List
 
 from configs import kbs_config
-from langchain.schema import Document
+from langchain_core.documents import Document
 from langchain_community.vectorstores.pgvecto_rs import PGVecto_rs
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session

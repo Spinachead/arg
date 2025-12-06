@@ -3,10 +3,11 @@ import logging
 import re
 from typing import Optional, Sequence, Union, List, Dict, Any
 
-from langchain.prompts.chat import ChatPromptTemplate
-from langchain.schema import AgentAction, AgentFinish, OutputParserException
-from langchain.schema.language_model import BaseLanguageModel
-from langchain.tools.base import BaseTool
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.agents import AgentAction, AgentFinish
+from langchain_core.exceptions import OutputParserException
+from langchain_core.language_models import BaseLanguageModel
+from langchain_core.tools import BaseTool
 from langchain_core.runnables import Runnable, RunnablePassthrough
 from langchain_core.tools import ToolsRenderer
 

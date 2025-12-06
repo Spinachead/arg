@@ -7,8 +7,13 @@ from typing import AsyncIterable, List, Optional, Literal
 from fastapi import Body, Request
 from fastapi.concurrency import run_in_threadpool
 from sse_starlette.sse import EventSourceResponse
-from langchain.callbacks import AsyncIteratorCallbackHandler
-from langchain.prompts.chat import ChatPromptTemplate
+from langchain_core.callbacks import AsyncCallbackHandler
+try:
+    from langchain_core.callbacks.streaming_stdout import AsyncIteratorCallbackHandler
+except ImportError:
+    # 如果 langchain 1.0 中路径不同，尝试其他路径
+    from langchain.callbacks import AsyncIteratorCallbackHandler
+from langchain_core.prompts import ChatPromptTemplate
 
 
 from settings import Settings

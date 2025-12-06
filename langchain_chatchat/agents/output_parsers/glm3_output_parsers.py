@@ -8,7 +8,7 @@ import re
 from typing import Dict, Any
 # from pydantic_v1 import BaseModel, Field
 
-from langchain.agents import create_agent
+# from langchain.agents import create_agent  # 在 langchain 1.0 中，create_agent 可能已移动或改名
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage
 from pydantic.v1 import BaseModel, Field

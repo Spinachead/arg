@@ -3,7 +3,7 @@ import shutil
 from abc import ABC, abstractmethod
 from typing import List
 
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 
 from settings import Settings
 from server.utils import get_default_embedding

@@ -1,7 +1,7 @@
 from typing import List
 
 from langchain.embeddings.base import Embeddings
-from langchain.schema import Document
+from langchain_core.documents import Document
 
 from server.knowledge_base.kb_service.base import KBService
 

@@ -22,7 +22,7 @@ from typing import (
 import httpx
 import openai
 from fastapi import FastAPI
-from langchain.tools import BaseTool
+from langchain_core.tools import BaseTool
 from langchain_core.embeddings import Embeddings
 from langchain_openai.chat_models import ChatOpenAI
 from langchain_openai.llms import OpenAI

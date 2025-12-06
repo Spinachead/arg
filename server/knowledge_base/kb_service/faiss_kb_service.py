@@ -2,7 +2,7 @@ import os
 import shutil
 from typing import Dict, List, Tuple
 
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 
 from settings import Settings
 from server.file_rag.utils import get_Retriever
