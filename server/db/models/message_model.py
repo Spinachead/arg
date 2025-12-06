@@ -1,6 +1,6 @@
 from sqlalchemy import JSON, Column, DateTime, Integer, String, func
 
-from chatchat.server.db.base import Base
+from server.db.base import Base
 
 
 class MessageModel(Base):

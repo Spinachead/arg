@@ -4,36 +4,36 @@ from typing import List, Literal
 
 from dateutil.parser import parse
 
-from chatchat.settings import Settings
-from chatchat.server.db.base import Base, engine
-from chatchat.server.db.models.conversation_model import ConversationModel
-from chatchat.server.db.models.message_model import MessageModel
-from chatchat.server.db.repository.knowledge_file_repository import (
+from settings import Settings
+from server.db.base import Base, engine
+from server.db.models.conversation_model import ConversationModel
+from server.db.models.message_model import MessageModel
+from server.db.repository.knowledge_file_repository import (
     add_file_to_db,
 )
 
 # ensure Models are imported
-from chatchat.server.db.repository.knowledge_metadata_repository import (
+from server.db.repository.knowledge_metadata_repository import (
     add_summary_to_db,
 )
 # ensure Models are imported
-from chatchat.server.db.repository.mcp_connection_repository import (
+from server.db.repository.mcp_connection_repository import (
     create_mcp_profile,
 )
-from chatchat.server.db.session import session_scope
-from chatchat.server.knowledge_base.kb_service.base import (
+from server.db.session import session_scope
+from server.knowledge_base.kb_service.base import (
     KBServiceFactory,
     SupportedVSType,
 )
-from chatchat.server.knowledge_base.utils import (
+from server.knowledge_base.utils import (
     KnowledgeFile,
     files2docs_in_thread,
     get_file_path,
     list_files_from_folder,
     list_kbs_from_folder,
 )
-from chatchat.utils import build_logger
-from chatchat.server.utils import get_default_embedding
+from utils import build_logger
+from server.utils import get_default_embedding
 
 
 logger = build_logger()

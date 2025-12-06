@@ -34,3 +34,39 @@
 2025-12-06 21:00:28.388 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
 2025-12-06 21:00:28.389 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
 2025-12-06 21:00:28.392 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:19:33.716 | WARNING  | server.utils:detect_xf_models:105 - auto_detect_model needs xinference-client installed. Please try "pip install xinference-client". 
+2025-12-06 21:19:33.717 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:19:33.717 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:19:33.721 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:20:28.043 | WARNING  | server.utils:detect_xf_models:105 - auto_detect_model needs xinference-client installed. Please try "pip install xinference-client". 
+2025-12-06 21:20:28.043 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:20:28.043 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:20:28.047 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:20:59.717 | WARNING  | server.utils:detect_xf_models:105 - auto_detect_model needs xinference-client installed. Please try "pip install xinference-client". 
+2025-12-06 21:20:59.717 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:20:59.717 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:20:59.721 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:21:20.202 | WARNING  | server.utils:detect_xf_models:105 - auto_detect_model needs xinference-client installed. Please try "pip install xinference-client". 
+2025-12-06 21:21:20.202 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:21:20.202 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:21:20.207 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:22:15.766 | WARNING  | server.utils:detect_xf_models:105 - auto_detect_model needs xinference-client installed. Please try "pip install xinference-client". 
+2025-12-06 21:22:15.767 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:22:15.767 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:22:15.771 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:22:36.693 | WARNING  | server.utils:detect_xf_models:105 - auto_detect_model needs xinference-client installed. Please try "pip install xinference-client". 
+2025-12-06 21:22:36.693 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:22:36.693 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:22:36.698 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:22:53.667 | WARNING  | server.utils:detect_xf_models:105 - auto_detect_model needs xinference-client installed. Please try "pip install xinference-client". 
+2025-12-06 21:22:53.667 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:22:53.667 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:22:53.671 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:23:14.278 | WARNING  | server.utils:detect_xf_models:105 - auto_detect_model needs xinference-client installed. Please try "pip install xinference-client". 
+2025-12-06 21:23:14.278 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:23:14.278 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:23:14.282 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:23:35.540 | WARNING  | server.utils:detect_xf_models:105 - auto_detect_model needs xinference-client installed. Please try "pip install xinference-client". 
+2025-12-06 21:23:35.540 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:23:35.541 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 21:23:35.545 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead

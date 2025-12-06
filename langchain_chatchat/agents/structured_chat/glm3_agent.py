@@ -13,8 +13,8 @@ from langchain.tools.base import BaseTool
 from langchain_core.runnables import Runnable, RunnablePassthrough
 from langchain_core.tools import ToolsRenderer
 
-from chatchat.server.pydantic_v1 import Field, model_schema, typing
-from chatchat.utils import build_logger
+from server.pydantic_v1 import Field, model_schema, typing
+from utils import build_logger
 from langchain_chatchat.agents.format_scratchpad.all_tools import format_to_platform_tool_messages
 from langchain_chatchat.agents.output_parsers import StructuredGLM3ChatOutputParser, PlatformToolsAgentOutputParser
 

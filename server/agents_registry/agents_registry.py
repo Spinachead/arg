@@ -3,12 +3,11 @@ import asyncio
 import sys
 from contextlib import AsyncExitStack
 
-from langchain.agents.agent import RunnableMultiActionAgent
 from langchain_core.messages import SystemMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, MessagesPlaceholder
 from pydantic import BaseModel
 
-from chatchat.server.utils import get_prompt_template_dict
+from server.utils import get_prompt_template_dict
 from langchain_chatchat.agents.all_tools_agent import PlatformToolsAgentExecutor
 from langchain_chatchat.agents.react.create_prompt_template import create_prompt_glm3_template, \
     create_prompt_structured_react_template, create_prompt_platform_template, create_prompt_gpt_tool_template, \
@@ -30,7 +29,6 @@ from typing import (
     Union, cast,
 )
 
-from langchain import hub
 from langchain.agents import AgentExecutor, create_openai_tools_agent, create_tool_calling_agent
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.language_models import BaseLanguageModel
@@ -154,16 +152,9 @@ def agents_registry(
         prompt = prompt.partial(
             tool_names=", ".join([t.name for t in tools]),
         )
-        runnable = create_openai_tools_agent(llm, tools, prompt)
-        agent = RunnableMultiActionAgent(
-            runnable=runnable,
-            input_keys_arg=["input"],
-            return_keys_arg=["output"],
-            **kwargs,
-        )
+        agent = create_openai_tools_agent(llm, tools, prompt)
         agent_executor = AgentExecutor(
             agent=agent, tools=tools, verbose=verbose, callbacks=callbacks,
-
             return_intermediate_steps=True,
             **kwargs,
         )
@@ -180,15 +171,9 @@ def agents_registry(
         ]
         prompt = ChatPromptTemplate.from_messages(messages)
         if agent_type == "openai-tools":
-            runnable = create_openai_tools_agent(llm, tools, prompt)
+            agent = create_openai_tools_agent(llm, tools, prompt)
         else:
-            runnable = create_tool_calling_agent(llm, tools, prompt)
-        agent = RunnableMultiActionAgent(
-            runnable=runnable,
-            input_keys_arg=["input"],
-            return_keys_arg=["output"],
-            **kwargs,
-        )
+            agent = create_tool_calling_agent(llm, tools, prompt)
         agent_executor = AgentExecutor(
             agent=agent, tools=tools, verbose=verbose, callbacks=callbacks,
             return_intermediate_steps=True,
@@ -223,4 +208,3 @@ def agents_registry(
             "'tool-calling', 'openai-tools', 'openai-functions', "
             "'default','ChatGLM3','structured-chat-agent','platform-agent','qwen','glm3'"
         )
-

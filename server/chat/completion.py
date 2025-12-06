@@ -7,7 +7,7 @@ from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 from sse_starlette.sse import EventSourceResponse
 
-from chatchat.server.utils import get_OpenAI, get_prompt_template, wrap_done, build_logger
+from server.utils import get_OpenAI, get_prompt_template, wrap_done, build_logger
 
 
 logger = build_logger()

@@ -1,8 +1,8 @@
 from fastapi import Body
 
-from chatchat.utils import build_logger
-from chatchat.server.db.repository import feedback_message_to_db
-from chatchat.server.utils import BaseResponse
+from utils import build_logger
+from server.db.repository import feedback_message_to_db
+from server.utils import BaseResponse
 
 logger = build_logger()
 

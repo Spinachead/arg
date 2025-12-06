@@ -7,7 +7,7 @@ from langchain.tools.base import BaseTool
 from langchain_core.runnables import Runnable, RunnablePassthrough
 from langchain_core.tools import ToolsRenderer, render_text_description_and_args
 
-from chatchat.utils import build_logger
+from utils import build_logger
 from langchain_chatchat.agents.format_scratchpad.all_tools import format_to_platform_tool_messages
 
 logger = build_logger()

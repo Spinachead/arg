@@ -1,8 +1,8 @@
 import uuid
 from typing import Dict, List
 
-from chatchat.server.db.models.message_model import MessageModel
-from chatchat.server.db.session import with_session
+from server.db.models.message_model import MessageModel
+from server.db.session import with_session
 
 
 @with_session

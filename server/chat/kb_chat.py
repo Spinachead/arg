@@ -11,10 +11,10 @@ from langchain.callbacks import AsyncIteratorCallbackHandler
 from langchain.prompts.chat import ChatPromptTemplate
 
 
-from chatchat.settings import Settings
-from chatchat.server.agent.tools_factory.search_internet import search_engine
-from chatchat.server.api_server.api_schemas import OpenAIChatOutput
-from chatchat.server.chat.utils import History
+from settings import Settings
+from server.agent.tools_factory.search_internet import search_engine
+from server.api_server.api_schemas import OpenAIChatOutput
+from server.chat.utils import History
 from chatchat.server.knowledge_base.kb_service.base import KBServiceFactory
 from chatchat.server.knowledge_base.kb_doc_api import search_docs, search_temp_docs
 from chatchat.server.knowledge_base.utils import format_reference

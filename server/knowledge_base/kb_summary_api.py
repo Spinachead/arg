@@ -5,14 +5,14 @@ from typing import List, Optional
 from fastapi import Body
 from sse_starlette import EventSourceResponse
 
-from chatchat.settings import Settings
-from chatchat.server.knowledge_base.kb_service.base import KBServiceFactory
-from chatchat.server.knowledge_base.kb_summary.base import KBSummaryService
-from chatchat.server.knowledge_base.kb_summary.summary_chunk import SummaryAdapter
-from chatchat.server.knowledge_base.model.kb_document_model import DocumentWithVSId
-from chatchat.server.knowledge_base.utils import list_files_from_folder
-from chatchat.server.utils import BaseResponse, get_ChatOpenAI, wrap_done, get_default_embedding
-from chatchat.utils import build_logger
+from settings import Settings
+from server.knowledge_base.kb_service.base import KBServiceFactory
+from server.knowledge_base.kb_summary.base import KBSummaryService
+from server.knowledge_base.kb_summary.summary_chunk import SummaryAdapter
+from server.knowledge_base.model.kb_document_model import DocumentWithVSId
+from server.knowledge_base.utils import list_files_from_folder
+from server.utils import BaseResponse, get_ChatOpenAI, wrap_done, get_default_embedding
+from utils import build_logger
 
 
 logger = build_logger()

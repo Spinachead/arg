@@ -10,29 +10,29 @@ from fastapi.responses import FileResponse
 from langchain.docstore.document import Document
 from sse_starlette import EventSourceResponse
 
-from chatchat.settings import Settings
-from chatchat.server.db.repository.knowledge_file_repository import get_file_detail
-from chatchat.server.knowledge_base.kb_service.base import (
+from settings import Settings
+from server.db.repository.knowledge_file_repository import get_file_detail
+from server.knowledge_base.kb_service.base import (
     KBServiceFactory,
     get_kb_file_details,
 )
-from chatchat.server.knowledge_base.model.kb_document_model import DocumentWithVSId
-from chatchat.server.knowledge_base.utils import (
+from server.knowledge_base.model.kb_document_model import DocumentWithVSId
+from server.knowledge_base.utils import (
     KnowledgeFile,
     files2docs_in_thread,
     get_file_path,
     list_files_from_folder,
     validate_kb_name,
 )
-from chatchat.server.knowledge_base.kb_cache.faiss_cache import memo_faiss_pool
-from chatchat.server.utils import (
+from server.knowledge_base.kb_cache.faiss_cache import memo_faiss_pool
+from server.utils import (
     BaseResponse,
     ListResponse,
     check_embed_model,
     run_in_thread_pool,
     get_default_embedding,
 )
-from chatchat.utils import build_logger
+from utils import build_logger
 
 logger = build_logger()
 

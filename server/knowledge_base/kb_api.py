@@ -2,12 +2,12 @@ import urllib
 
 from fastapi import Body
 
-from chatchat.settings import Settings
-from chatchat.server.db.repository.knowledge_base_repository import list_kbs_from_db
-from chatchat.server.knowledge_base.kb_service.base import KBServiceFactory
-from chatchat.server.knowledge_base.utils import validate_kb_name
-from chatchat.server.utils import BaseResponse, ListResponse, get_default_embedding
-from chatchat.utils import build_logger
+from settings import Settings
+from server.db.repository.knowledge_base_repository import list_kbs_from_db
+from server.knowledge_base.kb_service.base import KBServiceFactory
+from server.knowledge_base.utils import validate_kb_name
+from server.utils import BaseResponse, ListResponse, get_default_embedding
+from utils import build_logger
 
 
 logger = build_logger()

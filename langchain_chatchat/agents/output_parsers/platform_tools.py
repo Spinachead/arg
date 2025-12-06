@@ -8,7 +8,7 @@ from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.messages import BaseMessage
 from langchain_core.outputs import ChatGeneration, Generation
 
-from chatchat.server.pydantic_v1 import Field, model_schema, typing
+from server.pydantic_v1 import Field, model_schema, typing
 from typing_extensions import Literal
 
 from langchain_chatchat.agents.output_parsers import StructuredGLM3ChatOutputParser, QwenChatAgentOutputParserCustom

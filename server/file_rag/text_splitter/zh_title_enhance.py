@@ -1,6 +1,6 @@
 import re
 
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 
 
 def under_non_alpha_ratio(text: str, threshold: float = 0.5):

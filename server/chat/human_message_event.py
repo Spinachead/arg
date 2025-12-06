@@ -1,9 +1,9 @@
 from fastapi import Body
 
-from chatchat.utils import build_logger
-from chatchat.server.db.repository import get_human_message_event_by_id, update_human_message_event, \
+from utils import build_logger
+from server.db.repository import get_human_message_event_by_id, update_human_message_event, \
     add_human_message_event_to_db, list_human_message_event
-from chatchat.server.utils import BaseResponse
+from server.utils import BaseResponse
 
 logger = build_logger()
 

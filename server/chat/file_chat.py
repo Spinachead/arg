@@ -11,11 +11,11 @@ from langchain.chains import LLMChain
 from langchain.prompts.chat import ChatPromptTemplate
 from sse_starlette.sse import EventSourceResponse
 
-from chatchat.settings import Settings
-from chatchat.server.chat.utils import History
-from chatchat.server.knowledge_base.kb_cache.faiss_cache import memo_faiss_pool
-from chatchat.server.knowledge_base.utils import KnowledgeFile
-from chatchat.server.utils import (
+from settings import Settings
+from server.chat.utils import History
+from server.knowledge_base.kb_cache.faiss_cache import memo_faiss_pool
+from server.knowledge_base.utils import KnowledgeFile
+from server.utils import (
     BaseResponse,
     get_ChatOpenAI,
     get_Embeddings,
@@ -25,7 +25,7 @@ from chatchat.server.utils import (
     wrap_done,
 )
 
-from chatchat.utils import build_logger
+from utils import build_logger
 
 
 logger = build_logger()

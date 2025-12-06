@@ -13,7 +13,7 @@ from langchain.agents.structured_chat.output_parser import StructuredChatOutputP
 from langchain.output_parsers import OutputFixingParser
 from langchain.schema import AgentAction, AgentFinish, OutputParserException
 
-from chatchat.server.pydantic_v1 import Field, model_schema, typing
+from server.pydantic_v1 import Field, model_schema, typing
 from langchain_chatchat.utils.try_parse_json_object import try_parse_json_object
 
 
