@@ -1,0 +1,4 @@
+2025-12-06 20:34:15.693 | WARNING  | server.utils:detect_xf_models:105 - auto_detect_model needs xinference-client installed. Please try "pip install xinference-client". 
+2025-12-06 20:34:15.693 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 20:34:15.693 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead
+2025-12-06 20:34:15.700 | WARNING  | server.utils:get_default_llm:206 - default llm model glm4-chat is not found in available llms, using qwen:7b instead

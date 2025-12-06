@@ -1,186 +1,134 @@
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    Dict,
-    Generator,
-    List,
-    Literal,
-    Optional,
-    Tuple,
-    Union,
-)
-from urllib.parse import urlparse
-from memoization import cached, CachingAlgorithmFlag
-
-from settings import MODEL_PLATFORMS, XF_MODELS_TYPES, KB_ROOT_PATH
-import requests
+from functools import partial
+import logging
 import os
+import time
+import typing as t
+
+import loguru
+import loguru._logger
+from memoization import cached, CachingAlgorithmFlag
+from settings import Settings
 
 
-def validate_kb_name(knowledge_base_id: str) -> bool:
-    # 检查是否包含预期外的字符或路径攻击关键字
-    if "../" in knowledge_base_id:
+def _filter_logs(record: dict) -> bool:
+    # hide debug logs if Settings.basic_settings.log_verbose=False
+    if record["level"].no <= 10 and not Settings.basic_settings.log_verbose:
         return False
+    # hide traceback logs if Settings.basic_settings.log_verbose=False
+    if record["level"].no == 40 and not Settings.basic_settings.log_verbose:
+        record["exception"] = None
     return True
 
-def get_default_embedding():
-    available_embeddings = list(get_config_models(model_type="embed").keys())
-    if "bge-m3" in available_embeddings:
-        return "bge-m3"
-    else:
-        # logger.warning(f"default embedding model {Settings.model_settings.DEFAULT_EMBEDDING_MODEL} is not found in "
-        #                f"available embeddings, using {available_embeddings[0]} instead")
-        return available_embeddings[0]
 
-
-def get_config_models(
-        model_name: str = None,
-        model_type: Optional[Literal[
-            "llm", "embed", "text2image", "image2image", "image2text", "rerank", "speech2text", "text2speech"
-        ]] = None,
-        platform_name: str = None,
-) -> Dict[str, Dict]:
+# 默认每调用一次 build_logger 就会添加一次 hanlder，导致 chatchat.log 里重复输出
+@cached(max_size=100, algorithm=CachingAlgorithmFlag.LRU)
+def build_logger(log_file: str = "chatchat"):
     """
-    获取配置的模型列表，返回值为:
-    {model_name: {
-        "platform_name": xx,
-        "platform_type": xx,
-        "model_type": xx,
-        "model_name": xx,
-        "api_base_url": xx,
-        "api_key": xx,
-        "api_proxy": xx,
-    }}
+    build a logger with colorized output and a log file, for example:
+
+    logger = build_logger("api")
+    logger.info("<green>some message</green>")
+
+    user can set basic_settings.log_verbose=True to output debug logs
+    use logger.exception to log errors with exceptions
     """
-    result = {}
-    if model_type is None:
-        model_types = [
-            "llm_models",
-            "embed_models",
-            "text2image_models",
-            "image2image_models",
-            "image2text_models",
-            "rerank_models",
-            "speech2text_models",
-            "text2speech_models",
-        ]
-    else:
-        model_types = [f"{model_type}_models"]
+    loguru.logger._core.handlers[0]._filter = _filter_logs
+    logger = loguru.logger.opt(colors=True)
+    logger.opt = partial(loguru.logger.opt, colors=True)
+    logger.warn = logger.warning
+    # logger.error = partial(logger.exception)
 
-    for m in list(get_config_platforms().values()):
-        if platform_name is not None and platform_name != m.get("platform_name"):
-            continue
+    if log_file:
+        if not log_file.endswith(".log"):
+            log_file = f"{log_file}.log"
+        if not os.path.isabs(log_file):
+            log_file = str((Settings.basic_settings.LOG_PATH / log_file).resolve())
+        logger.add(log_file, colorize=False, filter=_filter_logs)
 
-        if m.get("auto_detect_model"):
-            if not m.get("platform_type") == "xinference":  # TODO：当前仅支持 xf 自动检测模型
-                # logger.warning(f"auto_detect_model not supported for {m.get('platform_type')} yet")
-                continue
-            xf_url = get_base_url(m.get("api_base_url"))
-            xf_models = detect_xf_models(xf_url)
-            for m_type in model_types:
-                # if m.get(m_type) != "auto":
-                #     continue
-                m[m_type] = xf_models.get(m_type, [])
+    return logger
 
-        for m_type in model_types:
-            models = m.get(m_type, [])
-            if models == "auto":
-                # logger.warning("you should not set `auto` without auto_detect_model=True")
-                continue
-            elif not models:
-                continue
-            for m_name in models:
-                if model_name is None or model_name == m_name:
-                    result[m_name] = {
-                        "platform_name": m.get("platform_name"),
-                        "platform_type": m.get("platform_type"),
-                        "model_type": m_type.split("_")[0],
-                        "model_name": m_name,
-                        "api_base_url": m.get("api_base_url"),
-                        "api_key": m.get("api_key"),
-                        "api_proxy": m.get("api_proxy"),
-                    }
-    return result
 
-def get_config_platforms() -> Dict[str, Dict]:
+logger = logging.getLogger(__name__)
+
+
+class LoggerNameFilter(logging.Filter):
+    def filter(self, record):
+        # return record.name.startswith("{}_core") or record.name in "ERROR" or (
+        #         record.name.startswith("uvicorn.error")
+        #         and record.getMessage().startswith("Uvicorn running on")
+        # )
+        return True
+
+
+def get_log_file(log_path: str, sub_dir: str):
     """
-    获取配置的模型平台，会将 pydantic model 转换为字典。
+    sub_dir should contain a timestamp.
     """
-    platforms = [m.model_dump() for m in MODEL_PLATFORMS]
-    return {m["platform_name"]: m for m in platforms}
-
-def get_base_url(url):
-    parsed_url = urlparse(url)  # 解析url
-    base_url = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_url)  # 格式化基础url
-    return base_url.rstrip('/')
+    log_dir = os.path.join(log_path, sub_dir)
+    # Here should be creating a new directory each time, so `exist_ok=False`
+    os.makedirs(log_dir, exist_ok=False)
+    return os.path.join(log_dir, f"{sub_dir}.log")
 
 
-@cached(max_size=10, ttl=60, algorithm=CachingAlgorithmFlag.LRU)
-def detect_xf_models(xf_url: str) -> Dict[str, List[str]]:
-    '''
-    use cache for xinference model detecting to avoid:
-    - too many requests in short intervals
-    - multiple requests to one platform for every model
-    the cache will be invalidated after one minute
-    '''
-    xf_model_type_maps = {
-        "llm_models": lambda xf_models: [k for k, v in xf_models.items()
-                                         if "LLM" == v["model_type"]
-                                         and "vision" not in v["model_ability"]],
-        "embed_models": lambda xf_models: [k for k, v in xf_models.items()
-                                           if "embedding" == v["model_type"]],
-        "text2image_models": lambda xf_models: [k for k, v in xf_models.items()
-                                                if "image" == v["model_type"]],
-        "image2image_models": lambda xf_models: [k for k, v in xf_models.items()
-                                                 if "image" == v["model_type"]],
-        "image2text_models": lambda xf_models: [k for k, v in xf_models.items()
-                                                if "LLM" == v["model_type"]
-                                                and "vision" in v["model_ability"]],
-        "rerank_models": lambda xf_models: [k for k, v in xf_models.items()
-                                            if "rerank" == v["model_type"]],
-        "speech2text_models": lambda xf_models: [k for k, v in xf_models.items()
-                                                 if v.get(list(XF_MODELS_TYPES["speech2text"].keys())[0])
-                                                 in XF_MODELS_TYPES["speech2text"].values()],
-        "text2speech_models": lambda xf_models: [k for k, v in xf_models.items()
-                                                 if v.get(list(XF_MODELS_TYPES["text2speech"].keys())[0])
-                                                 in XF_MODELS_TYPES["text2speech"].values()],
+def get_config_dict(
+        log_level: str, log_file_path: str, log_backup_count: int, log_max_bytes: int
+) -> dict:
+    # for windows, the path should be a raw string.
+    log_file_path = (
+        log_file_path.encode("unicode-escape").decode()
+        if os.name == "nt"
+        else log_file_path
+    )
+    log_level = log_level.upper()
+    config_dict = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "formatter": {
+                "format": (
+                    "%(asctime)s %(name)-12s %(process)d %(levelname)-8s %(message)s"
+                )
+            },
+        },
+        "filters": {
+            "logger_name_filter": {
+                "()": __name__ + ".LoggerNameFilter",
+            },
+        },
+        "handlers": {
+            "stream_handler": {
+                "class": "logging.StreamHandler",
+                "formatter": "formatter",
+                "level": log_level,
+                # "stream": "ext://sys.stdout",
+                # "filters": ["logger_name_filter"],
+            },
+            "file_handler": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "formatter": "formatter",
+                "level": log_level,
+                "filename": log_file_path,
+                "mode": "a",
+                "maxBytes": log_max_bytes,
+                "backupCount": log_backup_count,
+                "encoding": "utf8",
+            },
+        },
+        "loggers": {
+            "chatchat_core": {
+                "handlers": ["stream_handler", "file_handler"],
+                "level": log_level,
+                "propagate": False,
+            }
+        },
+        "root": {
+            "level": log_level,
+            "handlers": ["stream_handler", "file_handler"],
+        },
     }
-    models = {}
-    try:
-        from xinference_client import RESTfulClient as Client
-        xf_client = Client(xf_url)
-        xf_models = xf_client.list_models()
-        for m_type, filter in xf_model_type_maps.items():
-            models[m_type] = filter(xf_models)
-    except ImportError:
-        # logger.warning('auto_detect_model needs xinference-client installed. '
-        #                'Please try "pip install xinference-client". ')
-        print("auto_detect_model needs xinference-client installed. ")
-    except requests.exceptions.ConnectionError:
-        # logger.warning(f"cannot connect to xinference host: {xf_url}, please check your configuration.")
-        print(f"cannot connect to xinference host: {xf_url}, please check your configuration.")
-    except Exception as e:
-        # logger.warning(f"error when connect to xinference server({xf_url}): {e}")
-        print(f"error when connect to xinference server({xf_url}): {e}")
-    return models
+    return config_dict
 
-def get_kb_path(knowledge_base_name: str):
-    return os.path.join(KB_ROOT_PATH, knowledge_base_name)
 
-def get_doc_path(knowledge_base_name: str):
-    return os.path.join(get_kb_path(knowledge_base_name), "content")
-
-def check_embed_model(embed_model: str = None) -> Tuple[bool, str]:
-    '''
-    check weather embed_model accessable, use default embed model if None
-    '''
-    embed_model = embed_model or get_default_embedding()
-    embeddings = get_Embeddings(embed_model=embed_model)
-    try:
-        embeddings.embed_query("this is a test")
-        return True, ""
-    except Exception as e:
-        msg = f"failed to access embed model '{embed_model}': {e}"
-        # logger.error(msg)
-        return False, msg
+def get_timestamp_ms():
+    t = time.time()
+    return int(round(t * 1000))
