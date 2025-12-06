@@ -9,10 +9,7 @@ from uuid import UUID
 from enum import Enum
 from langchain_core.load import dumpd, dumps, load, loads
 
-try:
-    from langchain_core.callbacks.streaming_stdout import AsyncIteratorCallbackHandler
-except ImportError:
-    from langchain.callbacks import AsyncIteratorCallbackHandler
+from langchain_core.callbacks.streaming_stdout import AsyncIteratorCallbackHandler
 from langchain_core.agents import AgentAction, AgentFinish
 from langchain_community.callbacks.human import HumanRejectedException
 from langchain_core.callbacks import AsyncCallbackHandler

@@ -144,12 +144,11 @@ def example_usage():
     ])
 
     # 4. 直接使用消息列表调用模型
-    from langchain.chat_models import init_chat_model
-
-    model = init_chat_model("gpt-4o-mini")
-    result = model.invoke(messages)
-
-    print(result.content)
+    # Note: init_chat_model is now in langchain package
+    # from langchain import init_chat_model
+    # model = init_chat_model("gpt-4o-mini")
+    # result = model.invoke(messages)
+    # print(result.content)
 
 
 # 兼容旧版 to_msg_template 方法 (如果需要 PromptTemplate)

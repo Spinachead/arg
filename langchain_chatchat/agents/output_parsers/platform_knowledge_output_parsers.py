@@ -7,9 +7,9 @@ from functools import partial
 from operator import itemgetter
 from typing import Any, List, Sequence, Tuple, Union
 
-from langchain.agents.agent import AgentExecutor, RunnableAgent
-from langchain.agents.output_parsers import ToolsAgentOutputParser
-from langchain.agents.structured_chat.output_parser import StructuredChatOutputParser
+from langchain.agents import AgentExecutor, RunnableAgent
+from langchain_core.agents.output_parsers import ToolsAgentOutputParser
+from langchain_core.agents.output_parsers import StructuredChatOutputParser
 from langchain_core.prompts import BaseChatPromptTemplate
 from langchain_core.agents import AgentAction, AgentFinish
 from langchain_chatchat.utils.try_parse_json_object import try_parse_json_object

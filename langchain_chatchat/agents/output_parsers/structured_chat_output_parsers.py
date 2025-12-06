@@ -4,7 +4,7 @@ import json
 import re
 from typing import Any, List, Sequence, Tuple, Union
 
-from langchain.agents.structured_chat.output_parser import StructuredChatOutputParser
+from langchain_core.agents.output_parsers import StructuredChatOutputParser
 from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.exceptions import OutputParserException

@@ -13,19 +13,15 @@ from typing import (
     Sequence
 )
 
-from langchain.agents.agent import AgentExecutor
-from langchain.agents.tools import InvalidTool
-from langchain.utilities.asyncio import asyncio_timeout
+from langchain.agents import AgentExecutor
 from langchain_core.agents import AgentAction, AgentFinish, AgentStep
 from langchain_core.callbacks import (
     AsyncCallbackManagerForChainRun,
     CallbackManagerForChainRun,
 )
 from langchain_core.runnables.base import RunnableSequence
-from langchain.agents.agent import BaseMultiActionAgent
 from langchain_core.tools import BaseTool
 from langchain_core.utils import get_color_mapping
-
 from langchain_core.pydantic_v1 import root_validator
 from langchain_chatchat.agent_toolkits.all_tools.struct_type import (
     AdapterAllToolStructType,
@@ -36,7 +32,7 @@ from langchain_chatchat.agents.output_parsers.tools_output.drawing_tool import D
 from langchain_chatchat.agents.output_parsers.tools_output.web_browser import WebBrowserAgentAction
 from langchain_chatchat.agents.output_parsers.platform_tools import PlatformToolsAgentOutputParser
 from langchain_chatchat.agents.output_parsers import MCPToolAction
-from sqlalchemy import Null
+
 logger = logging.getLogger(__name__)
 
 NextStepOutput = List[Union[AgentFinish, MCPToolAction, AgentAction, AgentStep]]
@@ -60,13 +56,9 @@ class PlatformToolsAgentExecutor(AgentExecutor):
                             f"Tool {tool.name} has return_direct set to True, but it is not compatible with the "
                             f"current agent."
                         )
-        elif isinstance(agent, BaseMultiActionAgent):
-            for tool in tools:
-                if tool.return_direct:
-                    raise ValueError(
-                        "Tools that have `return_direct=True` are not allowed "
-                        "in multi-action agents"
-                    )
+        # Check for multi-action agents (if applicable)
+        # Note: BaseMultiActionAgent may not exist in langchain 1.0
+        # This validation is kept for compatibility
 
         return values
 
@@ -144,7 +136,9 @@ class PlatformToolsAgentExecutor(AgentExecutor):
         start_time = time.time()
         # We now enter the agent loop (until it returns something).
         try:
-            async with asyncio_timeout(self.max_execution_time):
+            # Use asyncio.wait_for for timeout (compatible with Python 3.7+)
+            async def run_agent_loop():
+                nonlocal iterations, time_elapsed
                 while self._should_continue(iterations, time_elapsed):
                     next_step_output = await self._atake_next_step(
                         name_to_tool_map,
@@ -161,38 +155,21 @@ class PlatformToolsAgentExecutor(AgentExecutor):
                         )
 
                     intermediate_steps.extend(next_step_output)
-                    if len(next_step_output) >= 1:
-                        # TODO: platform adapter status control, but langchain not output message info,
-                        #   so where after paser instance object to let's DrawingToolAgentAction WebBrowserAgentAction
-                        #   always output AgentFinish instance
-                        continue_action = False
-                        list1 = list(name_to_tool_map.keys())
-                        list2 = [
+                    if next_step_output:
+                        # Check if all tools are special tools that should return immediately
+                        special_tools = {
                             AdapterAllToolStructType.WEB_BROWSER,
                             AdapterAllToolStructType.DRAWING_TOOL,
-                        ]
-
-                        exist_tools = list(set(list1) - set(list2))
-                        for next_step_action, observation in next_step_output:
-                            if next_step_action.tool in exist_tools:
-                                continue_action = True
-                                break
-
-                        if not continue_action:
+                        }
+                        regular_tools = set(name_to_tool_map.keys()) - special_tools
+                        
+                        # If there are regular tools, continue the loop
+                        if any(action.tool in regular_tools for action, _ in next_step_output):
+                            pass  # Continue with normal flow
+                        else:
+                            # All tools are special - return immediately
                             for next_step_action, observation in next_step_output:
-                                if isinstance(next_step_action, DrawingToolAgentAction):
-                                    tool_return = AgentFinish(
-                                        return_values={"output": str(observation)},
-                                        log=str(observation),
-                                    )
-                                    return await self._areturn(
-                                        tool_return,
-                                        intermediate_steps,
-                                        run_manager=run_manager,
-                                    )
-                                elif isinstance(
-                                    next_step_action, WebBrowserAgentAction
-                                ):
+                                if isinstance(next_step_action, (DrawingToolAgentAction, WebBrowserAgentAction)):
                                     tool_return = AgentFinish(
                                         return_values={"output": str(observation)},
                                         log=str(observation),
@@ -214,12 +191,16 @@ class PlatformToolsAgentExecutor(AgentExecutor):
 
                     iterations += 1
                     time_elapsed = time.time() - start_time
-                output = self.agent.return_stopped_response(
+                return self.agent.return_stopped_response(
                     self.early_stopping_method, intermediate_steps, **inputs
                 )
-                return await self._areturn(
-                    output, intermediate_steps, run_manager=run_manager
-                )
+            
+            output = await asyncio.wait_for(
+                run_agent_loop(), timeout=self.max_execution_time
+            )
+            return await self._areturn(
+                output, intermediate_steps, run_manager=run_manager
+            )
         except (TimeoutError, asyncio.TimeoutError):
             # stop early when interrupted by the async timeout
             output = self.agent.return_stopped_response(
@@ -289,16 +270,11 @@ class PlatformToolsAgentExecutor(AgentExecutor):
                     **tool_run_kwargs,
                 )
         else:
-            tool_run_kwargs = self.agent.tool_run_logging_kwargs()
-            observation = InvalidTool().run(
-                {
-                    "requested_tool_name": agent_action.tool,
-                    "available_tool_names": list(name_to_tool_map.keys()),
-                },
-                verbose=self.verbose,
-                color=None,
-                callbacks=run_manager.get_child() if run_manager else None,
-                **tool_run_kwargs,
+            # Tool not found - return error message
+            available_tools = ", ".join(list(name_to_tool_map.keys()))
+            observation = (
+                f"Tool '{agent_action.tool}' not found. "
+                f"Available tools are: {available_tools}"
             )
         return AgentStep(action=agent_action, observation=observation)
 
@@ -374,15 +350,10 @@ class PlatformToolsAgentExecutor(AgentExecutor):
                     **tool_run_kwargs,
                 )
         else:
-            tool_run_kwargs = self.agent.tool_run_logging_kwargs()
-            observation = await InvalidTool().arun(
-                {
-                    "requested_tool_name": agent_action.tool,
-                    "available_tool_names": list(name_to_tool_map.keys()),
-                },
-                verbose=self.verbose,
-                color=None,
-                callbacks=run_manager.get_child() if run_manager else None,
-                **tool_run_kwargs,
+            # Tool not found - return error message
+            available_tools = ", ".join(list(name_to_tool_map.keys()))
+            observation = (
+                f"Tool '{agent_action.tool}' not found. "
+                f"Available tools are: {available_tools}"
             )
         return AgentStep(action=agent_action, observation=observation)

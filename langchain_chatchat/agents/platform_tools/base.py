@@ -17,7 +17,7 @@ from typing import (
 )
 import os
 import sys
-from langchain_classic.agents import AgentExecutor
+from langchain.agents import AgentExecutor
 from langchain_core.agents import AgentAction
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.language_models import BaseLanguageModel
@@ -221,17 +221,17 @@ class PlatformToolsRunnable(RunnableSerializable[Dict, OutputType]):
             temp_tools.extend(assistants_builtin_tools)
 
 
+        # Create MCP client asynchronously
         import nest_asyncio
         nest_asyncio.apply()
-        if sys.version_info < (3, 10):
-            loop = asyncio.get_event_loop()
-        else:
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-
+        
+        # Get or create event loop
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
+        
         client = loop.run_until_complete(cls.create_mcp_client(mcp_connections))
         # Get tools
         mcp_tools = client.get_tools()

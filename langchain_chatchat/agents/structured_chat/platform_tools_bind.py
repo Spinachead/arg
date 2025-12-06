@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 from typing import Sequence, Union, List, Dict, Any
 
-from langchain.agents.agent import NextStepOutput
+from langchain_core.agents import AgentAction, AgentFinish
+from typing import List, Union
+
+NextStepOutput = List[Union[AgentFinish, AgentAction]]
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.prompts.chat import ChatPromptTemplate
 from langchain_core.runnables import Runnable, RunnablePassthrough

@@ -2,10 +2,12 @@
 from typing import List, Union
 
 from langchain_core.agents import AgentAction, AgentFinish
-from langchain_core.agents.output_parsers import MultiActionAgentOutputParser, AgentOutputParser
+from langchain_core.agents.output_parsers import (
+    MultiActionAgentOutputParser,
+    AgentOutputParser,
+    StructuredChatOutputParser,
+)
 from langchain_core.agents.output_parsers.tools import ToolAgentAction
-from langchain.agents.structured_chat.output_parser import StructuredChatOutputParser
-from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.messages import BaseMessage
 from langchain_core.outputs import ChatGeneration, Generation
 from pydantic.v1 import Field
