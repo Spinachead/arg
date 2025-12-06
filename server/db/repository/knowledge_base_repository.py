@@ -1,8 +1,8 @@
-from chatchat.server.db.models.knowledge_base_model import (
+from server.db.models.knowledge_base_model import (
     KnowledgeBaseModel,
     KnowledgeBaseSchema,
 )
-from chatchat.server.db.session import with_session
+from server.db.session import with_session
 
 
 @with_session

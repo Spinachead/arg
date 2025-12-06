@@ -4,7 +4,7 @@ from typing import Optional
 from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, Integer, String, func
 
-from chatchat.server.db.base import Base
+from server.db.base import Base
 
 
 class KnowledgeBaseModel(Base):

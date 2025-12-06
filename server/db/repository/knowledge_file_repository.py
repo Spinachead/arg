@@ -1,12 +1,12 @@
 from typing import Dict, List
 
-from chatchat.server.db.models.knowledge_base_model import KnowledgeBaseModel
-from chatchat.server.db.models.knowledge_file_model import (
+from server.db.models.knowledge_base_model import KnowledgeBaseModel
+from server.db.models.knowledge_file_model import (
     FileDocModel,
     KnowledgeFileModel,
 )
-from chatchat.server.db.session import with_session
-from chatchat.server.knowledge_base.utils import KnowledgeFile
+from server.db.session import with_session
+from server.knowledge_base.utils import KnowledgeFile
 
 
 @with_session

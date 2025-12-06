@@ -1,6 +1,6 @@
 from sqlalchemy import JSON, Boolean, Column, DateTime, Float, Integer, String, func
 
-from chatchat.server.db.base import Base
+from server.db.base import Base
 
 
 class KnowledgeFileModel(Base):

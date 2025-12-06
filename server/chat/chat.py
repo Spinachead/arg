@@ -7,7 +7,7 @@ from typing import AsyncIterable, List, Union, Tuple
 from langchain_core.load import dumpd, dumps, load, loads
 
 from fastapi import Body
-from langchain.chains import LLMChain
+# from langchain.chains import LLMChain
 # from langchain.prompts.chat import ChatPromptTemplate
 
 from server.agents_registry.agents_registry import agents_registry
