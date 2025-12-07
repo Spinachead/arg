@@ -1,4 +1,4 @@
-# build_vectorstore.py
+ # build_vectorstore.py
 from document_loader import load_documents_from_directory
 from chunking import smart_split_documents
 from langchain_community.embeddings import HuggingFaceEmbeddings
