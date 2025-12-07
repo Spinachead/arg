@@ -2,9 +2,7 @@ from typing import Literal
 from pathlib import Path
 import torch.cuda
 
-from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.chat_models import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
@@ -12,7 +10,9 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph.message import add_messages
 from typing_extensions import TypedDict, Annotated
-
+from langchain_ollama import OllamaEmbeddings
+from langchain_ollama import ChatOllama
+from langchain_chroma import Chroma
 
 
 # 定义状态结构
@@ -26,9 +26,13 @@ class RagState(TypedDict):
 def create_rag_graph():
     # 初始化
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    embedding = HuggingFaceEmbeddings(
-        model_name="BAAI/bge-small-zh-v1.5",
-        model_kwargs={"device": device}
+    # embedding = HuggingFaceEmbeddings(
+    #     model_name="BAAI/bge-small-zh-v1.5",
+    #     model_kwargs={"device": device}
+    # )
+    embedding = OllamaEmbeddings(
+        model="bge-small-zh-v1.5",
+        base_url="http://localhost:11434"
     )
     persist_dir = str((Path(__file__).parent / "chroma_db").resolve())
     vectorstore = Chroma(
