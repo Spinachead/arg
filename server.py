@@ -10,6 +10,7 @@ import asyncio
 import json
 
 from knowledge_base.kb_service.base import KBServiceFactory
+from knowledge_base.model.kb_document_model import DocumentWithVSId
 from rag_chain import create_rag_graph
 from langserve import add_routes
 from fastapi.middleware.cors import CORSMiddleware
@@ -229,6 +230,7 @@ async def chat_process_stream(request: ChatProcessRequest):
 
     return StreamingResponse(generate_response(), media_type="text/event-stream")
 
+
 @app.post("/api/config")
 async def config():
     return {"status": 'Success', "data": {'apiModel': 'Mock-API', 'socksProxy': 'false', 'httpsProxy': 'false'},
@@ -270,6 +272,7 @@ async def verify(req: Request):
     except Exception as e:
         return {"status": 'Fail', "message": str(e), "data": None}
 
+
 def search_docs(
         query: str = Body("", description="用户输入", examples=["你好"]),
         knowledge_base_name: str = Body(
@@ -301,6 +304,7 @@ def search_docs(
                     del d.metadata["vector"]
     return [x.dict() for x in data]
 
+
 async def kb_chat(query: str = Body(..., description="用户输入", example=["你好"]),
                   mode: Literal["local_kb"] = Body("local_kb", description="知识来源"),
                   top_k: int = Body(3, description="匹配向量数字"),
@@ -310,6 +314,9 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                       ge=0,
                       le=2,
                   ),
+                  kb_name: str = Body("",
+                                      description="mode=local_kb时为知识库名称；temp_kb时为临时知识库ID，search_engine时为搜索引擎名称",
+                                      examples=["samples"]),
 
                   stream: bool = Body(True, description="流式输出"),
                   model: str = Body("qwen:1.8b", description="LLM 模型名称。"),
@@ -326,28 +333,127 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                   return_direct: bool = Body(False, description="直接返回检索结果，不送入 LLM"),
                   request: Request = None,
                   ):
-
     async def knowledge_base_chat_iterator() -> AsyncIterable[str]:
         try:
-            nonlocal  prompt_name, max_tokens
+            nonlocal prompt_name, max_tokens
             docs = search_docs(query=query,
                                knowledge_base_name=kb_name,
                                top_k=top_k,
                                score_threshold=score_threshold,
                                file_name="",
                                metadata={})
-                               )
+
+            # source_documents = format_reference(kb_name, docs, api_address(is_public=True))
+            if return_direct:
+                yield OpenAIChatOutput(
+                    id=f"chat{uuid.uuid4()}",
+                    model=None,
+                    object="chat.completion",
+                    content="",
+                    role="assistant",
+                    finish_reason="stop",
+                    docs=source_documents,
+                ).model_dump_json()
+                return
+
+            callback = AsyncIteratorCallbackHandler()
+            callbacks = [callback]
+
+            # Enable langchain-chatchat to support langfuse
+            import os
+            langfuse_secret_key = os.environ.get('LANGFUSE_SECRET_KEY')
+            langfuse_public_key = os.environ.get('LANGFUSE_PUBLIC_KEY')
+            langfuse_host = os.environ.get('LANGFUSE_HOST')
+            if langfuse_secret_key and langfuse_public_key and langfuse_host:
+                from langfuse import Langfuse
+                from langfuse.callback import CallbackHandler
+                langfuse_handler = CallbackHandler()
+                callbacks.append(langfuse_handler)
+
+            if max_tokens in [None, 0]:
+                max_tokens = Settings.model_settings.MAX_TOKENS
+
+            llm = get_ChatOpenAI(
+                model_name=model,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                callbacks=callbacks,
+            )
+            # TODO： 视情况使用 API
+            # # 加入reranker
+            # if Settings.kb_settings.USE_RERANKER:
+            #     reranker_model_path = get_model_path(Settings.kb_settings.RERANKER_MODEL)
+            #     reranker_model = LangchainReranker(top_n=top_k,
+            #                                     device=embedding_device(),
+            #                                     max_length=Settings.kb_settings.RERANKER_MAX_LENGTH,
+            #                                     model_name_or_path=reranker_model_path
+            #                                     )
+            #     print("-------------before rerank-----------------")
+            #     print(docs)
+            #     docs = reranker_model.compress_documents(documents=docs,
+            #                                              query=query)
+            #     print("------------after rerank------------------")
+            #     print(docs)
+            context = "\n\n".join([doc["page_content"] for doc in docs])
+
+            if len(docs) == 0:  # 如果没有找到相关文档，使用empty模板
+                prompt_name = "empty"
+            prompt_template = get_prompt_template("rag", prompt_name)
+            input_msg = History(role="user", content=prompt_template).to_msg_template(False)
+            chat_prompt = ChatPromptTemplate.from_messages(
+                [i.to_msg_template() for i in history] + [input_msg])
+
+            chain = chat_prompt | llm
+
+            # Begin a task that runs in the background.
+            task = asyncio.create_task(wrap_done(
+                chain.ainvoke({"context": context, "question": query}),
+                callback.done),
+            )
+
+            if len(source_documents) == 0:  # 没有找到相关文档
+                source_documents.append(f"<span style='color:red'>未找到相关文档,该回答为大模型自身能力解答！</span>")
+
+            if stream:
+                # yield documents first
+                ret = OpenAIChatOutput(
+                    id=f"chat{uuid.uuid4()}",
+                    object="chat.completion.chunk",
+                    content="",
+                    role="assistant",
+                    model=model,
+                    docs=source_documents,
+                )
+                yield ret.model_dump_json()
+
+                async for token in callback.aiter():
+                    ret = OpenAIChatOutput(
+                        id=f"chat{uuid.uuid4()}",
+                        object="chat.completion.chunk",
+                        content=token,
+                        role="assistant",
+                        model=model,
+                    )
+                    yield ret.model_dump_json()
+            else:
+                answer = ""
+                async for token in callback.aiter():
+                    answer += token
+                ret = OpenAIChatOutput(
+                    id=f"chat{uuid.uuid4()}",
+                    object="chat.completion",
+                    content=answer,
+                    role="assistant",
+                    model=model,
+                )
+                yield ret.model_dump_json()
+            await task
 
         except Exception as e:
             yield {"data": json.dumps({"error": str(e)})}
-            return
-
-    return {"status": 'Success', "message": "Verify successfully", "data": None}
+        return
 
 @app.post("'/kb_chat", summary="知识库对话")(kb_chat)
-
-
-
 
 
 if __name__ == "__main__":
