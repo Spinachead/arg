@@ -10,7 +10,7 @@ from db.models.knowledge_base_model import KnowledgeBaseSchema
 from db.repository.knowledge_base_repository import add_kb_to_db, list_kbs_from_db, kb_exists, load_kb_from_db
 from db.repository.knowledge_file_repository import add_file_to_db, delete_file_from_db, file_exists_in_db, \
     list_files_from_db, count_files_from_db, list_docs_from_db, get_file_detail
-from knowledge_base.kb_service.default_kb_service import DefaultKBService
+# DefaultKBService will be imported locally when needed to avoid circular imports
 from knowledge_base.model.kb_document_model import DocumentWithVSId
 from knowledge_base.utils import KnowledgeFile, list_kbs_from_folder, list_files_from_folder
 import typing as t
@@ -390,6 +390,7 @@ class KBServiceFactory:
 
             return FaissKBService(**params)
         else:
+            from knowledge_base.kb_service.default_kb_service import DefaultKBService
             return DefaultKBService(kb_name)
 
         # elif SupportedVSType.PG == vector_store_type:
