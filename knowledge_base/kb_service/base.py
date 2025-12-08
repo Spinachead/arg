@@ -27,9 +27,6 @@ class SupportedVSType:
     CHROMADB = "chromadb"
 
 
-
-
-
 class KBService(ABC):
     def __init__(
         self,
@@ -387,7 +384,6 @@ class KBServiceFactory:
             from knowledge_base.kb_service.faiss_kb_service import (
                 FaissKBService,
             )
-
             return FaissKBService(**params)
         else:
             from knowledge_base.kb_service.default_kb_service import DefaultKBService

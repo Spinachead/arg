@@ -1,4 +1,5 @@
 import os
+
 os.environ["OTEL_SDK_DISABLED"] = "true"
 # server.py
 import pprint
@@ -23,8 +24,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from langchain_core.messages import HumanMessage
 from dotenv import load_dotenv
 import os
+from sse_starlette.sse import EventSourceResponse
 
 from utils import format_reference, get_ChatOpenAI, wrap_done, get_prompt_template, History
+# 在导入语句之后，FastAPI应用创建之前添加
+from db.base import Base, engine
+# 确保在所有模型导入之后调用下面的方法
+Base.metadata.create_all(bind=engine)
 
 load_dotenv()
 
@@ -376,7 +382,6 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             callback = AsyncIteratorCallbackHandler()
             callbacks = [callback]
 
-
             llm = get_ChatOpenAI(
                 model_name=model,
                 temperature=temperature,
@@ -441,9 +446,12 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
 
         except Exception as e:
             yield {"data": json.dumps({"error": str(e)})}
-        return
+            return
+    if stream:
+        return EventSourceResponse(knowledge_base_chat_iterator())
+    else:
+        return await knowledge_base_chat_iterator().__anext__()
 
-# ... existing code ...
 @app.post("/kb_chat", summary="知识库对话")
 async def kb_chat_endpoint(query: str = Body(..., description="用户输入", example=["你好"]),
                           mode: Literal["local_kb"] = Body("local_kb", description="知识来源"),
@@ -472,7 +480,7 @@ async def kb_chat_endpoint(query: str = Body(..., description="用户输入", ex
                           ),
                           return_direct: bool = Body(False, description="直接返回检索结果，不送入 LLM")):
     # 调用 kb_chat 函数
-    return kb_chat(query=query, mode=mode, top_k=top_k, score_threshold=score_threshold,
+    return await kb_chat(query=query, mode=mode, top_k=top_k, score_threshold=score_threshold,
                    kb_name=kb_name, stream=stream, model=model, temperature=temperature,
                    max_tokens=max_tokens, prompt_name=prompt_name, return_direct=return_direct)
 
