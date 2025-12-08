@@ -1,5 +1,7 @@
 import os
 
+from langchain_ollama import OllamaLLM, ChatOllama
+
 os.environ["OTEL_SDK_DISABLED"] = "true"
 # server.py
 import pprint
@@ -305,6 +307,7 @@ def search_docs(
         metadata: dict = Body({}, description="根据 metadata 进行过滤，仅支持一级键"),
 ) -> List[Dict]:
     kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
+    print("合适kb", kb)
     data = []
     if kb is not None:
         if query:
@@ -319,6 +322,8 @@ def search_docs(
     return [x.dict() for x in data]
 
 
+
+@app.post("/kb_chat", summary="知识库对话")
 async def kb_chat(query: str = Body(..., description="用户输入", example=["你好"]),
                   mode: Literal["local_kb"] = Body("local_kb", description="知识来源"),
                   top_k: int = Body(3, description="匹配向量数字"),
@@ -382,12 +387,8 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             callback = AsyncIteratorCallbackHandler()
             callbacks = [callback]
 
-            llm = get_ChatOpenAI(
-                model_name=model,
-                temperature=temperature,
-                max_tokens=None,
-                callbacks=callbacks,
-            )
+
+            llm = ChatOllama(model="qwen:1.8b", temperature=0.7, callbacks=callbacks)
 
             context = "\n\n".join([doc["page_content"] for doc in docs])
 
@@ -397,6 +398,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             input_msg = History(role="user", content=prompt_template).to_msg_template(False)
             chat_prompt = ChatPromptTemplate.from_messages(
                 [i.to_msg_template() for i in history] + [input_msg])
+
 
             chain = chat_prompt | llm
 
@@ -451,40 +453,6 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
         return EventSourceResponse(knowledge_base_chat_iterator())
     else:
         return await knowledge_base_chat_iterator().__anext__()
-
-@app.post("/kb_chat", summary="知识库对话")
-async def kb_chat_endpoint(query: str = Body(..., description="用户输入", example=["你好"]),
-                          mode: Literal["local_kb"] = Body("local_kb", description="知识来源"),
-                          top_k: int = Body(3, description="匹配向量数字"),
-                          score_threshold: float = Body(
-                              2.0,
-                              description="知识库匹配相关度阈值，取值范围在0-1之间，SCORE越小，相关度越高，取到1相当于不筛选，建议设置在0.5左右",
-                              ge=0,
-                              le=2,
-                          ),
-                          kb_name: str = Body("",
-                                              description="mode=local_kb时为知识库名称；temp_kb时为临时知识库ID，search_engine时为搜索引擎名称",
-                                              examples=["samples"]),
-
-                          stream: bool = Body(True, description="流式输出"),
-                          model: str = Body("qwen:1.8b", description="LLM 模型名称。"),
-                          temperature: float = Body(0.7, description="LLM 采样温度", ge=0.0,
-                                                    le=2.0),
-                          max_tokens: Optional[int] = Body(
-                              None,
-                              description="限制LLM生成Token数量，默认None代表模型最大值"
-                          ),
-                          prompt_name: str = Body(
-                              "default",
-                              description="使用的prompt模板名称(在prompt_settings.yaml中配置)"
-                          ),
-                          return_direct: bool = Body(False, description="直接返回检索结果，不送入 LLM")):
-    # 调用 kb_chat 函数
-    return await kb_chat(query=query, mode=mode, top_k=top_k, score_threshold=score_threshold,
-                   kb_name=kb_name, stream=stream, model=model, temperature=temperature,
-                   max_tokens=max_tokens, prompt_name=prompt_name, return_direct=return_direct)
-
-
 
 
 
