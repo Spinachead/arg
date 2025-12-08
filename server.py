@@ -1,3 +1,5 @@
+import os
+os.environ["OTEL_SDK_DISABLED"] = "true"
 # server.py
 import pprint
 import uuid

@@ -1,3 +1,5 @@
+import os
+os.environ["OTEL_SDK_DISABLED"] = "true"
 from typing import Literal
 from pathlib import Path
 import torch.cuda
