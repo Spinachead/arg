@@ -5,11 +5,15 @@ from typing import (
     Any,
     ParamSpec,
     TypeVar,
-    cast,
+    cast, List, Dict, Callable, Awaitable, Optional, Union, Tuple,
 )
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
+from urllib.parse import urlencode
 
+from langchain_core.prompts import ChatMessagePromptTemplate
 from langchain_core.runnables import RunnableConfig, run_in_executor
+from langchain_openai import ChatOpenAI
+from pydantic import BaseModel, Field
 
 
 class Embeddings(ABC):
@@ -96,3 +100,130 @@ def get_Embeddings(
     )
     return embedding
 
+
+def format_reference(kb_name: str, docs: List[Dict], api_base_url: str = "") -> List[Dict]:
+    '''
+    将知识库检索结果格式化为参考文档的格式
+    '''
+    api_base_url = "http://127.0.0.1:7861"
+
+    source_documents = []
+    for inum, doc in enumerate(docs):
+        filename = doc.get("metadata", {}).get("source")
+        parameters = urlencode(
+            {
+                "knowledge_base_name": kb_name,
+                "file_name": filename,
+            }
+        )
+        api_base_url = api_base_url.strip(" /")
+        url = (
+                f"{api_base_url}/knowledge_base/download_doc?" + parameters
+        )
+        page_content = doc.get("page_content")
+        ref = f"""出处 [{inum + 1}] [{filename}]({url}) \n\n{page_content}\n\n"""
+        source_documents.append(ref)
+
+    return source_documents
+
+
+def get_ChatOpenAI(
+        model_name: str = "qwen:1.8b",
+        temperature: float = 0.7,
+        max_tokens: int = None,
+        streaming: bool = True,
+        callbacks: List[Callable] = [],
+        verbose: bool = True,
+        local_wrap: bool = False,  # use local wrapped api
+        **kwargs: Any,
+) -> ChatOpenAI:
+    params = dict(
+        streaming=streaming,
+        verbose=verbose,
+        callbacks=callbacks,
+        model_name=model_name,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        **kwargs,
+    )
+    # remove paramters with None value to avoid openai validation error
+    for k in list(params):
+        if params[k] is None:
+            params.pop(k)
+
+    try:
+        if local_wrap:
+            params.update(
+                openai_api_base="http://127.0.0.1/v1",
+                openai_api_key="EMPTY",
+            )
+
+        model = ChatOpenAI(**params)
+    except Exception as e:
+        model = None
+    return model
+
+
+async def wrap_done(fn: Awaitable, event: asyncio.Event):
+    """Wrap an awaitable with a event to signal when it's done or an exception is raised."""
+    try:
+        await fn
+    except Exception as e:
+        msg = f"Caught exception: {e}"
+    finally:
+        # Signal the aiter to stop.
+        event.set()
+
+
+
+
+def get_prompt_template(type: str, name: str) -> Optional[str]:
+    """
+    从prompt_config中加载模板内容
+    type: 对应于 model_settings.llm_model_config 模型类别其中的一种，以及 "rag"，如果有新功能，应该进行加入。
+    """
+
+
+    return "请回答我的问题"
+
+
+class History(BaseModel):
+    """
+    对话历史
+    可从dict生成，如
+    h = History(**{"role":"user","content":"你好"})
+    也可转换为tuple，如
+    h.to_msy_tuple = ("human", "你好")
+    """
+
+    role: str = Field(...)
+    content: str = Field(...)
+
+    def to_msg_tuple(self):
+        return "ai" if self.role == "assistant" else "human", self.content
+
+    def to_msg_template(self, is_raw=True) -> ChatMessagePromptTemplate:
+        role_maps = {
+            "ai": "assistant",
+            "human": "user",
+        }
+        role = role_maps.get(self.role, self.role)
+        if is_raw:  # 当前默认历史消息都是没有input_variable的文本。
+            content = "{% raw %}" + self.content + "{% endraw %}"
+        else:
+            content = self.content
+
+        return ChatMessagePromptTemplate.from_template(
+            content,
+            "jinja2",
+            role=role,
+        )
+
+    @classmethod
+    def from_data(cls, h: Union[List, Tuple, Dict]) -> "History":
+        if isinstance(h, (list, tuple)) and len(h) >= 2:
+            h = cls(role=h[0], content=h[1])
+        elif isinstance(h, dict):
+            h = cls(**h)
+
+        return h

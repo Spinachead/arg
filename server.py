@@ -1,14 +1,18 @@
 # server.py
 import pprint
+import uuid
 from datetime import datetime
 
 from fastapi import FastAPI, Request, Body
 from fastapi.responses import StreamingResponse
+from langchain_classic.callbacks import AsyncIteratorCallbackHandler
+from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, AsyncIterable, Literal, List
 import asyncio
 import json
 
+from api_schemas import OpenAIChatOutput
 from knowledge_base.kb_service.base import KBServiceFactory
 from knowledge_base.model.kb_document_model import DocumentWithVSId
 from rag_chain import create_rag_graph
@@ -17,6 +21,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from langchain_core.messages import HumanMessage
 from dotenv import load_dotenv
 import os
+
+from utils import format_reference, get_ChatOpenAI, wrap_done, get_prompt_template, History
 
 load_dotenv()
 
@@ -314,6 +320,15 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                       ge=0,
                       le=2,
                   ),
+                  history: List[History] = Body(
+                      [],
+                      description="历史对话",
+                      examples=[[
+                          {"role": "user",
+                           "content": "我们来玩成语接龙，我先来，生龙活虎"},
+                          {"role": "assistant",
+                           "content": "虎头虎脑"}]]
+                  ),
                   kb_name: str = Body("",
                                       description="mode=local_kb时为知识库名称；temp_kb时为临时知识库ID，search_engine时为搜索引擎名称",
                                       examples=["samples"]),
@@ -343,7 +358,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                                file_name="",
                                metadata={})
 
-            # source_documents = format_reference(kb_name, docs, api_address(is_public=True))
+            source_documents = format_reference(kb_name, docs, "")
             if return_direct:
                 yield OpenAIChatOutput(
                     id=f"chat{uuid.uuid4()}",
@@ -359,41 +374,14 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             callback = AsyncIteratorCallbackHandler()
             callbacks = [callback]
 
-            # Enable langchain-chatchat to support langfuse
-            import os
-            langfuse_secret_key = os.environ.get('LANGFUSE_SECRET_KEY')
-            langfuse_public_key = os.environ.get('LANGFUSE_PUBLIC_KEY')
-            langfuse_host = os.environ.get('LANGFUSE_HOST')
-            if langfuse_secret_key and langfuse_public_key and langfuse_host:
-                from langfuse import Langfuse
-                from langfuse.callback import CallbackHandler
-                langfuse_handler = CallbackHandler()
-                callbacks.append(langfuse_handler)
-
-            if max_tokens in [None, 0]:
-                max_tokens = Settings.model_settings.MAX_TOKENS
 
             llm = get_ChatOpenAI(
                 model_name=model,
                 temperature=temperature,
-                max_tokens=max_tokens,
+                max_tokens=None,
                 callbacks=callbacks,
             )
-            # TODO： 视情况使用 API
-            # # 加入reranker
-            # if Settings.kb_settings.USE_RERANKER:
-            #     reranker_model_path = get_model_path(Settings.kb_settings.RERANKER_MODEL)
-            #     reranker_model = LangchainReranker(top_n=top_k,
-            #                                     device=embedding_device(),
-            #                                     max_length=Settings.kb_settings.RERANKER_MAX_LENGTH,
-            #                                     model_name_or_path=reranker_model_path
-            #                                     )
-            #     print("-------------before rerank-----------------")
-            #     print(docs)
-            #     docs = reranker_model.compress_documents(documents=docs,
-            #                                              query=query)
-            #     print("------------after rerank------------------")
-            #     print(docs)
+
             context = "\n\n".join([doc["page_content"] for doc in docs])
 
             if len(docs) == 0:  # 如果没有找到相关文档，使用empty模板
@@ -453,11 +441,44 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             yield {"data": json.dumps({"error": str(e)})}
         return
 
-@app.post("'/kb_chat", summary="知识库对话")(kb_chat)
+# ... existing code ...
+@app.post("/kb_chat", summary="知识库对话")
+async def kb_chat_endpoint(query: str = Body(..., description="用户输入", example=["你好"]),
+                          mode: Literal["local_kb"] = Body("local_kb", description="知识来源"),
+                          top_k: int = Body(3, description="匹配向量数字"),
+                          score_threshold: float = Body(
+                              2.0,
+                              description="知识库匹配相关度阈值，取值范围在0-1之间，SCORE越小，相关度越高，取到1相当于不筛选，建议设置在0.5左右",
+                              ge=0,
+                              le=2,
+                          ),
+                          kb_name: str = Body("",
+                                              description="mode=local_kb时为知识库名称；temp_kb时为临时知识库ID，search_engine时为搜索引擎名称",
+                                              examples=["samples"]),
+
+                          stream: bool = Body(True, description="流式输出"),
+                          model: str = Body("qwen:1.8b", description="LLM 模型名称。"),
+                          temperature: float = Body(0.7, description="LLM 采样温度", ge=0.0,
+                                                    le=2.0),
+                          max_tokens: Optional[int] = Body(
+                              None,
+                              description="限制LLM生成Token数量，默认None代表模型最大值"
+                          ),
+                          prompt_name: str = Body(
+                              "default",
+                              description="使用的prompt模板名称(在prompt_settings.yaml中配置)"
+                          ),
+                          return_direct: bool = Body(False, description="直接返回检索结果，不送入 LLM")):
+    # 调用 kb_chat 函数
+    return kb_chat(query=query, mode=mode, top_k=top_k, score_threshold=score_threshold,
+                   kb_name=kb_name, stream=stream, model=model, temperature=temperature,
+                   max_tokens=max_tokens, prompt_name=prompt_name, return_direct=return_direct)
+
+
+
 
 
 if __name__ == "__main__":
     import uvicorn
-
     # 绑定到 localhost 只允许本地访问
     uvicorn.run(app, host="localhost", port=8000)
