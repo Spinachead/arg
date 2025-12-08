@@ -350,10 +350,6 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                   model: str = Body("qwen:1.8b", description="LLM 模型名称。"),
                   temperature: float = Body(0.7, description="LLM 采样温度", ge=0.0,
                                             le=2.0),
-                  max_tokens: Optional[int] = Body(
-                      None,
-                      description="限制LLM生成Token数量，默认None代表模型最大值"
-                  ),
                   prompt_name: str = Body(
                       "default",
                       description="使用的prompt模板名称(在prompt_settings.yaml中配置)"
@@ -363,7 +359,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                   ):
     async def knowledge_base_chat_iterator() -> AsyncIterable[str]:
         try:
-            nonlocal prompt_name, max_tokens
+            nonlocal prompt_name
             docs = search_docs(query=query,
                                knowledge_base_name=kb_name,
                                top_k=top_k,
