@@ -63,3 +63,8 @@
 2025-12-09 17:48:53.851 | WARNING  | __main__:save_file:488 - 文件 开机动画zip制作指南.doc 已存在。
 2025-12-09 17:48:53.853 | ERROR    | __main__:update_docs:554 - ValueError: 加载文档 开机动画zip制作指南.doc 时出错：暂未支持的文件格式 开机动画zip制作指南.doc
 2025-12-09 17:48:53.853 | INFO     | __main__:upload_docs:646 - 更新文档结果：{'status': 'Fail', 'message': '成功', 'data': {'failed_files': {'开机动画zip制作指南.doc': '加载文档 开机动画zip制作指南.doc 时出错：暂未支持的文件格式 开机动画zip制作指南.doc'}}}
+2025-12-09 17:53:57.981 | INFO     | __main__:upload_docs:646 - 更新文档结果：{'status': 'Fail', 'message': '成功', 'data': {'failed_files': {'体检报告.pdf': "从文件 samples/体检报告.pdf 加载文档时出错：No module named 'langchain.text_splitter'"}}}
+2025-12-09 17:54:36.909 | WARNING  | __main__:save_file:488 - 文件 体检报告.pdf 已存在。
+2025-12-09 17:54:42.505 | INFO     | __main__:upload_docs:646 - 更新文档结果：{'status': 'Fail', 'message': '成功', 'data': {'failed_files': {'体检报告.pdf': "从文件 samples/体检报告.pdf 加载文档时出错：No module named 'langchain.text_splitter'"}}}
+2025-12-09 17:59:51.354 | WARNING  | __main__:save_file:488 - 文件 体检报告.pdf 已存在。
+2025-12-09 17:59:56.990 | INFO     | __main__:upload_docs:646 - 更新文档结果：{'status': 'Fail', 'message': '成功', 'data': {'failed_files': {'体检报告.pdf': "从文件 samples/体检报告.pdf 加载文档时出错：No module named 'langchain.text_splitter'"}}}

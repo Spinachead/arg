@@ -8,6 +8,7 @@ from typing import Dict, Generator, List, Tuple, Union
 
 import chardet
 import langchain_community.document_loaders
+import langchain_text_splitters
 from langchain_community.document_loaders import JSONLoader, TextLoader
 import typing as t
 
@@ -257,7 +258,7 @@ def make_text_splitter(splitter_name, chunk_size, chunk_overlap):
                 TextSplitter = getattr(text_splitter_module, splitter_name)
             except:  # 否则使用langchain的text_splitter
                 text_splitter_module = importlib.import_module(
-                    "langchain.text_splitter"
+                    "langchain_text_splitters.TextSplitter"
                 )
                 TextSplitter = getattr(text_splitter_module, splitter_name)
 

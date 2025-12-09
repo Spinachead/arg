@@ -643,13 +643,10 @@ def upload_docs(
             docs=docs,
             not_refresh_vs_cache=True,
         )
-        logger.info(f"更新文档结果：{result}")
         failed_files.update(result.data["failed_files"])
         if not not_refresh_vs_cache:
             kb.save_vector_store()
     return {"status": 'Fail', "message": "成功", "data": None}
-
-
 
 if __name__ == "__main__":
     import uvicorn
