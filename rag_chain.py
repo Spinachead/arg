@@ -2,7 +2,7 @@ import os
 os.environ["OTEL_SDK_DISABLED"] = "true"
 from typing import Literal
 from pathlib import Path
-import torch.cuda
+# import torch.cuda
 
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
@@ -27,7 +27,8 @@ class RagState(TypedDict):
 
 def create_rag_graph():
     # 初始化
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cpu"
     # embedding = HuggingFaceEmbeddings(
     #     model_name="BAAI/bge-small-zh-v1.5",
     #     model_kwargs={"device": device}

@@ -4,6 +4,8 @@ from typing import Dict, List, Tuple
 
 from langchain_core.documents import Document
 
+from file_rag.utils import get_Retriever
+from knowledge_base.kb_cache.faiss_cache import ThreadSafeFaiss, kb_faiss_pool
 from knowledge_base.kb_service.base import KBService, SupportedVSType
 from knowledge_base.utils import get_vs_path, get_kb_path, KnowledgeFile
 

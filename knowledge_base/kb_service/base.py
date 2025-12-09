@@ -373,6 +373,7 @@ class KBServiceFactory:
         embed_model: str = "bge-small-zh-v1.5",
         kb_info: str = None,
     ) -> KBService:
+        #kb_name:"samples" vs_type:fiss, embed_model:bge-small-zh-v1.5
         if isinstance(vector_store_type, str):
             vector_store_type = getattr(SupportedVSType, vector_store_type.upper())
         params = {
@@ -447,6 +448,7 @@ class KBServiceFactory:
         _, vs_type, embed_model = load_kb_from_db(kb_name)
         if _ is None:  # kb not in db, just return None
             return None
+        #kb_name:"samples" vs_type:fiss, embed_model:bge-small-zh-v1.5
         return KBServiceFactory.get_service(kb_name, vs_type, embed_model)
 
     @staticmethod
