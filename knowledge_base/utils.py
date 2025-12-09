@@ -15,6 +15,7 @@ import typing as t
 from langchain_core.documents import Document
 from langchain_text_splitters import MarkdownHeaderTextSplitter, CharacterTextSplitter, TextSplitter
 
+from settings import Settings
 from utils import run_in_thread_pool
 
 text_splitter_dict: t.Dict[str, t.Dict[str, t.Any]] = {
@@ -41,7 +42,6 @@ text_splitter_dict: t.Dict[str, t.Dict[str, t.Any]] = {
 }
 
 
-
 def validate_kb_name(knowledge_base_id: str) -> bool:
     # 检查是否包含预期外的字符或路径攻击关键字
     if "../" in knowledge_base_id:
@@ -49,9 +49,10 @@ def validate_kb_name(knowledge_base_id: str) -> bool:
     return True
 
 
-def get_kb_path(knowledge_base_name: str):
-    return os.path.join("/chroma_db", knowledge_base_name)
 
+
+def get_kb_path(knowledge_base_name: str):
+    return os.path.join(Settings.basic_settings.KB_ROOT_PATH, knowledge_base_name)
 
 def get_doc_path(knowledge_base_name: str):
     return os.path.join(get_kb_path(knowledge_base_name), "content")
@@ -71,8 +72,8 @@ def get_file_path(knowledge_base_name: str, doc_name: str):
 def list_kbs_from_folder():
     return [
         f
-        for f in os.listdir("chroma_db")
-        if os.path.isdir(os.path.join("chroma_db", f))
+        for f in os.listdir(Settings.basic_settings.KB_ROOT_PATH)
+        if os.path.isdir(os.path.join(Settings.basic_settings.KB_ROOT_PATH, f))
     ]
 
 
@@ -473,6 +474,7 @@ def files2docs_in_thread(
             func=files2docs_in_thread_file2docs, params=kwargs_list
     ):
         yield result
+
 
 #
 # def format_reference(kb_name: str, docs: List[Dict], api_base_url: str = "") -> List[Dict]:

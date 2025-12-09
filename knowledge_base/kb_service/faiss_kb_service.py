@@ -68,7 +68,6 @@ class FaissKBService(KBService):
         score_threshold: float = 2.0,
     ) -> List[Tuple[Document, float]]:
         with self.load_vector_store().acquire() as vs:
-            logger.info(f"这是个向量库：{vs}")
             retriever = get_Retriever("ensemble").from_vectorstore(
                 vs,
                 top_k=top_k,

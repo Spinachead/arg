@@ -4,7 +4,7 @@ from langchain_core.documents import Document
 from langchain_ollama import OllamaLLM, ChatOllama
 
 from db.repository.knowledge_file_repository import get_file_detail
-from knowledge_base.utils import get_file_path, KnowledgeFile, files2docs_in_thread
+from knowledge_base.utils import get_file_path, KnowledgeFile, files2docs_in_thread, get_kb_path
 
 os.environ["OTEL_SDK_DISABLED"] = "true"
 # server.py
@@ -643,12 +643,17 @@ def upload_docs(
             docs=docs,
             not_refresh_vs_cache=True,
         )
-        failed_files.update(result.data["failed_files"])
+        # logger.info(f"更新文档结果：{result['data']['failed_files']}")
+        failed_files.update(result['data']['failed_files'])
+        # failed_files.update(result.data["failed_files"])
+
         if not not_refresh_vs_cache:
             kb.save_vector_store()
-    return {"status": 'Fail', "message": "成功", "data": None}
+
+    return {"status": 'success', "message": "成功", "data": None}
 
 if __name__ == "__main__":
     import uvicorn
     # 绑定到 localhost 只允许本地访问
+    get_kb_path("samples")
     uvicorn.run(app, host="localhost", port=8000)
