@@ -95,7 +95,7 @@ def get_Embeddings(
 ) -> Embeddings:
     from langchain_community.embeddings import OllamaEmbeddings
     embedding = OllamaEmbeddings(
-        model="bge-small-zh-v1.5",
+        model=get_default_embedding(),
         base_url="http://localhost:11434"
     )
     return embedding
@@ -227,3 +227,6 @@ class History(BaseModel):
             h = cls(**h)
 
         return h
+
+def get_default_embedding():
+    return "qllama/bge-small-zh-v1.5:latest"

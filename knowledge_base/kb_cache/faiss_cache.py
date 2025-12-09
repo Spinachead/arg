@@ -5,7 +5,7 @@ from langchain_core.documents import Document
 
 from knowledge_base.kb_cache.base import *
 from knowledge_base.utils import get_vs_path
-from utils import get_Embeddings
+from utils import get_Embeddings, get_default_embedding
 
 
 # patch FAISS to include doc id in Document.metadata
@@ -53,7 +53,7 @@ class _FaissPool(CachePool):
     def new_vector_store(
         self,
         kb_name: str,
-        embed_model: str = "bge-small-zh-v1.5",
+        embed_model: str = get_default_embedding(),
     ) -> FAISS:
         # create an empty vector store
         embeddings = get_Embeddings(embed_model=embed_model)
@@ -65,7 +65,7 @@ class _FaissPool(CachePool):
 
     def new_temp_vector_store(
         self,
-        embed_model: str = "bge-small-zh-v1.5",
+        embed_model: str = get_default_embedding(),
     ) -> FAISS:
         # create an empty vector store
         embeddings = get_Embeddings(embed_model=embed_model)
@@ -90,7 +90,7 @@ class KBFaissPool(_FaissPool):
         kb_name: str,
         vector_name: str = None,
         create: bool = True,
-        embed_model: str = "bge-small-zh-v1.5",
+        embed_model: str = get_default_embedding(),
     ) -> ThreadSafeFaiss:
         self.atomic.acquire()
         locked = True
@@ -132,6 +132,7 @@ class KBFaissPool(_FaissPool):
             if locked:  # we don't know exception raised before or after atomic.release
                 self.atomic.release()
             # logger.exception(e)
+            print(e.args[0])
             raise RuntimeError(f"向量库 {kb_name} 加载失败。")
         return self.get((kb_name, vector_name))
 
@@ -144,7 +145,7 @@ class MemoFaissPool(_FaissPool):
     def load_vector_store(
         self,
         kb_name: str,
-        embed_model: str = "bge-small-zh-v1.5",
+        embed_model: str = get_default_embedding(),
     ) -> ThreadSafeFaiss:
         self.atomic.acquire()
         cache = self.get(kb_name)

@@ -6,13 +6,15 @@ from langchain_core.documents import Document
 
 # 延迟导入 KBService 以避免循环导入
 from knowledge_base.kb_service.base import SupportedVSType
+from utils import get_default_embedding
+
 
 class DefaultKBService:
     def __init__(
         self,
         knowledge_base_name: str,
         kb_info: str = None,
-        embed_model: str = "bge-small-zh-v1.5",
+        embed_model: str = get_default_embedding(),
     ):
         self.kb_name = knowledge_base_name
         self.kb_info = kb_info

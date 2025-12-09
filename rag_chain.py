@@ -1,4 +1,7 @@
 import os
+
+from utils import get_default_embedding
+
 os.environ["OTEL_SDK_DISABLED"] = "true"
 from typing import Literal
 from pathlib import Path
@@ -29,12 +32,9 @@ def create_rag_graph():
     # 初始化
     # device = "cuda" if torch.cuda.is_available() else "cpu"
     device = "cpu"
-    # embedding = HuggingFaceEmbeddings(
-    #     model_name="BAAI/bge-small-zh-v1.5",
-    #     model_kwargs={"device": device}
-    # )
+
     embedding = OllamaEmbeddings(
-        model="bge-small-zh-v1.5",
+        model= get_default_embedding(),
         base_url="http://localhost:11434"
     )
     persist_dir = str((Path(__file__).parent / "chroma_db").resolve())

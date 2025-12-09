@@ -15,6 +15,8 @@ from knowledge_base.model.kb_document_model import DocumentWithVSId
 from knowledge_base.utils import KnowledgeFile, list_kbs_from_folder, list_files_from_folder
 import typing as t
 
+from utils import get_default_embedding
+
 
 class SupportedVSType:
     FAISS = "faiss"
@@ -32,7 +34,7 @@ class KBService(ABC):
         self,
         knowledge_base_name: str,
         kb_info: str = None,
-        embed_model: str = "bge-small-zh-v1.5",
+        embed_model: str = get_default_embedding(),
     ):
         self.kb_name = knowledge_base_name
         self.kb_info = kb_info
@@ -370,7 +372,7 @@ class KBServiceFactory:
     def get_service(
         kb_name: str,
         vector_store_type: Union[str, SupportedVSType],
-        embed_model: str = "bge-small-zh-v1.5",
+        embed_model: str = get_default_embedding(),
         kb_info: str = None,
     ) -> KBService:
         #kb_name:"samples" vs_type:fiss, embed_model:bge-small-zh-v1.5
@@ -448,7 +450,6 @@ class KBServiceFactory:
         _, vs_type, embed_model = load_kb_from_db(kb_name)
         if _ is None:  # kb not in db, just return None
             return None
-        #kb_name:"samples" vs_type:fiss, embed_model:bge-small-zh-v1.5
         return KBServiceFactory.get_service(kb_name, vs_type, embed_model)
 
     @staticmethod

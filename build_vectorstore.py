@@ -1,9 +1,11 @@
- # build_vectorstore.py
+from langchain_ollama import OllamaEmbeddings  # build_vectorstore.py
 from document_loader import load_documents_from_directory
 from chunking import smart_split_documents
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 import os
+
+from utils import get_default_embedding
 
 
 def build_or_update_vectorstore(doc_dir: str, persist_dir: str = "./chroma_db"):
@@ -15,8 +17,8 @@ def build_or_update_vectorstore(doc_dir: str, persist_dir: str = "./chroma_db"):
     chunks = smart_split_documents(docs)
 
     # 3. 初始化嵌入模型
-    embedding = HuggingFaceEmbeddings(
-        model_name="BAAI/bge-small-zh-v1.5",
+    embedding = OllamaEmbeddings(
+        model_name= get_default_embedding(),
         model_kwargs={"device": "cpu"}
     )
 
