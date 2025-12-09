@@ -133,3 +133,12 @@
 2025-12-09 23:46:20.775 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:76 - 这是retriever：None
 2025-12-09 23:46:20.775 | WARNING  | knowledge_base.kb_service.faiss_kb_service:do_search:78 - Failed to create ensemble retriever, returning empty results
 2025-12-09 23:46:20.775 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 7624 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 23:56:12.429 | WARNING  | __main__:save_file:488 - 文件 姜博 php后端开发.pdf 已存在。
+2025-12-09 23:56:12.437 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 2528 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 23:56:12.438 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 2528 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 23:56:38.040 | WARNING  | __main__:save_file:488 - 文件 姜博 php后端开发.pdf 已存在。
+2025-12-09 23:56:38.048 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 16040 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 23:56:38.048 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_pathD:\python\arg\data\knowledge_base\samples\vector_store\bge-small-zh-v1.5
+2025-12-09 23:56:38.105 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 16040 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 23:56:38.105 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 16040 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 23:56:38.106 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 16040 结束操作：('samples', 'bge-small-zh-v1.5')。

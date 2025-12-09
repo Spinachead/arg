@@ -68,6 +68,7 @@ class FaissKBService(KBService):
         score_threshold: float = 2.0,
     ) -> List[Tuple[Document, float]]:
         with self.load_vector_store().acquire() as vs:
+            logger.info(f"Searching in vector store containing {len(vs.docstore._dict)} documents")
             retriever = get_Retriever("ensemble").from_vectorstore(
                 vs,
                 top_k=top_k,
@@ -88,14 +89,20 @@ class FaissKBService(KBService):
         texts = [x.page_content for x in docs]
         metadatas = [x.metadata for x in docs]
         with self.load_vector_store().acquire() as vs:
+            logger.info(f"Adding {len(docs)} documents to vector store")
             embeddings = vs.embeddings.embed_documents(texts)
             ids = vs.add_embeddings(
                 text_embeddings=zip(texts, embeddings), metadatas=metadatas
             )
+            logger.info(f"Added documents with IDs: {ids}")
+            logger.info(f"Vector store now contains {len(vs.docstore._dict)} documents")
             if not kwargs.get("not_refresh_vs_cache"):
                 vs.save_local(self.vs_path)
+                logger.info(f"Saved vector store to {self.vs_path}")
         doc_infos = [{"id": id, "metadata": doc.metadata} for id, doc in zip(ids, docs)]
         return doc_infos
+
+
 
     def do_delete_doc(self, kb_file: KnowledgeFile, **kwargs):
         with self.load_vector_store().acquire() as vs:
