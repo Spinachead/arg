@@ -8,6 +8,8 @@ from file_rag.utils import get_Retriever
 from knowledge_base.kb_cache.faiss_cache import ThreadSafeFaiss, kb_faiss_pool
 from knowledge_base.kb_service.base import KBService, SupportedVSType
 from knowledge_base.utils import get_vs_path, get_kb_path, KnowledgeFile
+from utils import build_logger
+logger = build_logger()
 
 
 class FaissKBService(KBService):
@@ -66,11 +68,16 @@ class FaissKBService(KBService):
         score_threshold: float = 2.0,
     ) -> List[Tuple[Document, float]]:
         with self.load_vector_store().acquire() as vs:
+            logger.info(f"这是个向量库：{vs}")
             retriever = get_Retriever("ensemble").from_vectorstore(
                 vs,
                 top_k=top_k,
                 score_threshold=score_threshold,
             )
+            logger.info(f"这是retriever：{retriever}")
+            if retriever is None:
+                logger.warning("Failed to create ensemble retriever, returning empty results")
+                return []
             docs = retriever.get_relevant_documents(query)
         return docs
 

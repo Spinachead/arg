@@ -46,7 +46,6 @@ def kb_exists(session, kb_name):
 
 @with_session
 def load_kb_from_db(session, kb_name):
-    print("执行到load_kb_from_db方法了")
     kb = (
         session.query(KnowledgeBaseModel)
         .filter(KnowledgeBaseModel.kb_name.ilike(kb_name))

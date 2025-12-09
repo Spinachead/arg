@@ -15,7 +15,8 @@ from knowledge_base.model.kb_document_model import DocumentWithVSId
 from knowledge_base.utils import KnowledgeFile, list_kbs_from_folder, list_files_from_folder
 import typing as t
 
-from utils import get_default_embedding
+from utils import get_default_embedding,build_logger
+logger = build_logger(__name__)
 
 
 class SupportedVSType:
@@ -180,8 +181,9 @@ class KBService(ABC):
         score_threshold: float = 2.0,
     ) -> List[Document]:
         if not self.check_embed_model()[0]:
+            logger.info(f"返回为空")
             return []
-
+        logger.info(f"执行到search_docs")
         docs = self.do_search(query, top_k, score_threshold)
         return docs
 

@@ -31,6 +31,8 @@ from sse_starlette.sse import EventSourceResponse
 from utils import format_reference, get_ChatOpenAI, wrap_done, get_prompt_template, History
 # 在导入语句之后，FastAPI应用创建之前添加
 from db.base import Base, engine
+from utils import build_logger
+logger = build_logger()
 # 确保在所有模型导入之后调用下面的方法
 Base.metadata.create_all(bind=engine)
 
@@ -307,10 +309,10 @@ def search_docs(
         metadata: dict = Body({}, description="根据 metadata 进行过滤，仅支持一级键"),
 ) -> List[Dict]:
     kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
-    print("合适kb", kb)
     data = []
     if kb is not None:
         if query:
+            logger.info("开始执行")
             docs = kb.search_docs(query, top_k, score_threshold)
             # data = [DocumentWithVSId(**x[0].dict(), score=x[1], id=x[0].metadata.get("id")) for x in docs]
             data = [DocumentWithVSId(**{"id": x.metadata.get("id"), **x.dict()}) for x in docs]
@@ -443,6 +445,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             await task
 
         except Exception as e:
+            logger.exception(e)
             yield {"data": json.dumps({"error": str(e)})}
             return
     if stream:

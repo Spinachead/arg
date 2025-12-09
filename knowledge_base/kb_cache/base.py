@@ -6,6 +6,8 @@ from typing import Any, List, Tuple, Union, Generator
 # from langchain.embeddings.base import Embeddings
 from langchain_community.vectorstores import FAISS
 
+from utils import build_logger
+logger = build_logger()
 
 class ThreadSafeObject:
     def __init__(
@@ -32,10 +34,10 @@ class ThreadSafeObject:
             self._lock.acquire()
             if self._pool is not None:
                 self._pool._cache.move_to_end(self.key)
-            # logger.debug(f"{owner} 开始操作：{self.key}。{msg}")
+            logger.info(f"{owner} 开始操作：{self.key}。{msg}")
             yield self._obj
         finally:
-            # logger.debug(f"{owner} 结束操作：{self.key}。{msg}")
+            logger.info(f"{owner} 结束操作：{self.key}。{msg}")
             self._lock.release()
 
     def start_loading(self):

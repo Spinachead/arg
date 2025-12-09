@@ -1,0 +1,41 @@
+2025-12-09 14:55:01.430 | ERROR    | __main__:knowledge_base_chat_iterator:448 - not enough values to unpack (expected 3, got 0)
+2025-12-09 15:00:14.209 | ERROR    | __main__:knowledge_base_chat_iterator:447 - not enough values to unpack (expected 3, got 0)
+2025-12-09 15:04:13.852 | ERROR    | __main__:knowledge_base_chat_iterator:447 - not enough values to unpack (expected 3, got 0)
+2025-12-09 15:06:40.673 | INFO     | __main__:search_docs:315 - 开始执行
+2025-12-09 15:06:40.918 | ERROR    | __main__:knowledge_base_chat_iterator:448 - not enough values to unpack (expected 3, got 0)
+2025-12-09 15:07:21.258 | INFO     | __main__:search_docs:315 - 开始执行
+2025-12-09 15:07:21.503 | ERROR    | __main__:knowledge_base_chat_iterator:448 - not enough values to unpack (expected 3, got 0)
+2025-12-09 15:08:05.385 | INFO     | __main__:search_docs:315 - 开始执行
+2025-12-09 15:08:05.385 | INFO     | knowledge_base.kb_service.base:search_docs:186 - 执行到search_docs
+2025-12-09 15:08:05.385 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 3080 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 15:08:05.528 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 3080 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 15:08:05.528 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 3080 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 15:08:05.528 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - 这是个向量库：<langchain_community.vectorstores.faiss.FAISS object at 0x00000293E069F370>
+2025-12-09 15:08:05.629 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 3080 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 15:08:05.629 | ERROR    | __main__:knowledge_base_chat_iterator:448 - not enough values to unpack (expected 3, got 0)
+2025-12-09 15:11:35.753 | INFO     | __main__:search_docs:315 - 开始执行
+2025-12-09 15:11:35.753 | INFO     | knowledge_base.kb_service.base:search_docs:186 - 执行到search_docs
+2025-12-09 15:11:35.753 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 24860 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 15:11:35.895 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 24860 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 15:11:35.895 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 24860 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 15:11:35.895 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - 这是个向量库：<langchain_community.vectorstores.faiss.FAISS object at 0x000001FB76CB3130>
+2025-12-09 15:11:36.001 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 24860 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 15:11:36.001 | ERROR    | __main__:knowledge_base_chat_iterator:448 - not enough values to unpack (expected 3, got 0)
+2025-12-09 15:12:19.883 | INFO     | __main__:search_docs:315 - 开始执行
+2025-12-09 15:12:19.884 | INFO     | knowledge_base.kb_service.base:search_docs:186 - 执行到search_docs
+2025-12-09 15:12:19.884 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 18708 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 15:12:19.904 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 18708 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 15:12:19.905 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 18708 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 15:12:19.905 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - 这是个向量库：<langchain_community.vectorstores.faiss.FAISS object at 0x000001265303EF20>
+2025-12-09 15:12:20.011 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 18708 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 15:12:20.011 | ERROR    | __main__:knowledge_base_chat_iterator:448 - not enough values to unpack (expected 3, got 0)
+2025-12-09 15:18:32.619 | INFO     | __main__:search_docs:315 - 开始执行
+2025-12-09 15:18:32.619 | INFO     | knowledge_base.kb_service.base:search_docs:186 - 执行到search_docs
+2025-12-09 15:18:32.619 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 27172 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 15:18:32.768 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 27172 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 15:18:32.768 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 27172 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 15:18:32.768 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - 这是个向量库：<langchain_community.vectorstores.faiss.FAISS object at 0x0000025FDF732FE0>
+2025-12-09 15:18:32.870 | ERROR    | file_rag.retrievers.ensemble:from_vectorstore:49 - not enough values to unpack (expected 3, got 0)
+2025-12-09 15:18:33.040 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：None
+2025-12-09 15:18:33.040 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 27172 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 15:18:33.041 | ERROR    | __main__:knowledge_base_chat_iterator:448 - 'NoneType' object has no attribute 'get_relevant_documents'

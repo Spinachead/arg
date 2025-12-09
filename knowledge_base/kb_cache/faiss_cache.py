@@ -6,6 +6,8 @@ from langchain_core.documents import Document
 from knowledge_base.kb_cache.base import *
 from knowledge_base.utils import get_vs_path
 from utils import get_Embeddings, get_default_embedding
+from utils import build_logger
+logger = build_logger()
 
 
 # patch FAISS to include doc id in Document.metadata
@@ -131,8 +133,7 @@ class KBFaissPool(_FaissPool):
         except Exception as e:
             if locked:  # we don't know exception raised before or after atomic.release
                 self.atomic.release()
-            # logger.exception(e)
-            print(e.args[0])
+            logger.exception(e)
             raise RuntimeError(f"向量库 {kb_name} 加载失败。")
         return self.get((kb_name, vector_name))
 

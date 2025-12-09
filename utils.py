@@ -9,11 +9,16 @@ from typing import (
 )
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from urllib.parse import urlencode
+from pathlib import Path
 
 from langchain_core.prompts import ChatMessagePromptTemplate
 from langchain_core.runnables import RunnableConfig, run_in_executor
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
+from memoization import cached, CachingAlgorithmFlag
+import loguru
+from functools import partial
+import os
 
 
 class Embeddings(ABC):
@@ -230,3 +235,41 @@ class History(BaseModel):
 
 def get_default_embedding():
     return "qllama/bge-small-zh-v1.5:latest"
+
+
+def _filter_logs(record: dict) -> bool:
+    # hide debug logs if Settings.basic_settings.log_verbose=False
+    if record["level"].no <= 10 and not False:
+        return False
+    # hide traceback logs if Settings.basic_settings.log_verbose=False
+    if record["level"].no == 40 and not False:
+        record["exception"] = None
+    return True
+
+@cached(max_size=100, algorithm=CachingAlgorithmFlag.LRU)
+def build_logger(log_file: str = "chatchat"):
+    """
+    build a logger with colorized output and a log file, for example:
+
+    logger = build_logger("api")
+    logger.info("<green>some message</green>")
+
+    user can set basic_settings.log_verbose=True to output debug logs
+    use logger.exception to log errors with exceptions
+    """
+    loguru.logger._core.handlers[0]._filter = _filter_logs
+    logger = loguru.logger.opt(colors=True)
+    logger.opt = partial(loguru.logger.opt, colors=True)
+    logger.warn = logger.warning
+    # logger.error = partial(logger.exception)
+
+    if log_file:
+        if not log_file.endswith(".log"):
+            log_file = f"{log_file}.log"
+        if not os.path.isabs(log_file):
+            log_dir = Path("log")
+            log_dir.mkdir(exist_ok=True)
+            log_file = str((log_dir / log_file).resolve())
+        logger.add(log_file, colorize=False, filter=_filter_logs)
+
+    return logger
