@@ -106,6 +106,7 @@ class KBFaissPool(_FaissPool):
                     self.atomic.release()
                     locked = False
                     vs_path = get_vs_path(kb_name, vector_name)
+                    logger.info(f"这是vs_path{vs_path}")
 
                     if os.path.isfile(os.path.join(vs_path, "index.faiss")):
                         embeddings = get_Embeddings(embed_model=embed_model)

@@ -181,9 +181,7 @@ class KBService(ABC):
         score_threshold: float = 2.0,
     ) -> List[Document]:
         if not self.check_embed_model()[0]:
-            logger.info(f"返回为空")
             return []
-        logger.info(f"执行到search_docs")
         docs = self.do_search(query, top_k, score_threshold)
         return docs
 
