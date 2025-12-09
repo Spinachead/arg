@@ -5,9 +5,9 @@ from typing import (
     Any,
     ParamSpec,
     TypeVar,
-    cast, List, Dict, Callable, Awaitable, Optional, Union, Tuple,
+    cast, List, Dict, Callable, Awaitable, Optional, Union, Tuple, Generator,
 )
-from concurrent.futures import Executor, Future, ThreadPoolExecutor
+from concurrent.futures import Executor, Future, ThreadPoolExecutor, as_completed
 from urllib.parse import urlencode
 from pathlib import Path
 
@@ -273,3 +273,25 @@ def build_logger(log_file: str = "chatchat"):
         logger.add(log_file, colorize=False, filter=_filter_logs)
 
     return logger
+
+
+def run_in_thread_pool(
+        func: Callable,
+        params: List[Dict] = [],
+) -> Generator:
+    """
+    在线程池中批量运行任务，并将运行结果以生成器的形式返回。
+    请确保任务中的所有操作是线程安全的，任务函数请全部使用关键字参数。
+    """
+    tasks = []
+    with ThreadPoolExecutor() as pool:
+        for kwargs in params:
+            tasks.append(pool.submit(func, **kwargs))
+
+        for obj in as_completed(tasks):
+            try:
+                yield obj.result()
+            except Exception as e:
+                logger = build_logger()
+                logger.exception(f"error in sub thread: {e}")
+

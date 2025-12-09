@@ -14,6 +14,8 @@ import typing as t
 from langchain_core.documents import Document
 from langchain_text_splitters import MarkdownHeaderTextSplitter, CharacterTextSplitter, TextSplitter
 
+from utils import run_in_thread_pool
+
 text_splitter_dict: t.Dict[str, t.Dict[str, t.Any]] = {
     "ChineseRecursiveTextSplitter": {
         "source": "",
@@ -432,43 +434,43 @@ def files2docs_in_thread_file2docs(
         return False, (file.kb_name, file.filename, msg)
 
 
-# def files2docs_in_thread(
-#         files: List[Union[KnowledgeFile, Tuple[str, str], Dict]],
-#         chunk_size: int = 750,
-#         chunk_overlap: int = 150,
-#         zh_title_enhance: bool = False,
-# ) -> Generator:
-#     """
-#     利用多线程批量将磁盘文件转化成langchain Document.
-#     如果传入参数是Tuple，形式为(filename, kb_name)
-#     生成器返回值为 status, (kb_name, file_name, docs | error)
-#     """
-#
-#     kwargs_list = []
-#     for i, file in enumerate(files):
-#         kwargs = {}
-#         try:
-#             if isinstance(file, tuple) and len(file) >= 2:
-#                 filename = file[0]
-#                 kb_name = file[1]
-#                 file = KnowledgeFile(filename=filename, knowledge_base_name=kb_name)
-#             elif isinstance(file, dict):
-#                 filename = file.pop("filename")
-#                 kb_name = file.pop("kb_name")
-#                 kwargs.update(file)
-#                 file = KnowledgeFile(filename=filename, knowledge_base_name=kb_name)
-#             kwargs["file"] = file
-#             kwargs["chunk_size"] = chunk_size
-#             kwargs["chunk_overlap"] = chunk_overlap
-#             kwargs["zh_title_enhance"] = zh_title_enhance
-#             kwargs_list.append(kwargs)
-#         except Exception as e:
-#             yield False, (kb_name, filename, str(e))
-#
-#     for result in run_in_thread_pool(
-#             func=files2docs_in_thread_file2docs, params=kwargs_list
-#     ):
-#         yield result
+def files2docs_in_thread(
+        files: List[Union[KnowledgeFile, Tuple[str, str], Dict]],
+        chunk_size: int = 750,
+        chunk_overlap: int = 150,
+        zh_title_enhance: bool = False,
+) -> Generator:
+    """
+    利用多线程批量将磁盘文件转化成langchain Document.
+    如果传入参数是Tuple，形式为(filename, kb_name)
+    生成器返回值为 status, (kb_name, file_name, docs | error)
+    """
+
+    kwargs_list = []
+    for i, file in enumerate(files):
+        kwargs = {}
+        try:
+            if isinstance(file, tuple) and len(file) >= 2:
+                filename = file[0]
+                kb_name = file[1]
+                file = KnowledgeFile(filename=filename, knowledge_base_name=kb_name)
+            elif isinstance(file, dict):
+                filename = file.pop("filename")
+                kb_name = file.pop("kb_name")
+                kwargs.update(file)
+                file = KnowledgeFile(filename=filename, knowledge_base_name=kb_name)
+            kwargs["file"] = file
+            kwargs["chunk_size"] = chunk_size
+            kwargs["chunk_overlap"] = chunk_overlap
+            kwargs["zh_title_enhance"] = zh_title_enhance
+            kwargs_list.append(kwargs)
+        except Exception as e:
+            yield False, (kb_name, filename, str(e))
+
+    for result in run_in_thread_pool(
+            func=files2docs_in_thread_file2docs, params=kwargs_list
+    ):
+        yield result
 
 #
 # def format_reference(kb_name: str, docs: List[Dict], api_base_url: str = "") -> List[Dict]:
