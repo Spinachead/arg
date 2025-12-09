@@ -128,6 +128,7 @@ LOADER_DICT = {
         ".pptx",
     ],
     "RapidOCRLoader": [".png", ".jpg", ".jpeg", ".bmp"],
+    "UnstructuredWordDocumentLoader": [".doc", ".docx"],  # 添加对 .doc 文件的支持
     "UnstructuredFileLoader": [
         ".eml",
         ".msg",

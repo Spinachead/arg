@@ -589,7 +589,7 @@ def update_docs(
     if not not_refresh_vs_cache:
         kb.save_vector_store()
 
-    return {"status": 'Fail', "message": "成功", "data": None}
+    return {"status": 'Fail', "message": "成功", "data": {"failed_files": failed_files}}
 
 
 @app.post("/upload_docs", summary="上传文件到知识库并进行向量化")
@@ -643,6 +643,7 @@ def upload_docs(
             docs=docs,
             not_refresh_vs_cache=True,
         )
+        logger.info(f"更新文档结果：{result}")
         failed_files.update(result.data["failed_files"])
         if not not_refresh_vs_cache:
             kb.save_vector_store()
