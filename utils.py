@@ -20,6 +20,8 @@ import loguru
 from functools import partial
 import os
 
+from settings import Settings
+
 
 class Embeddings(ABC):
     """Interface for embedding models.
@@ -182,15 +184,14 @@ async def wrap_done(fn: Awaitable, event: asyncio.Event):
 
 
 
+
 def get_prompt_template(type: str, name: str) -> Optional[str]:
     """
     从prompt_config中加载模板内容
     type: 对应于 model_settings.llm_model_config 模型类别其中的一种，以及 "rag"，如果有新功能，应该进行加入。
     """
 
-
-    return "请回答我的问题"
-
+    return Settings.prompt_settings.model_dump().get(type, {}).get(name)
 
 class History(BaseModel):
     """

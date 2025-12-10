@@ -66,7 +66,7 @@ class EnsembleRetrieverService(BaseRetrieverService):
             logger.warning("Retriever is None")
             return []
         try:
-            docs = self.retriever.get_relevant_documents(query)
+            docs = self.retriever.invoke(query)
             return docs[: self.top_k]
         except Exception as e:
             logger.exception(f"Error getting relevant documents: {e}")

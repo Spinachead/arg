@@ -17,6 +17,8 @@ from langchain_text_splitters import MarkdownHeaderTextSplitter, CharacterTextSp
 
 from settings import Settings
 from utils import run_in_thread_pool
+from utils import build_logger
+logger = build_logger()
 
 text_splitter_dict: t.Dict[str, t.Dict[str, t.Any]] = {
     "ChineseRecursiveTextSplitter": {
@@ -259,7 +261,7 @@ def make_text_splitter(splitter_name, chunk_size, chunk_overlap):
                 TextSplitter = getattr(text_splitter_module, splitter_name)
             except:  # 否则使用langchain的text_splitter
                 text_splitter_module = importlib.import_module(
-                    "langchain_text_splitters.TextSplitter"
+                    "langchain_text_splitters"
                 )
                 TextSplitter = getattr(text_splitter_module, splitter_name)
 
@@ -317,7 +319,7 @@ def make_text_splitter(splitter_name, chunk_size, chunk_overlap):
                     )
     except Exception as e:
         print(e)
-        text_splitter_module = importlib.import_module("langchain.text_splitter")
+        text_splitter_module = importlib.import_module("langchain_text_splitters")
         TextSplitter = getattr(text_splitter_module, "RecursiveCharacterTextSplitter")
         text_splitter = TextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
@@ -325,6 +327,7 @@ def make_text_splitter(splitter_name, chunk_size, chunk_overlap):
     # text_splitter._tokenizer.max_length = 37016792
     # text_splitter._tokenizer.prefer_gpu()
     return text_splitter
+
 
 
 class KnowledgeFile:
@@ -433,7 +436,7 @@ def files2docs_in_thread_file2docs(
         return True, (file.kb_name, file.filename, file.file2text(**kwargs))
     except Exception as e:
         msg = f"从文件 {file.kb_name}/{file.filename} 加载文档时出错：{e}"
-        # logger.error(f"{e.__class__.__name__}: {msg}")
+        logger.error(f"{e.__class__.__name__}: {msg}")
         return False, (file.kb_name, file.filename, msg)
 
 
@@ -468,6 +471,7 @@ def files2docs_in_thread(
             kwargs["zh_title_enhance"] = zh_title_enhance
             kwargs_list.append(kwargs)
         except Exception as e:
+            logger.error(f"{e.__class__.__name__}: {e}")
             yield False, (kb_name, filename, str(e))
 
     for result in run_in_thread_pool(

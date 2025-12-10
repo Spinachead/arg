@@ -329,7 +329,7 @@ def search_docs(
 
 
 
-@app.post("/kb_chat", summary="知识库对话")
+@app.post("/api/kb_chat", summary="知识库对话")
 async def kb_chat(query: str = Body(..., description="用户输入", example=["你好"]),
                   mode: Literal["local_kb"] = Body("local_kb", description="知识来源"),
                   top_k: int = Body(3, description="匹配向量数字"),
@@ -388,7 +388,6 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
 
             callback = AsyncIteratorCallbackHandler()
             callbacks = [callback]
-
 
             llm = ChatOllama(model="qwen:1.8b", temperature=0.7, callbacks=callbacks)
 

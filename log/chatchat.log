@@ -145,3 +145,171 @@
 2025-12-09 23:56:38.105 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 16040 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
 2025-12-09 23:56:38.105 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 16040 开始操作：('samples', 'bge-small-zh-v1.5')。
 2025-12-09 23:56:38.106 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 16040 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 09:52:39.409 | ERROR    | knowledge_base.utils:files2docs_in_thread_file2docs:438 - ModuleNotFoundError: 从文件 samples/体检报告.pdf 加载文档时出错：No module named 'langchain.text_splitter'
+2025-12-10 09:52:39.410 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 32748 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-10 09:52:39.410 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_pathE:\pythonPro\arg\data\knowledge_base\samples\vector_store\bge-small-zh-v1.5
+2025-12-10 09:52:40.572 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 32748 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-10 09:52:40.572 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 32748 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 09:52:40.572 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 32748 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 09:58:36.717 | WARNING  | __main__:save_file:488 - 文件 体检报告.pdf 已存在。
+2025-12-10 09:58:42.402 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 18976 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-10 09:58:42.402 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_pathE:\pythonPro\arg\data\knowledge_base\samples\vector_store\bge-small-zh-v1.5
+2025-12-10 09:58:42.432 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 18976 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-10 09:58:42.432 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 18976 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 09:58:42.432 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 18976 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 09:58:42.433 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 18976 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 09:58:42.434 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 18976 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 09:58:42.435 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 18976 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 09:58:42.435 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_add_doc:92 - Adding 11 documents to vector store
+2025-12-10 09:59:06.462 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_add_doc:97 - Added documents with IDs: ['6465cb31-ca1a-46e1-ae68-187d9573d618', 'a5ebee46-57b2-4bb2-82c7-3667c272d0ca', 'df40443f-1278-4535-801f-b6d7153d59c1', '6ccc2632-b761-4f0a-bee6-c295ca013f79', '9f71f0e3-ea4d-48dc-ba35-db24fada01a6', 'fa51f5b8-e888-40a8-8a60-6e6c73886e44', '6266f650-b902-4f87-bf64-169093267b95', '9a37383f-3f30-4fac-9d63-95f96af7a00d', '1ef5f00c-2066-4a7a-82af-d57a15a9a60b', '497df1ca-8054-40e4-b1b1-edacdca01963', 'da7c6820-4ba2-48c6-885b-e4dad55ce57f']
+2025-12-10 09:59:06.463 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_add_doc:98 - Vector store now contains 11 documents
+2025-12-10 09:59:06.463 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 18976 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 09:59:06.680 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 18976 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 09:59:06.682 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 18976 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 10:01:01.225 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 10:01:01.225 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 29572 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 10:01:01.225 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 10:01:01.225 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 10:01:01.357 | ERROR    | file_rag.retrievers.ensemble:from_vectorstore:60 - Error creating ensemble retriever: Could not import rank_bm25, please install with `pip install rank_bm25`.
+2025-12-10 10:01:01.358 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：None
+2025-12-10 10:01:01.358 | WARNING  | knowledge_base.kb_service.faiss_kb_service:do_search:79 - Failed to create ensemble retriever, returning empty results
+2025-12-10 10:01:01.358 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 29572 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 10:02:56.422 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 10:02:56.422 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 15440 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-10 10:02:56.422 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_pathE:\pythonPro\arg\data\knowledge_base\samples\vector_store\bge-small-zh-v1.5
+2025-12-10 10:02:56.441 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 15440 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-10 10:02:56.442 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 15440 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 10:02:56.442 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 10:02:56.442 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 10:02:56.966 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x000002204D43ADA0>
+2025-12-10 10:02:56.966 | ERROR    | file_rag.retrievers.ensemble:get_relevant_documents:72 - Error getting relevant documents: 'EnsembleRetriever' object has no attribute 'get_relevant_documents'
+2025-12-10 10:02:56.966 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 15440 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 10:08:59.614 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 10:08:59.614 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 30800 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-10 10:08:59.614 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_pathE:\pythonPro\arg\data\knowledge_base\samples\vector_store\bge-small-zh-v1.5
+2025-12-10 10:08:59.631 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 30800 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-10 10:08:59.631 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 30800 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 10:08:59.631 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 10:08:59.631 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 10:09:00.085 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x00000275C40DEB90>
+2025-12-10 10:09:02.503 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 30800 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 11:10:36.271 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 11:10:36.272 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 29308 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-10 11:10:36.272 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_pathE:\pythonPro\arg\data\knowledge_base\samples\vector_store\bge-small-zh-v1.5
+2025-12-10 11:10:36.319 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 29308 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-10 11:10:36.319 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 29308 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 11:10:36.319 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 11:10:36.319 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 11:10:36.808 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x000001A1BAAADC00>
+2025-12-10 11:10:39.729 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 29308 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 11:29:18.374 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 11:29:18.374 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 29308 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 11:29:18.374 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 11:29:18.374 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 11:29:18.407 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x000001A1BDC9A230>
+2025-12-10 11:29:20.930 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 29308 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 11:36:45.775 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 11:36:45.775 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 29308 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 11:36:45.775 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 11:36:45.775 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 11:36:45.806 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x000001A1BDC99D80>
+2025-12-10 11:36:48.208 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 29308 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 14:59:29.767 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 14:59:29.768 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 29308 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 14:59:29.768 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 14:59:29.768 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 14:59:29.802 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x000001A1BDC9A290>
+2025-12-10 14:59:32.319 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 29308 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:00:47.115 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 15:00:47.115 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 29308 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:00:47.115 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 15:00:47.115 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 15:00:47.148 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x000001A1BDC98460>
+2025-12-10 15:00:49.603 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 29308 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:04:38.119 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 15:04:38.119 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 29308 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:04:38.120 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 15:04:38.120 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 15:04:38.150 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x000001A1BDD3A6B0>
+2025-12-10 15:04:40.600 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 29308 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:09:16.337 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 15:09:16.338 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 29308 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:09:16.338 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 15:09:16.338 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 15:09:16.368 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x000001A1BDD239A0>
+2025-12-10 15:09:18.818 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 29308 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:18:45.035 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 15:18:45.035 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 29308 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:18:45.035 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 15:18:45.036 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 15:18:45.068 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x000001A1BDD23850>
+2025-12-10 15:18:47.477 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 29308 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:19:30.465 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 15:19:30.465 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 29308 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:19:30.466 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 15:19:30.466 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 15:19:30.489 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x000001A1BDC98E80>
+2025-12-10 15:19:32.913 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 29308 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:20:14.126 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 15:20:14.126 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 29308 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:20:14.126 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 15:20:14.126 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 15:20:14.159 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x000001A1BDC99AE0>
+2025-12-10 15:20:16.600 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 29308 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:24:15.155 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 15:24:15.155 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 29308 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:24:15.155 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 15:24:15.155 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 15:24:15.185 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x000001A1BDD52080>
+2025-12-10 15:24:17.609 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 29308 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:29:09.699 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 15:29:09.699 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 29308 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:29:09.701 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 15:29:09.701 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 15:29:09.731 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x000001A1BDD51B10>
+2025-12-10 15:29:12.160 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 29308 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:30:22.480 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 15:30:22.481 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 29308 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:30:22.481 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 15:30:22.481 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 15:30:22.511 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x000001A1BDD521D0>
+2025-12-10 15:30:24.931 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 29308 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:31:13.513 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 15:31:13.513 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 29308 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:31:13.513 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 15:31:13.513 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 15:31:13.538 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x000001A1BDD663E0>
+2025-12-10 15:31:15.971 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 29308 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:35:03.974 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 15:35:03.975 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 15304 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-10 15:35:03.975 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_pathE:\pythonPro\arg\data\knowledge_base\samples\vector_store\bge-small-zh-v1.5
+2025-12-10 15:35:04.014 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 15304 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-10 15:35:15.518 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 15304 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:35:16.198 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 15:35:17.199 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 15:35:17.638 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x000002B690813280>
+2025-12-10 15:35:20.065 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 15304 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:43:20.941 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 15:43:20.941 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 22876 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-10 15:43:20.942 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_pathE:\pythonPro\arg\data\knowledge_base\samples\vector_store\bge-small-zh-v1.5
+2025-12-10 15:43:20.967 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 22876 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-10 15:43:22.580 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 22876 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:43:22.580 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 15:43:22.580 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 15:43:22.982 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x0000022E6ED3C820>
+2025-12-10 15:43:25.385 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 22876 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:44:41.689 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 15:44:41.689 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 32172 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-10 15:44:41.689 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_pathE:\pythonPro\arg\data\knowledge_base\samples\vector_store\bge-small-zh-v1.5
+2025-12-10 15:44:41.707 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 32172 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-10 15:44:41.707 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 32172 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:44:41.707 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 15:44:41.707 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 15:44:42.153 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x000002D168CCD9C0>
+2025-12-10 15:44:44.217 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 32172 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:52:28.423 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-10 15:52:28.423 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 32172 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-10 15:52:28.423 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - Searching in vector store containing 11 documents
+2025-12-10 15:52:28.423 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:40 - Found 11 documents in vectorstore
+2025-12-10 15:52:28.439 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：<file_rag.retrievers.ensemble.EnsembleRetrieverService object at 0x000002D168D4E0E0>
+2025-12-10 15:52:30.852 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 32172 结束操作：('samples', 'bge-small-zh-v1.5')。

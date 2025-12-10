@@ -1,3 +1,5 @@
 /.idea
 /.vscode
 /.vagrant
+.env
+__pycache__/
