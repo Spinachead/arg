@@ -1,0 +1,144 @@
+2025-12-09 15:06:40.673 | INFO     | __main__:search_docs:315 - 开始执行
+2025-12-09 15:06:40.918 | ERROR    | __main__:knowledge_base_chat_iterator:448 - not enough values to unpack (expected 3, got 0)
+2025-12-09 15:07:21.258 | INFO     | __main__:search_docs:315 - 开始执行
+2025-12-09 15:07:21.503 | ERROR    | __main__:knowledge_base_chat_iterator:448 - not enough values to unpack (expected 3, got 0)
+2025-12-09 15:08:05.385 | INFO     | __main__:search_docs:315 - 开始执行
+2025-12-09 15:08:05.385 | INFO     | knowledge_base.kb_service.base:search_docs:186 - 执行到search_docs
+2025-12-09 15:08:05.385 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 3080 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 15:08:05.528 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 3080 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 15:08:05.528 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 3080 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 15:08:05.528 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - 这是个向量库：<langchain_community.vectorstores.faiss.FAISS object at 0x00000293E069F370>
+2025-12-09 15:08:05.629 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 3080 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 15:08:05.629 | ERROR    | __main__:knowledge_base_chat_iterator:448 - not enough values to unpack (expected 3, got 0)
+2025-12-09 15:11:35.753 | INFO     | __main__:search_docs:315 - 开始执行
+2025-12-09 15:11:35.753 | INFO     | knowledge_base.kb_service.base:search_docs:186 - 执行到search_docs
+2025-12-09 15:11:35.753 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 24860 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 15:11:35.895 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 24860 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 15:11:35.895 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 24860 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 15:11:35.895 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - 这是个向量库：<langchain_community.vectorstores.faiss.FAISS object at 0x000001FB76CB3130>
+2025-12-09 15:11:36.001 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 24860 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 15:11:36.001 | ERROR    | __main__:knowledge_base_chat_iterator:448 - not enough values to unpack (expected 3, got 0)
+2025-12-09 15:12:19.883 | INFO     | __main__:search_docs:315 - 开始执行
+2025-12-09 15:12:19.884 | INFO     | knowledge_base.kb_service.base:search_docs:186 - 执行到search_docs
+2025-12-09 15:12:19.884 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 18708 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 15:12:19.904 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 18708 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 15:12:19.905 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 18708 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 15:12:19.905 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - 这是个向量库：<langchain_community.vectorstores.faiss.FAISS object at 0x000001265303EF20>
+2025-12-09 15:12:20.011 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 18708 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 15:12:20.011 | ERROR    | __main__:knowledge_base_chat_iterator:448 - not enough values to unpack (expected 3, got 0)
+2025-12-09 15:18:32.619 | INFO     | __main__:search_docs:315 - 开始执行
+2025-12-09 15:18:32.619 | INFO     | knowledge_base.kb_service.base:search_docs:186 - 执行到search_docs
+2025-12-09 15:18:32.619 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 27172 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 15:18:32.768 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 27172 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 15:18:32.768 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 27172 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 15:18:32.768 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - 这是个向量库：<langchain_community.vectorstores.faiss.FAISS object at 0x0000025FDF732FE0>
+2025-12-09 15:18:32.870 | ERROR    | file_rag.retrievers.ensemble:from_vectorstore:49 - not enough values to unpack (expected 3, got 0)
+2025-12-09 15:18:33.040 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：None
+2025-12-09 15:18:33.040 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 27172 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 15:18:33.041 | ERROR    | __main__:knowledge_base_chat_iterator:448 - 'NoneType' object has no attribute 'get_relevant_documents'
+2025-12-09 15:26:56.746 | INFO     | __main__:search_docs:315 - 开始执行
+2025-12-09 15:26:56.747 | INFO     | knowledge_base.kb_service.base:search_docs:186 - 执行到search_docs
+2025-12-09 15:26:56.747 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 30908 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 15:26:56.764 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 30908 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 15:26:56.765 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 30908 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 15:26:56.765 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - 这是个向量库：<langchain_community.vectorstores.faiss.FAISS object at 0x00000230C931EEC0>
+2025-12-09 15:26:56.765 | WARNING  | file_rag.retrievers.ensemble:from_vectorstore:37 - No documents found in vectorstore
+2025-12-09 15:26:56.765 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：None
+2025-12-09 15:26:56.765 | WARNING  | knowledge_base.kb_service.faiss_kb_service:do_search:79 - Failed to create ensemble retriever, returning empty results
+2025-12-09 15:26:56.765 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 30908 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 16:20:53.274 | INFO     | __main__:search_docs:315 - 开始执行
+2025-12-09 16:20:53.274 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 32020 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 16:20:53.274 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_path/chroma_db\samples\vector_store\bge-small-zh-v1.5
+2025-12-09 16:20:53.412 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 32020 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 16:20:53.412 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 32020 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 16:20:53.413 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - 这是个向量库：<langchain_community.vectorstores.faiss.FAISS object at 0x000001804A00EFB0>
+2025-12-09 16:20:53.413 | WARNING  | file_rag.retrievers.ensemble:from_vectorstore:37 - No documents found in vectorstore
+2025-12-09 16:20:53.413 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：None
+2025-12-09 16:20:53.413 | WARNING  | knowledge_base.kb_service.faiss_kb_service:do_search:79 - Failed to create ensemble retriever, returning empty results
+2025-12-09 16:20:53.413 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 32020 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 17:41:08.372 | WARNING  | __main__:save_file:488 - 文件 教管壹MDM云管控平台简易操作指南V7.0.pdf 已存在。
+2025-12-09 17:41:11.571 | INFO     | __main__:upload_docs:646 - 更新文档结果：{'status': 'Fail', 'message': '成功', 'data': None}
+2025-12-09 17:48:35.342 | ERROR    | __main__:update_docs:554 - ValueError: 加载文档 开机动画zip制作指南.doc 时出错：暂未支持的文件格式 开机动画zip制作指南.doc
+2025-12-09 17:48:35.342 | INFO     | __main__:upload_docs:646 - 更新文档结果：{'status': 'Fail', 'message': '成功', 'data': {'failed_files': {'开机动画zip制作指南.doc': '加载文档 开机动画zip制作指南.doc 时出错：暂未支持的文件格式 开机动画zip制作指南.doc'}}}
+2025-12-09 17:48:53.851 | WARNING  | __main__:save_file:488 - 文件 开机动画zip制作指南.doc 已存在。
+2025-12-09 17:48:53.853 | ERROR    | __main__:update_docs:554 - ValueError: 加载文档 开机动画zip制作指南.doc 时出错：暂未支持的文件格式 开机动画zip制作指南.doc
+2025-12-09 17:48:53.853 | INFO     | __main__:upload_docs:646 - 更新文档结果：{'status': 'Fail', 'message': '成功', 'data': {'failed_files': {'开机动画zip制作指南.doc': '加载文档 开机动画zip制作指南.doc 时出错：暂未支持的文件格式 开机动画zip制作指南.doc'}}}
+2025-12-09 17:53:57.981 | INFO     | __main__:upload_docs:646 - 更新文档结果：{'status': 'Fail', 'message': '成功', 'data': {'failed_files': {'体检报告.pdf': "从文件 samples/体检报告.pdf 加载文档时出错：No module named 'langchain.text_splitter'"}}}
+2025-12-09 17:54:36.909 | WARNING  | __main__:save_file:488 - 文件 体检报告.pdf 已存在。
+2025-12-09 17:54:42.505 | INFO     | __main__:upload_docs:646 - 更新文档结果：{'status': 'Fail', 'message': '成功', 'data': {'failed_files': {'体检报告.pdf': "从文件 samples/体检报告.pdf 加载文档时出错：No module named 'langchain.text_splitter'"}}}
+2025-12-09 17:59:51.354 | WARNING  | __main__:save_file:488 - 文件 体检报告.pdf 已存在。
+2025-12-09 17:59:56.990 | INFO     | __main__:upload_docs:646 - 更新文档结果：{'status': 'Fail', 'message': '成功', 'data': {'failed_files': {'体检报告.pdf': "从文件 samples/体检报告.pdf 加载文档时出错：No module named 'langchain.text_splitter'"}}}
+2025-12-09 21:50:29.595 | WARNING  | __main__:save_file:488 - 文件 姜博 php后端开发.pdf 已存在。
+2025-12-09 21:50:29.602 | INFO     | __main__:upload_docs:646 - 更新文档结果：{'failed_files': {'姜博 php后端开发.pdf': '从文件 samples/姜博 php后端开发.pdf 加载文档时出错：unstructured package not found, please install it with `pip install unstructured`'}}
+2025-12-09 21:51:09.808 | WARNING  | __main__:save_file:488 - 文件 姜博 php后端开发.pdf 已存在。
+2025-12-09 21:51:09.815 | INFO     | __main__:upload_docs:646 - 更新文档结果：{'姜博 php后端开发.pdf': '从文件 samples/姜博 php后端开发.pdf 加载文档时出错：unstructured package not found, please install it with `pip install unstructured`'}
+2025-12-09 21:52:04.243 | WARNING  | __main__:save_file:488 - 文件 姜博 php后端开发.pdf 已存在。
+2025-12-09 21:52:04.250 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 5360 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 21:52:04.250 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_path/chroma_db\samples\vector_store\bge-small-zh-v1.5
+2025-12-09 21:52:07.741 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 5360 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 21:52:07.741 | ERROR    | knowledge_base.kb_cache.faiss_cache:load_vector_store:137 - Could not import faiss python package. Please install it with `pip install faiss-gpu` (for CUDA supported GPU) or `pip install faiss-cpu` (depending on Python version).
+2025-12-09 22:00:20.581 | WARNING  | __main__:save_file:488 - 文件 姜博 php后端开发.pdf 已存在。
+2025-12-09 22:00:20.589 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 17788 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 22:00:20.590 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_path/chroma_db\samples\vector_store\bge-small-zh-v1.5
+2025-12-09 22:00:23.334 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 17788 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 22:00:23.334 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 17788 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 22:00:23.335 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 17788 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 22:05:50.000 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-09 22:05:50.001 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 15932 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 22:05:50.001 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - 这是个向量库：<langchain_community.vectorstores.faiss.FAISS object at 0x000001E1ED1FE410>
+2025-12-09 22:05:50.001 | WARNING  | file_rag.retrievers.ensemble:from_vectorstore:37 - No documents found in vectorstore
+2025-12-09 22:05:50.001 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：None
+2025-12-09 22:05:50.001 | WARNING  | knowledge_base.kb_service.faiss_kb_service:do_search:79 - Failed to create ensemble retriever, returning empty results
+2025-12-09 22:05:50.002 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 15932 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 22:12:18.796 | WARNING  | __main__:save_file:488 - 文件 姜博 php后端开发.pdf 已存在。
+2025-12-09 22:12:24.504 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 12620 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 22:12:24.504 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_path/chroma_db\samples\vector_store\bge-small-zh-v1.5
+2025-12-09 22:12:24.572 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 12620 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 22:12:24.573 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 12620 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 22:12:24.573 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 12620 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 22:54:01.220 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 496 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 22:54:01.221 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_pathD:\python\arg\data\knowledge_base\samples\vector_store\bge-small-zh-v1.5
+2025-12-09 22:54:03.960 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 496 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 22:54:03.960 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 496 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 22:54:03.961 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 496 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 22:54:49.019 | WARNING  | __main__:save_file:488 - 文件 姜博 php后端开发.pdf 已存在。
+2025-12-09 22:54:49.026 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 17456 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 22:54:49.027 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 17456 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 22:56:01.349 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-09 22:56:01.350 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 1976 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 22:56:01.350 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_pathD:\python\arg\data\knowledge_base\samples\vector_store\bge-small-zh-v1.5
+2025-12-09 22:56:01.372 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 1976 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 22:56:01.372 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 1976 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 22:56:01.372 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:71 - 这是个向量库：<langchain_community.vectorstores.faiss.FAISS object at 0x0000023F71403370>
+2025-12-09 22:56:01.372 | WARNING  | file_rag.retrievers.ensemble:from_vectorstore:37 - No documents found in vectorstore
+2025-12-09 22:56:01.372 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:77 - 这是retriever：None
+2025-12-09 22:56:01.372 | WARNING  | knowledge_base.kb_service.faiss_kb_service:do_search:79 - Failed to create ensemble retriever, returning empty results
+2025-12-09 22:56:01.372 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 1976 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 23:33:09.676 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-09 23:33:15.127 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 8068 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 23:33:15.128 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_pathD:\python\arg\data\knowledge_base\samples\vector_store\bge-small-zh-v1.5
+2025-12-09 23:33:15.160 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 8068 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 23:33:15.160 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 8068 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 23:43:34.900 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-09 23:43:38.171 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 9256 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 23:43:40.701 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_pathD:\python\arg\data\knowledge_base\samples\vector_store\bge-small-zh-v1.5
+2025-12-09 23:44:28.799 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 9256 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 23:44:43.493 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 9256 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 23:46:20.753 | INFO     | __main__:search_docs:319 - 开始执行
+2025-12-09 23:46:20.753 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 7624 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 23:46:20.754 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_pathD:\python\arg\data\knowledge_base\samples\vector_store\bge-small-zh-v1.5
+2025-12-09 23:46:20.775 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 7624 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 23:46:20.775 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 7624 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 23:46:20.775 | WARNING  | file_rag.retrievers.ensemble:from_vectorstore:37 - No documents found in vectorstore
+2025-12-09 23:46:20.775 | INFO     | knowledge_base.kb_service.faiss_kb_service:do_search:76 - 这是retriever：None
+2025-12-09 23:46:20.775 | WARNING  | knowledge_base.kb_service.faiss_kb_service:do_search:78 - Failed to create ensemble retriever, returning empty results
+2025-12-09 23:46:20.775 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 7624 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 23:56:12.429 | WARNING  | __main__:save_file:488 - 文件 姜博 php后端开发.pdf 已存在。
+2025-12-09 23:56:12.437 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 2528 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 23:56:12.438 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 2528 结束操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 23:56:38.040 | WARNING  | __main__:save_file:488 - 文件 姜博 php后端开发.pdf 已存在。
+2025-12-09 23:56:38.048 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 16040 开始操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 23:56:38.048 | INFO     | knowledge_base.kb_cache.faiss_cache:load_vector_store:109 - 这是vs_pathD:\python\arg\data\knowledge_base\samples\vector_store\bge-small-zh-v1.5
+2025-12-09 23:56:38.105 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 16040 结束操作：('samples', 'bge-small-zh-v1.5')。初始化
+2025-12-09 23:56:38.105 | INFO     | knowledge_base.kb_cache.base:acquire:37 - thread 16040 开始操作：('samples', 'bge-small-zh-v1.5')。
+2025-12-09 23:56:38.106 | INFO     | knowledge_base.kb_cache.base:acquire:40 - thread 16040 结束操作：('samples', 'bge-small-zh-v1.5')。
