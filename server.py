@@ -2,6 +2,8 @@ import os
 
 from langchain_core.documents import Document
 from langchain_ollama import OllamaLLM, ChatOllama
+from langgraph.constants import START, END
+from langgraph.graph import StateGraph
 
 from db.repository.knowledge_file_repository import get_file_detail
 from knowledge_base.utils import get_file_path, KnowledgeFile, files2docs_in_thread, get_kb_path
@@ -17,7 +19,7 @@ from fastapi.responses import StreamingResponse
 from langchain_classic.callbacks import AsyncIteratorCallbackHandler
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
-from typing import Optional, Dict, Any, AsyncIterable, Literal, List
+from typing import Optional, Dict, Any, AsyncIterable, Literal, List, TypedDict
 import asyncio
 import json
 
@@ -456,6 +458,164 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
     else:
         return await knowledge_base_chat_iterator().__anext__()
 
+
+
+
+
+@app.post("/api/kb_chat2", summary="知识库对话")
+async def kb_chat(query: str = Body(..., description="用户输入", example=["你好"]),
+                  mode: Literal["local_kb"] = Body("local_kb", description="知识来源"),
+                  top_k: int = Body(3, description="匹配向量数字"),
+                  score_threshold: float = Body(
+                      2.0,
+                      description="知识库匹配相关度阈值，取值范围在0-1之间，SCORE越小，相关度越高，取到1相当于不筛选，建议设置在0.5左右",
+                      ge=0,
+                      le=2,
+                  ),
+                  history: List[History] = Body(
+                      [],
+                      description="历史对话",
+                      examples=[[
+                          {"role": "user",
+                           "content": "我们来玩成语接龙，我先来，生龙活虎"},
+                          {"role": "assistant",
+                           "content": "虎头虎脑"}]]
+                  ),
+                  kb_name: str = Body("",
+                                      description="mode=local_kb时为知识库名称；temp_kb时为临时知识库ID，search_engine时为搜索引擎名称",
+                                      examples=["samples"]),
+
+                  stream: bool = Body(True, description="流式输出"),
+                  model: str = Body("qwen:1.8b", description="LLM 模型名称。"),
+                  temperature: float = Body(0.7, description="LLM 采样温度", ge=0.0,
+                                            le=2.0),
+                  prompt_name: str = Body(
+                      "default",
+                      description="使用的prompt模板名称(在prompt_settings.yaml中配置)"
+                  ),
+                  return_direct: bool = Body(False, description="直接返回检索结果，不送入 LLM"),
+                  request: Request = None,
+                  ):
+    # 替换整个 knowledge_base_chat_iterator 函数
+    async def knowledge_base_chat_iterator() -> AsyncIterable[str]:
+        try:
+            nonlocal prompt_name
+
+            # 创建一个简单的 LangGraph 工作流
+            class KBChatState(TypedDict):
+                query: str
+                docs: List[Dict]
+                context: str
+                source_documents: List[str]
+                answer: str
+                history: List[History]
+
+            async def retrieve_documents(state: KBChatState) -> KBChatState:
+                docs = search_docs(
+                    query=state["query"],
+                    knowledge_base_name=kb_name,
+                    top_k=top_k,
+                    score_threshold=score_threshold,
+                    file_name="",
+                    metadata={}
+                )
+                source_documents = format_reference(kb_name, docs, "")
+
+                context = "\n\n".join([doc.get("page_content", "") for doc in docs])
+
+                return {
+                    "docs": docs,
+                    "context": context,
+                    "source_documents": source_documents
+                }
+
+            async def generate_response(state: KBChatState) -> KBChatState:
+                if return_direct:
+                    return {"answer": ""}
+
+                if len(state["docs"]) == 0:
+                    nonlocal prompt_name
+                    prompt_name = "empty"
+
+                prompt_template = get_prompt_template("rag", prompt_name)
+                input_msg = History(role="user", content=prompt_template).to_msg_template(False)
+                chat_prompt = ChatPromptTemplate.from_messages(
+                    [i.to_msg_template() for i in state["history"]] + [input_msg]
+                )
+
+                llm = ChatOllama(model="qwen:1.8b", temperature=0.7)
+                chain = chat_prompt | llm
+
+                response = await chain.ainvoke({
+                    "context": state["context"],
+                    "question": state["query"]
+                })
+
+                return {"answer": response.content}
+
+            # 构建图
+            workflow = StateGraph(KBChatState)
+
+            workflow.add_node("retrieve", retrieve_documents)
+            workflow.add_node("generate", generate_response)
+
+            workflow.add_edge(START, "retrieve")
+            workflow.add_edge("retrieve", "generate")
+            workflow.add_edge("generate", END)
+
+            app = workflow.compile()
+
+            # 执行图
+            inputs = {
+                "query": query,
+                "history": history
+            }
+
+            if stream:
+                # 流式输出文档引用
+                # if len(source_documents) == 0:
+                #     source_documents.append(
+                #         f"<span style='color:red'>未找到相关文档,该回答为大模型自身能力解答！</span>")
+
+
+                # 流式生成回答
+                final_state = {}
+                async for event in app.astream(inputs, stream_mode="values"):
+                    if "answer" in event and event["answer"] != final_state.get("answer", ""):
+                        new_content = event["answer"][len(final_state.get("answer", "")):]
+                        final_state = event
+
+                        ret = OpenAIChatOutput(
+                            id=f"chat{uuid.uuid4()}",
+                            object="chat.completion.chunk",
+                            content=final_state["answer"],
+                            role="assistant",
+                            model=model,
+                        )
+                        yield ret.model_dump_json()
+            else:
+                # 非流式输出
+                final_state = await app.ainvoke(inputs)
+                answer = final_state.get("answer", "")
+
+                ret = OpenAIChatOutput(
+                    id=f"chat{uuid.uuid4()}",
+                    object="chat.completion",
+                    content=answer,
+                    role="assistant",
+                    model=model,
+                )
+                yield ret.model_dump_json()
+
+        except Exception as e:
+            logger.exception(e)
+            yield {"data": json.dumps({"error": str(e)})}
+            return
+
+    if stream:
+        return EventSourceResponse(knowledge_base_chat_iterator())
+    else:
+        return await knowledge_base_chat_iterator().__anext__()
 
 
 def _save_files_in_thread(
