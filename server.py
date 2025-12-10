@@ -4,7 +4,7 @@ from langchain_core.documents import Document
 from langchain_ollama import OllamaLLM, ChatOllama
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.constants import START, END
-from langgraph.graph import StateGraph
+from langgraph.graph import StateGraph, add_messages
 
 from db.repository.knowledge_file_repository import get_file_detail
 from knowledge_base.utils import get_file_path, KnowledgeFile, files2docs_in_thread, get_kb_path
@@ -20,7 +20,7 @@ from fastapi.responses import StreamingResponse
 from langchain_classic.callbacks import AsyncIteratorCallbackHandler
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
-from typing import Optional, Dict, Any, AsyncIterable, Literal, List, TypedDict
+from typing import Optional, Dict, Any, AsyncIterable, Literal, List, TypedDict, Annotated
 import asyncio
 import json
 
@@ -39,6 +39,7 @@ from utils import format_reference, get_ChatOpenAI, wrap_done, get_prompt_templa
 # 在导入语句之后，FastAPI应用创建之前添加
 from db.base import Base, engine
 from utils import build_logger
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 
 logger = build_logger()
 # 确保在所有模型导入之后调用下面的方法
@@ -496,11 +497,12 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 context: str
                 source_documents: List[str]
                 answer: str
-                history: List[History]
+                messages: Annotated[list[BaseMessage], add_messages]
 
             async def retrieve_documents(state: KBChatState) -> KBChatState:
+                query = state["messages"][-1].content
                 docs = search_docs(
-                    query=state["query"],
+                    query=query,
                     knowledge_base_name=kb_name,
                     top_k=top_k,
                     score_threshold=score_threshold,
@@ -520,76 +522,56 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             async def generate_response(state: KBChatState) -> KBChatState:
                 if return_direct:
                     return {"answer": ""}
+                query = state["messages"][-1].content
 
                 if len(state["docs"]) == 0:
                     nonlocal prompt_name
                     prompt_name = "empty"
-                type = "llm_model"
 
-                prompt_template = get_prompt_template(type, prompt_name)
-                input_msg = History(role="user", content=prompt_template).to_msg_template(False)
-                chat_prompt = ChatPromptTemplate.from_messages(
-                    [i.to_msg_template() for i in state["history"]] + [input_msg]
-                )
-                logger.info(chat_prompt)
+                template = """你是一个专业助手，请严格根据以下上下文回答问题。
+                如果上下文没有相关信息，请回答"根据提供的资料无法回答"。
+
+                上下文（来自 {sources}）：
+                {context}
+
+                对话历史：
+                {history}
+
+                问题：{question}
+                """
+                history = "\n".join([
+                    f"{msg.__class__.__name__}: {msg.content}"
+                    for msg in state["messages"][:-1]
+                ])
+                prompt = ChatPromptTemplate.from_template(template)
 
                 llm = ChatOllama(model="qwen:1.8b", temperature=0.7)
-                chain = chat_prompt | llm
+                chain = prompt | llm
 
-                # response = await chain.ainvoke({
-                #     "context": state["context"],
-                #     "question": state["query"]
-                # })
                 response = await chain.ainvoke({
-                    "input": state["query"]
+                    "query": query,
+                    "context": state["context"],
+                    "question": query,
+                    "history": history if history else "无"
                 })
-
                 return {"answer": response.content}
 
-                # 添加一个新的节点用于更新历史记录
-
-            async def update_history(state: KBChatState) -> KBChatState:
-                # 将当前查询和回答添加到历史记录中
-                updated_history = state["history"].copy()
-                updated_history.append(History(role="user", content=state["query"]))
-                updated_history.append(History(role="assistant", content=state["answer"]))
-
-                # 可选：限制历史记录长度，避免过长
-                if len(updated_history) > 10:  # 最多保留10轮对话
-                    updated_history = updated_history[-10:]
-
-                return {"history": updated_history}
-
-            checkpointer = InMemorySaver()
 
             # 构建图
             workflow = StateGraph(KBChatState)
-
             workflow.add_node("retrieve", retrieve_documents)
             workflow.add_node("generate", generate_response)
-            workflow.add_node("update_history", update_history)
-
             workflow.add_edge(START, "retrieve")
             workflow.add_edge("retrieve", "generate")
-            workflow.add_edge("generate", "update_history")
-            workflow.add_edge("update_history", END)
-
+            workflow.add_edge("generate", END)
+            checkpointer = InMemorySaver()
             app = workflow.compile(checkpointer=checkpointer)
 
-            # 执行图
-            inputs = {
-                "query": query,
-                "history": []
-            }
+            inputs = {"messages": [HumanMessage(content=query)]}
             # 添加配置以满足 checkpointer 的要求
             config = {"configurable": {"thread_id": "default_thread"}}
 
             if stream:
-                # 流式输出文档引用
-                # if len(source_documents) == 0:
-                #     source_documents.append(
-                #         f"<span style='color:red'>未找到相关文档,该回答为大模型自身能力解答！</span>")
-
                 # 流式生成回答
                 final_state = {}
                 async for event in app.astream(inputs, stream_mode="values", config=config):
