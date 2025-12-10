@@ -2,6 +2,7 @@ import os
 
 from langchain_core.documents import Document
 from langchain_ollama import OllamaLLM, ChatOllama
+from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph
 
@@ -38,6 +39,7 @@ from utils import format_reference, get_ChatOpenAI, wrap_done, get_prompt_templa
 # 在导入语句之后，FastAPI应用创建之前添加
 from db.base import Base, engine
 from utils import build_logger
+
 logger = build_logger()
 # 确保在所有模型导入之后调用下面的方法
 Base.metadata.create_all(bind=engine)
@@ -330,7 +332,6 @@ def search_docs(
     return [x.dict() for x in data]
 
 
-
 @app.post("/api/kb_chat", summary="知识库对话")
 async def kb_chat(query: str = Body(..., description="用户输入", example=["你好"]),
                   mode: Literal["local_kb"] = Body("local_kb", description="知识来源"),
@@ -402,7 +403,6 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             chat_prompt = ChatPromptTemplate.from_messages(
                 [i.to_msg_template() for i in history] + [input_msg])
 
-
             chain = chat_prompt | llm
 
             # Begin a task that runs in the background.
@@ -453,13 +453,11 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             logger.exception(e)
             yield {"data": json.dumps({"error": str(e)})}
             return
+
     if stream:
         return EventSourceResponse(knowledge_base_chat_iterator())
     else:
         return await knowledge_base_chat_iterator().__anext__()
-
-
-
 
 
 @app.post("/api/kb_chat2", summary="知识库对话")
@@ -471,15 +469,6 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                       description="知识库匹配相关度阈值，取值范围在0-1之间，SCORE越小，相关度越高，取到1相当于不筛选，建议设置在0.5左右",
                       ge=0,
                       le=2,
-                  ),
-                  history: List[History] = Body(
-                      [],
-                      description="历史对话",
-                      examples=[[
-                          {"role": "user",
-                           "content": "我们来玩成语接龙，我先来，生龙活虎"},
-                          {"role": "assistant",
-                           "content": "虎头虎脑"}]]
                   ),
                   kb_name: str = Body("",
                                       description="mode=local_kb时为知识库名称；temp_kb时为临时知识库ID，search_engine时为搜索引擎名称",
@@ -496,7 +485,6 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                   return_direct: bool = Body(False, description="直接返回检索结果，不送入 LLM"),
                   request: Request = None,
                   ):
-    # 替换整个 knowledge_base_chat_iterator 函数
     async def knowledge_base_chat_iterator() -> AsyncIterable[str]:
         try:
             nonlocal prompt_name
@@ -536,40 +524,65 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 if len(state["docs"]) == 0:
                     nonlocal prompt_name
                     prompt_name = "empty"
+                type = "llm_model"
 
-                prompt_template = get_prompt_template("rag", prompt_name)
+                prompt_template = get_prompt_template(type, prompt_name)
                 input_msg = History(role="user", content=prompt_template).to_msg_template(False)
                 chat_prompt = ChatPromptTemplate.from_messages(
                     [i.to_msg_template() for i in state["history"]] + [input_msg]
                 )
+                logger.info(chat_prompt)
 
                 llm = ChatOllama(model="qwen:1.8b", temperature=0.7)
                 chain = chat_prompt | llm
 
+                # response = await chain.ainvoke({
+                #     "context": state["context"],
+                #     "question": state["query"]
+                # })
                 response = await chain.ainvoke({
-                    "context": state["context"],
-                    "question": state["query"]
+                    "input": state["query"]
                 })
 
                 return {"answer": response.content}
+
+                # 添加一个新的节点用于更新历史记录
+
+            async def update_history(state: KBChatState) -> KBChatState:
+                # 将当前查询和回答添加到历史记录中
+                updated_history = state["history"].copy()
+                updated_history.append(History(role="user", content=state["query"]))
+                updated_history.append(History(role="assistant", content=state["answer"]))
+
+                # 可选：限制历史记录长度，避免过长
+                if len(updated_history) > 10:  # 最多保留10轮对话
+                    updated_history = updated_history[-10:]
+
+                return {"history": updated_history}
+
+            checkpointer = InMemorySaver()
 
             # 构建图
             workflow = StateGraph(KBChatState)
 
             workflow.add_node("retrieve", retrieve_documents)
             workflow.add_node("generate", generate_response)
+            workflow.add_node("update_history", update_history)
 
             workflow.add_edge(START, "retrieve")
             workflow.add_edge("retrieve", "generate")
-            workflow.add_edge("generate", END)
+            workflow.add_edge("generate", "update_history")
+            workflow.add_edge("update_history", END)
 
-            app = workflow.compile()
+            app = workflow.compile(checkpointer=checkpointer)
 
             # 执行图
             inputs = {
                 "query": query,
-                "history": history
+                "history": []
             }
+            # 添加配置以满足 checkpointer 的要求
+            config = {"configurable": {"thread_id": "default_thread"}}
 
             if stream:
                 # 流式输出文档引用
@@ -577,14 +590,11 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 #     source_documents.append(
                 #         f"<span style='color:red'>未找到相关文档,该回答为大模型自身能力解答！</span>")
 
-
                 # 流式生成回答
                 final_state = {}
-                async for event in app.astream(inputs, stream_mode="values"):
+                async for event in app.astream(inputs, stream_mode="values", config=config):
                     if "answer" in event and event["answer"] != final_state.get("answer", ""):
-                        new_content = event["answer"][len(final_state.get("answer", "")):]
                         final_state = event
-
                         ret = OpenAIChatOutput(
                             id=f"chat{uuid.uuid4()}",
                             object="chat.completion.chunk",
@@ -689,7 +699,6 @@ def update_docs(
     if kb is None:
         # return BaseResponse(code=404, msg=f"未找到知识库 {knowledge_base_name}")
         return {"status": 'Fail', "message": f"未找到知识库 {knowledge_base_name}", "data": None}
-
 
     failed_files = {}
     kb_files = []
@@ -811,8 +820,10 @@ def upload_docs(
 
     return {"status": 'success', "message": "成功", "data": None}
 
+
 if __name__ == "__main__":
     import uvicorn
+
     # 绑定到 localhost 只允许本地访问
     get_kb_path("samples")
     uvicorn.run(app, host="localhost", port=8000)
