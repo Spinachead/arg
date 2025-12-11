@@ -503,8 +503,9 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 )
                 source_documents = format_reference(kb_name, docs, "")
                 context = "\n\n".join([doc.get("page_content", "") for doc in docs])
-                logger.info(f"这是source_document{source_documents}")
-                # logger.info(f"这是context{context}")
+                logger.info(f"检索到文档数: {len(docs)}")
+                logger.info(f"上下文长度: {len(context)}")
+                logger.info(f"这是content: {context}")
 
                 return {
                     "context": context,
@@ -513,45 +514,86 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 }
 
             async def generate_response(state: KBChatState) -> KBChatState:
+                # ✅ 第一道防线：检查是否有真正的上下文
                 if not state["context"] or state["context"].strip() == "":
-                    response = "根据提供的资料无法回答您的问题。请确保知识库中包含相关信息。"
+                    response = "根据提供的资料无法回答您的问题。知识库中不包含相关信息。"
                     return {"messages": [AIMessage(content=response)]}
 
-                template = """你是一个知识库助手。你的职责是：
-                1. 仅根据提供的上下文回答问题
-                2. 如果上下文不包含相关信息，必须回答"我没有找到相关信息，无法回答"
-                3. 不要使用任何上下文外的知识
-                4. 不要猜测或推理，只引用已有的文本
+                # ✅ 第二道防线：改进的 Prompt 结构（针对小模型优化）
+                template = """你是一个严格的知识库问答助手。
 
-                === 知识库信息（来自：{sources}）===
-                {context}
+    【你的任务】
+    根据"【知识库信息】"中的内容回答用户问题。
 
-                === 之前的对话 ===
-                {history}
+    【回答规则】
+    1.参考内容回答
+    2. 不要添加或推理任何知识库之外的信息
+    3. 如果知识库中没有答案，必须回答：我在提供的资料中没有找到相关答案
 
-                === 用户问题 ===
-                {question}
+    【知识库信息】
+    来源：{sources}
 
-                === 请根据上面的知识库信息回答 ===
-                """
-                history = "\n".join([
-                    f"{msg.__class__.__name__}: {msg.content}"
-                    for msg in state["messages"][:-1]
-                ])
-                logger.info(f"这是history{history}")
+    内容：
+    {context}
+
+    【用户历史对话】
+    {history}
+
+    【用户问题】
+    {question}
+
+    【请给出你的答案】
+    """
+
+                history = ""
+                if len(state["messages"]) > 1:
+                    history = "\n".join([
+                        f"{msg.__class__.__name__}: {msg.content[:100]}"  # 限制长度
+                        for msg in state["messages"][:-1]
+                    ])
+                else:
+                    history = "无历史对话"
+
+                logger.info(f"Prompt即将发送给LLM")
+                logger.info(f"Context长度: {len(state['context'])}")
+
                 prompt = ChatPromptTemplate.from_template(template)
-                llm = ChatOllama(model="qwen:1.8b", temperature=0.1)
 
+                # ✅ 第三道防线：使用极低温度确保确定性回答
+                llm = ChatOllama(
+                    model="qwen:1.8b",
+                    temperature=0.1,  # 降到最低
+                    top_p=0.9,
+                )
 
                 chain = prompt | llm | StrOutputParser()
 
-                response = await chain.ainvoke({
-                    "context": state["context"] if state["context"] else "(无相关文档)",
-                    "sources": state["sources"] if state["sources"] else "无源",
-                    "question": state["question"],
-                    "history": history if history else "无"
-                })
-                return {"messages": [AIMessage(content=response)]}
+                try:
+                    response = await chain.ainvoke({
+                        "context": state["context"],
+                        "sources": state["sources"] if state["sources"] else "未知来源",
+                        "question": state["question"],
+                        "history": history
+                    })
+
+                    # ✅ 第四道防线：清理输出
+                    if not isinstance(response, str):
+                        response = str(response)
+
+                    # 移除可能的控制字符
+                    response = response.replace('\x00', '')
+                    response = response.strip()
+
+                    # 确保不是空响应
+                    if not response:
+                        response = "无法生成答案，请稍后重试。"
+
+                    logger.info(f"LLM回复长度: {len(response)}, 内容: {response[:100]}")
+                    return {"messages": [AIMessage(content=response)]}
+
+                except Exception as e:
+                    logger.error(f"LLM调用失败: {str(e)}")
+                    return {"messages": [AIMessage(content=f"处理过程中出错: {str(e)}")]}
 
             workflow = StateGraph(KBChatState)
             workflow.add_node("retrieve", retrieve_documents)
@@ -566,19 +608,18 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             inputs = {"messages": [HumanMessage(content=query)]}
             config = {"configurable": {"thread_id": "default_thread"}}
 
-            # ✅ 修复：使用正确的 stream_mode
             async for event in kb_app.astream(inputs, stream_mode="values", config=config):
-                # stream_mode="values" 返回完整的状态字典
                 if isinstance(event, dict) and "messages" in event:
                     messages = event["messages"]
                     if messages:
                         latest_message = messages[-1]
-                        # 只在最后一步（generate 节点）产生 AIMessage 时发送
                         if isinstance(latest_message, AIMessage):
                             content = latest_message.content
-                            logger.info(f"这是content{content}")
+                            logger.info(f"最终输出: {content[:100]}")
+
                             if not isinstance(content, str):
                                 content = str(content)
+
                             ret = OpenAIChatOutput(
                                 id=f"chat{uuid.uuid4()}",
                                 object="chat.completion.chunk",
