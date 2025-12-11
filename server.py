@@ -489,18 +489,16 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
     async def knowledge_base_chat_iterator() -> AsyncIterable[str]:
         try:
             nonlocal prompt_name
-
             # 创建一个简单的 LangGraph 工作流
             class KBChatState(TypedDict):
-                query: str
-                docs: List[Dict]
+                messages: Annotated[list[BaseMessage], add_messages]
                 context: str
                 source_documents: List[str]
-                answer: str
-                messages: Annotated[list[BaseMessage], add_messages]
+                docs: List[Dict]
+                question: str
 
             async def retrieve_documents(state: KBChatState) -> KBChatState:
-                query = state["messages"][-1].content
+                last_message = state["messages"][-1].content
                 docs = search_docs(
                     query=query,
                     knowledge_base_name=kb_name,
@@ -516,22 +514,18 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 return {
                     "docs": docs,
                     "context": context,
-                    "source_documents": source_documents
+                    "source_documents": source_documents,
+                    "question": last_message
                 }
 
             async def generate_response(state: KBChatState) -> KBChatState:
                 if return_direct:
-                    return {"answer": ""}
-                query = state["messages"][-1].content
-
-                if len(state["docs"]) == 0:
-                    nonlocal prompt_name
-                    prompt_name = "empty"
+                    return {"messages": [AIMessage(content="")]}
 
                 template = """你是一个专业助手，请严格根据以下上下文回答问题。
                 如果上下文没有相关信息，请回答"根据提供的资料无法回答"。
 
-                上下文（来自 {sources}）：
+                上下文（来自 {source_documents}）：
                 {context}
 
                 对话历史：
@@ -549,12 +543,12 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 chain = prompt | llm
 
                 response = await chain.ainvoke({
-                    "query": query,
                     "context": state["context"],
-                    "question": query,
-                    "history": history if history else "无"
+                    "history": history if history else "无",
+                    "source_documents": state["source_documents"],
+                    "question": state["question"]
                 })
-                return {"answer": response.content}
+                return {"messages": [AIMessage(content=response)]}
 
 
             # 构建图
@@ -568,28 +562,31 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             app = workflow.compile(checkpointer=checkpointer)
 
             inputs = {"messages": [HumanMessage(content=query)]}
-            # 添加配置以满足 checkpointer 的要求
             config = {"configurable": {"thread_id": "default_thread"}}
 
             if stream:
-                # 流式生成回答
-                final_state = {}
                 async for event in app.astream(inputs, stream_mode="values", config=config):
-                    if "answer" in event and event["answer"] != final_state.get("answer", ""):
-                        final_state = event
-                        ret = OpenAIChatOutput(
-                            id=f"chat{uuid.uuid4()}",
-                            object="chat.completion.chunk",
-                            content=final_state["answer"],
-                            role="assistant",
-                            model=model,
-                        )
-                        yield ret.model_dump_json()
+                    logger.info(event["messages"])
+                    if "messages" in event and len(event["messages"]) > 0:
+                        latest_message = event["messages"][-1]
+                        if isinstance(latest_message, AIMessage):
+                            ret = OpenAIChatOutput(
+                                id=f"chat{uuid.uuid4()}",
+                                object="chat.completion.chunk",
+                                content=latest_message.content,
+                                role="assistant",
+                                model=model,
+                            )
+                            yield ret.model_dump_json()
             else:
                 # 非流式输出
                 final_state = await app.ainvoke(inputs)
-                answer = final_state.get("answer", "")
-
+                messages = final_state.get("messages", [])
+                answer = ""
+                if messages and len(messages) > 0:
+                    last_message = messages[-1]
+                    if isinstance(last_message, AIMessage):
+                        answer = last_message.content
                 ret = OpenAIChatOutput(
                     id=f"chat{uuid.uuid4()}",
                     object="chat.completion",
@@ -598,7 +595,6 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                     model=model,
                 )
                 yield ret.model_dump_json()
-
         except Exception as e:
             logger.exception(e)
             yield {"data": json.dumps({"error": str(e)})}
