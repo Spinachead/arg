@@ -40,6 +40,7 @@ from utils import format_reference, get_ChatOpenAI, wrap_done, get_prompt_templa
 from db.base import Base, engine
 from utils import build_logger
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+from langchain_core.output_parsers import StrOutputParser
 
 logger = build_logger()
 # 确保在所有模型导入之后调用下面的方法
@@ -463,7 +464,6 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
 
 @app.post("/api/kb_chat2", summary="知识库对话")
 async def kb_chat(query: str = Body(..., description="用户输入", example=["你好"]),
-                  mode: Literal["local_kb"] = Body("local_kb", description="知识来源"),
                   top_k: int = Body(3, description="匹配向量数字"),
                   score_threshold: float = Body(
                       2.0,
@@ -474,27 +474,21 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                   kb_name: str = Body("",
                                       description="mode=local_kb时为知识库名称；temp_kb时为临时知识库ID，search_engine时为搜索引擎名称",
                                       examples=["samples"]),
-
-                  stream: bool = Body(True, description="流式输出"),
-                  model: str = Body("qwen:1.8b", description="LLM 模型名称。"),
-                  temperature: float = Body(0.7, description="LLM 采样温度", ge=0.0,
-                                            le=2.0),
                   prompt_name: str = Body(
                       "default",
                       description="使用的prompt模板名称(在prompt_settings.yaml中配置)"
                   ),
-                  return_direct: bool = Body(False, description="直接返回检索结果，不送入 LLM"),
-                  request: Request = None,
+                  model: str = Body("qwen:1.8b", description="LLM 模型名称。"),
+
                   ):
     async def knowledge_base_chat_iterator() -> AsyncIterable[str]:
         try:
             nonlocal prompt_name
-            # 创建一个简单的 LangGraph 工作流
+
             class KBChatState(TypedDict):
                 messages: Annotated[list[BaseMessage], add_messages]
                 context: str
-                source_documents: List[dict]
-                docs: List[Dict]
+                sources: str
                 question: str
 
             async def retrieve_documents(state: KBChatState) -> KBChatState:
@@ -508,24 +502,19 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                     metadata={}
                 )
                 source_documents = format_reference(kb_name, docs, "")
-
                 context = "\n\n".join([doc.get("page_content", "") for doc in docs])
 
                 return {
-                    "docs": docs,
                     "context": context,
-                    "source_documents": source_documents,
-                    "question": last_message
+                    "sources": source_documents,
+                    "question": last_message,
                 }
 
             async def generate_response(state: KBChatState) -> KBChatState:
-                if return_direct:
-                    return {"messages": [AIMessage(content="")]}
-
                 template = """你是一个专业助手，请严格根据以下上下文回答问题。
                 如果上下文没有相关信息，请回答"根据提供的资料无法回答"。
 
-                上下文（来自 {source_documents}）：
+                上下文（来自 {sources}）：
                 {context}
 
                 对话历史：
@@ -538,85 +527,63 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                     for msg in state["messages"][:-1]
                 ])
                 prompt = ChatPromptTemplate.from_template(template)
-
                 llm = ChatOllama(model="qwen:1.8b", temperature=0.7)
-                chain = prompt | llm
+
+                # 使用 astream 来获取 token 级别的流
+                full_response = ""
+                async for token in llm.astream(prompt.format_prompt(...).to_string()):
+                    full_response += token
+
+                chain = prompt | llm | StrOutputParser()
 
                 response = await chain.ainvoke({
                     "context": state["context"],
-                    "history": history if history else "无",
-                    "source_documents": state["source_documents"] if state["source_documents"] else "无参考资料",
-                    "question": state["question"]
+                    "sources": state["sources"],
+                    "question": state["question"],
+                    "history": history if history else "无"
                 })
                 return {"messages": [AIMessage(content=response)]}
 
-
-            # 构建图
             workflow = StateGraph(KBChatState)
             workflow.add_node("retrieve", retrieve_documents)
             workflow.add_node("generate", generate_response)
             workflow.add_edge(START, "retrieve")
             workflow.add_edge("retrieve", "generate")
             workflow.add_edge("generate", END)
+
             checkpointer = InMemorySaver()
             kb_app = workflow.compile(checkpointer=checkpointer)
 
             inputs = {"messages": [HumanMessage(content=query)]}
             config = {"configurable": {"thread_id": "default_thread"}}
 
-            if stream:
-                async for event in kb_app.astream(inputs, stream_mode="messages", config=config):
-                    # event is a tuple like (step, data)
-                    # we need to extract the AIMessage from the event
-                    if isinstance(event, tuple) and len(event) == 2:
-                        step, data = event
-                        if isinstance(data, dict) and "messages" in data:
-                            messages = data["messages"]
-                            if messages and len(messages) > 0:
-                                latest_message = messages[-1]
-                                if isinstance(latest_message, AIMessage):
-                                    # 确保 content 是字符串类型
-                                    content = latest_message.content
-                                    if not isinstance(content, str):
-                                        content = str(content)
-                                    ret = OpenAIChatOutput(
-                                        id=f"chat{uuid.uuid4()}",
-                                        object="chat.completion.chunk",
-                                        content=content,
-                                        role="assistant",
-                                        model=model,
-                                    )
-                                    yield ret.model_dump_json()
-            else:
-                # 非流式输出
-                final_state = await kb_app.ainvoke(inputs)
-                answer = ""
-                if isinstance(final_state, dict) and "messages" in final_state:
-                    messages = final_state["messages"]
-                    if messages and len(messages) > 0:
-                        last_message = messages[-1]
-                        if isinstance(last_message, AIMessage):
-                            # 确保 content 是字符串类型
-                            answer = last_message.content
-                            if not isinstance(answer, str):
-                                answer = str(answer)
-                ret = OpenAIChatOutput(
-                    id=f"chat{uuid.uuid4()}",
-                    object="chat.completion",
-                    content=answer,
-                    role="assistant",
-                    model=model,
-                )
-                yield ret.model_dump_json()
+            # ✅ 修复：使用正确的 stream_mode
+            async for event in kb_app.astream(inputs, stream_mode="values", config=config):
+                # stream_mode="values" 返回完整的状态字典
+                if isinstance(event, dict) and "messages" in event:
+                    messages = event["messages"]
+                    if messages:
+                        latest_message = messages[-1]
+                        # 只在最后一步（generate 节点）产生 AIMessage 时发送
+                        if isinstance(latest_message, AIMessage):
+                            content = latest_message.content
+                            if not isinstance(content, str):
+                                content = str(content)
+                            ret = OpenAIChatOutput(
+                                id=f"chat{uuid.uuid4()}",
+                                object="chat.completion.chunk",
+                                content=content,
+                                role="assistant",
+                                model=model,
+                            )
+                            yield ret.model_dump_json()
+
         except Exception as e:
             logger.exception(e)
             yield json.dumps({"error": str(e)})
             return
+    return EventSourceResponse(knowledge_base_chat_iterator())
 
-    if stream:
-        return EventSourceResponse(knowledge_base_chat_iterator())
-    else:
-        return await knowledge_base_chat_iterator().__anext__()
 
 
 def _save_files_in_thread(
