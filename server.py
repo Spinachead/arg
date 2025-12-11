@@ -493,7 +493,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             class KBChatState(TypedDict):
                 messages: Annotated[list[BaseMessage], add_messages]
                 context: str
-                source_documents: List[str]
+                source_documents: List[dict]
                 docs: List[Dict]
                 question: str
 
@@ -545,7 +545,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 response = await chain.ainvoke({
                     "context": state["context"],
                     "history": history if history else "无",
-                    "source_documents": state["source_documents"],
+                    "source_documents": state["source_documents"] if state["source_documents"] else "无参考资料",
                     "question": state["question"]
                 })
                 return {"messages": [AIMessage(content=response)]}
@@ -559,34 +559,47 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             workflow.add_edge("retrieve", "generate")
             workflow.add_edge("generate", END)
             checkpointer = InMemorySaver()
-            app = workflow.compile(checkpointer=checkpointer)
+            kb_app = workflow.compile(checkpointer=checkpointer)
 
             inputs = {"messages": [HumanMessage(content=query)]}
             config = {"configurable": {"thread_id": "default_thread"}}
 
             if stream:
-                async for event in app.astream(inputs, stream_mode="values", config=config):
-                    logger.info(event["messages"])
-                    if "messages" in event and len(event["messages"]) > 0:
-                        latest_message = event["messages"][-1]
-                        if isinstance(latest_message, AIMessage):
-                            ret = OpenAIChatOutput(
-                                id=f"chat{uuid.uuid4()}",
-                                object="chat.completion.chunk",
-                                content=latest_message.content,
-                                role="assistant",
-                                model=model,
-                            )
-                            yield ret.model_dump_json()
+                async for event in kb_app.astream(inputs, stream_mode="messages", config=config):
+                    # event is a tuple like (step, data)
+                    # we need to extract the AIMessage from the event
+                    if isinstance(event, tuple) and len(event) == 2:
+                        step, data = event
+                        if isinstance(data, dict) and "messages" in data:
+                            messages = data["messages"]
+                            if messages and len(messages) > 0:
+                                latest_message = messages[-1]
+                                if isinstance(latest_message, AIMessage):
+                                    # 确保 content 是字符串类型
+                                    content = latest_message.content
+                                    if not isinstance(content, str):
+                                        content = str(content)
+                                    ret = OpenAIChatOutput(
+                                        id=f"chat{uuid.uuid4()}",
+                                        object="chat.completion.chunk",
+                                        content=content,
+                                        role="assistant",
+                                        model=model,
+                                    )
+                                    yield ret.model_dump_json()
             else:
                 # 非流式输出
-                final_state = await app.ainvoke(inputs)
-                messages = final_state.get("messages", [])
+                final_state = await kb_app.ainvoke(inputs)
                 answer = ""
-                if messages and len(messages) > 0:
-                    last_message = messages[-1]
-                    if isinstance(last_message, AIMessage):
-                        answer = last_message.content
+                if isinstance(final_state, dict) and "messages" in final_state:
+                    messages = final_state["messages"]
+                    if messages and len(messages) > 0:
+                        last_message = messages[-1]
+                        if isinstance(last_message, AIMessage):
+                            # 确保 content 是字符串类型
+                            answer = last_message.content
+                            if not isinstance(answer, str):
+                                answer = str(answer)
                 ret = OpenAIChatOutput(
                     id=f"chat{uuid.uuid4()}",
                     object="chat.completion",
@@ -597,7 +610,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 yield ret.model_dump_json()
         except Exception as e:
             logger.exception(e)
-            yield {"data": json.dumps({"error": str(e)})}
+            yield json.dumps({"error": str(e)})
             return
 
     if stream:
