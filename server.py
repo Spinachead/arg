@@ -503,6 +503,8 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 )
                 source_documents = format_reference(kb_name, docs, "")
                 context = "\n\n".join([doc.get("page_content", "") for doc in docs])
+                logger.info(f"这是source_document{source_documents}")
+                # logger.info(f"这是context{context}")
 
                 return {
                     "context": context,
@@ -511,34 +513,41 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 }
 
             async def generate_response(state: KBChatState) -> KBChatState:
-                template = """你是一个专业助手，请严格根据以下上下文回答问题。
-                如果上下文没有相关信息，请回答"根据提供的资料无法回答"。
+                if not state["context"] or state["context"].strip() == "":
+                    response = "根据提供的资料无法回答您的问题。请确保知识库中包含相关信息。"
+                    return {"messages": [AIMessage(content=response)]}
 
-                上下文（来自 {sources}）：
+                template = """你是一个知识库助手。你的职责是：
+                1. 仅根据提供的上下文回答问题
+                2. 如果上下文不包含相关信息，必须回答"我没有找到相关信息，无法回答"
+                3. 不要使用任何上下文外的知识
+                4. 不要猜测或推理，只引用已有的文本
+
+                === 知识库信息（来自：{sources}）===
                 {context}
 
-                对话历史：
+                === 之前的对话 ===
                 {history}
 
-                问题：{question}
+                === 用户问题 ===
+                {question}
+
+                === 请根据上面的知识库信息回答 ===
                 """
                 history = "\n".join([
                     f"{msg.__class__.__name__}: {msg.content}"
                     for msg in state["messages"][:-1]
                 ])
+                logger.info(f"这是history{history}")
                 prompt = ChatPromptTemplate.from_template(template)
-                llm = ChatOllama(model="qwen:1.8b", temperature=0.7)
+                llm = ChatOllama(model="qwen:1.8b", temperature=0.1)
 
-                # 使用 astream 来获取 token 级别的流
-                full_response = ""
-                async for token in llm.astream(prompt.format_prompt(...).to_string()):
-                    full_response += token
 
                 chain = prompt | llm | StrOutputParser()
 
                 response = await chain.ainvoke({
-                    "context": state["context"],
-                    "sources": state["sources"],
+                    "context": state["context"] if state["context"] else "(无相关文档)",
+                    "sources": state["sources"] if state["sources"] else "无源",
                     "question": state["question"],
                     "history": history if history else "无"
                 })
@@ -567,6 +576,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                         # 只在最后一步（generate 节点）产生 AIMessage 时发送
                         if isinstance(latest_message, AIMessage):
                             content = latest_message.content
+                            logger.info(f"这是content{content}")
                             if not isinstance(content, str):
                                 content = str(content)
                             ret = OpenAIChatOutput(
