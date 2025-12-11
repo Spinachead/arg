@@ -501,15 +501,13 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                     file_name="",
                     metadata={}
                 )
-                source_documents = format_reference(kb_name, docs, "")
+                # source_documents = format_reference(kb_name, docs, "")
                 context = "\n\n".join([doc.get("page_content", "") for doc in docs])
-                logger.info(f"检索到文档数: {len(docs)}")
-                logger.info(f"上下文长度: {len(context)}")
                 logger.info(f"这是content: {context}")
 
                 return {
                     "context": context,
-                    "sources": source_documents,
+                    # "sources": source_documents,
                     "question": last_message,
                 }
 
@@ -531,7 +529,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
     3. 如果知识库中没有答案，必须回答：我在提供的资料中没有找到相关答案
 
     【知识库信息】
-    来源：{sources}
+    来源：{context}
 
     内容：
     {context}
@@ -571,7 +569,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 try:
                     response = await chain.ainvoke({
                         "context": state["context"],
-                        "sources": state["sources"] if state["sources"] else "未知来源",
+                        # "sources": state["sources"] if state["sources"] else "未知来源",
                         "question": state["question"],
                         "history": history
                     })
