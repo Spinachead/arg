@@ -536,20 +536,10 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                         "sources": state["sources"] if state["sources"] else "未知来源",
                         "question": state["question"],
                     })
-                    logger.info(f"这是response{response}")
-
-                    # ✅ 第四道防线：清理输出
-                    if not isinstance(response, str):
-                        response = str(response)
-
-                    # 移除可能的控制字符
-                    response = response.replace('\x00', '')
-                    response = response.strip()
-
                     # 确保不是空响应
                     if not response:
-                        response = "无法生成答案，请稍后重试。"
-                    return {"messages": [AIMessage(content=response)]}
+                        response.content = "无法生成答案，请稍后重试。"
+                    return {"messages": [AIMessage(content=response.content)]}
 
                 except Exception as e:
                     logger.error(f"LLM调用失败: {str(e)}")
