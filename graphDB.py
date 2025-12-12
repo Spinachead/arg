@@ -17,7 +17,7 @@ print(DB_URI)
 
 model = ChatOllama(model="qwen:1.8b", temperature=0.7)
 
-# DB_URI = "postgresql://postgres:postgres@localhost:5442/postgres?sslmode=disable"
+# DB_URI = "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable"
 
 with (
     PostgresStore.from_conn_string(DB_URI) as store,

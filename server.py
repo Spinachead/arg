@@ -1,8 +1,10 @@
 import os
 
+import psycopg
 from langchain_core.documents import Document
 from langchain_ollama import OllamaLLM, ChatOllama
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph, add_messages
 
@@ -463,6 +465,24 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
         return await knowledge_base_chat_iterator().__anext__()
 
 
+from psycopg_pool import ConnectionPool
+from contextlib import asynccontextmanager
+
+# 全局连接池
+pool = None
+DB_URI = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}?sslmode=disable"
+
+@asynccontextmanager
+async def get_db_pool():
+    global pool
+    if pool is None:
+        pool = ConnectionPool(
+            DB_URI,
+            min_size=5,      # 最小连接数
+            max_size=20      # 最大连接数
+        )
+    yield pool
+
 @app.post("/api/kb_chat2", summary="知识库对话")
 async def kb_chat(query: str = Body(..., description="用户输入", example=["你好"]),
                   top_k: int = Body(3, description="匹配向量数字"),
@@ -485,6 +505,10 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
     async def knowledge_base_chat_iterator() -> AsyncIterable[str]:
         try:
             nonlocal prompt_name
+            #创建连接池
+            async with get_db_pool() as pool:
+                with pool.connection() as conn:
+                    checkpointer = PostgresSaver(conn=conn)
 
             class KBChatState(TypedDict):
                 messages: Annotated[list[BaseMessage], add_messages]
@@ -516,7 +540,6 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 if not state["context"] or state["context"].strip() == "":
                     response = "根据提供的资料无法回答您的问题。知识库中不包含相关信息。"
                     return {"messages": [AIMessage(content=response)]}
-
 
                 prompt_template = get_prompt_template("rag", prompt_name)
                 input_msg = History(role="user", content=prompt_template).to_msg_template(False)
@@ -552,7 +575,6 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             workflow.add_edge("retrieve", "generate")
             workflow.add_edge("generate", END)
 
-            checkpointer = InMemorySaver()
             kb_app = workflow.compile(checkpointer=checkpointer)
 
             inputs = {"messages": [HumanMessage(content=query)]}
@@ -584,7 +606,6 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             yield json.dumps({"error": str(e)})
             return
     return EventSourceResponse(knowledge_base_chat_iterator())
-
 
 
 def _save_files_in_thread(
