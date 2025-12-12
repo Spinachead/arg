@@ -397,6 +397,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             llm = ChatOllama(model="qwen:1.8b", temperature=0.7, callbacks=callbacks)
 
             context = "\n\n".join([doc["page_content"] for doc in docs])
+            logger.info(f"这是chat1的context{context}")
 
             if len(docs) == 0:  # 如果没有找到相关文档，使用empty模板
                 prompt_name = "empty"
@@ -493,21 +494,16 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
 
             async def retrieve_documents(state: KBChatState) -> KBChatState:
                 last_message = state["messages"][-1].content
-                # docs = search_docs(
-                #     query=query,
-                #     knowledge_base_name=kb_name,
-                #     top_k=top_k,
-                #     score_threshold=score_threshold,
-                #     file_name="",
-                #     metadata={}
-                # )
-                # source_documents = format_reference(kb_name, docs, "")
-                # context = "\n\n".join([doc.get("page_content", "") for doc in docs])
-                source_documents = "文章出处 姜波.pdf"
-                context = "我的名字叫做姜博 身份证号码是41282519901524  手机号码是13461430752"
-                logger.info(f"这是content: {context}")
-                logger.info(f"last_message: {last_message}")
-
+                docs = search_docs(
+                    query=query,
+                    knowledge_base_name=kb_name,
+                    top_k=top_k,
+                    score_threshold=score_threshold,
+                    file_name="",
+                    metadata={}
+                )
+                source_documents = format_reference(kb_name, docs, "")
+                context = "\n\n".join([doc.get("page_content", "") for doc in docs])
 
                 return {
                     "context": context,
@@ -521,38 +517,18 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                     response = "根据提供的资料无法回答您的问题。知识库中不包含相关信息。"
                     return {"messages": [AIMessage(content=response)]}
 
-                # ✅ 第二道防线：改进的 Prompt 结构（针对小模型优化）
-                template = """你是一个严格的知识库问答助手。
 
-    【你的任务】
-    根据"【内容】"回答用户问题。
+                prompt_template = get_prompt_template("rag", prompt_name)
+                input_msg = History(role="user", content=prompt_template).to_msg_template(False)
+                chat_prompt = ChatPromptTemplate.from_messages([input_msg])
+                logger.info(f"这是prompt_template{prompt_template}")
+                logger.info(f"这是input_msg{input_msg}")
 
-    【回答规则】
-    1.参考内容回答
-    3. 如果知识库中没有答案，必须回答：我在提供的资料中没有找到相关答案
-
-    【知识库信息】
-    来源：{context}
-
-    【内容】：
-    {context}
-
-    【用户问题】
-    {question}
-
-    【请给出你的答案】
-    """
-
-
-                prompt = ChatPromptTemplate.from_template(template)
-
-                # ✅ 第三道防线：使用极低温度确保确定性回答
                 llm = ChatOllama(
                     model="qwen:1.8b",
                     temperature=0.7,  # 降到最低
                 )
-
-                chain = prompt | llm | StrOutputParser()
+                chain = chat_prompt | llm
 
                 try:
                     response = await chain.ainvoke({
