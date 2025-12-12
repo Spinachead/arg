@@ -467,21 +467,11 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
 
 from psycopg_pool import ConnectionPool
 from contextlib import asynccontextmanager
+import os
 
 # 全局连接池
 pool = None
-DB_URI = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}?sslmode=disable"
 
-@asynccontextmanager
-async def get_db_pool():
-    global pool
-    if pool is None:
-        pool = ConnectionPool(
-            DB_URI,
-            min_size=5,      # 最小连接数
-            max_size=20      # 最大连接数
-        )
-    yield pool
 
 @app.post("/api/kb_chat2", summary="知识库对话")
 async def kb_chat(query: str = Body(..., description="用户输入", example=["你好"]),
@@ -505,101 +495,104 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
     async def knowledge_base_chat_iterator() -> AsyncIterable[str]:
         try:
             nonlocal prompt_name
-            #创建连接池
-            async with get_db_pool() as pool:
-                with pool.connection() as conn:
-                    checkpointer = PostgresSaver(conn=conn)
+            # 创建连接池
+            import aiosqlite
+            from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
-            class KBChatState(TypedDict):
-                messages: Annotated[list[BaseMessage], add_messages]
-                context: str
-                sources: str
-                question: str
+            async with aiosqlite.connect("checkpoints.sqlite") as conn:
+                checkpointer = AsyncSqliteSaver(conn)
+                checkpointer.setup()
+                
+                class KBChatState(TypedDict):
+                    messages: Annotated[list[BaseMessage], add_messages]
+                    context: str
+                    sources: str
+                    question: str
 
-            async def retrieve_documents(state: KBChatState) -> KBChatState:
-                last_message = state["messages"][-1].content
-                docs = search_docs(
-                    query=query,
-                    knowledge_base_name=kb_name,
-                    top_k=top_k,
-                    score_threshold=score_threshold,
-                    file_name="",
-                    metadata={}
-                )
-                source_documents = format_reference(kb_name, docs, "")
-                context = "\n\n".join([doc.get("page_content", "") for doc in docs])
+                async def retrieve_documents(state: KBChatState) -> KBChatState:
+                    last_message = state["messages"][-1].content
+                    docs = search_docs(
+                        query=query,
+                        knowledge_base_name=kb_name,
+                        top_k=top_k,
+                        score_threshold=score_threshold,
+                        file_name="",
+                        metadata={}
+                    )
+                    source_documents = format_reference(kb_name, docs, "")
+                    context = "\n\n".join([doc.get("page_content", "") for doc in docs])
 
-                return {
-                    "context": context,
-                    "sources": source_documents,
-                    "question": last_message,
-                }
+                    return {
+                        "context": context,
+                        "sources": source_documents,
+                        "question": last_message,
+                    }
 
-            async def generate_response(state: KBChatState) -> KBChatState:
-                # ✅ 第一道防线：检查是否有真正的上下文
-                if not state["context"] or state["context"].strip() == "":
-                    response = "根据提供的资料无法回答您的问题。知识库中不包含相关信息。"
-                    return {"messages": [AIMessage(content=response)]}
+                async def generate_response(state: KBChatState) -> KBChatState:
+                    # ✅ 第一道防线：检查是否有真正的上下文
+                    if not state["context"] or state["context"].strip() == "":
+                        response = "根据提供的资料无法回答您的问题。知识库中不包含相关信息。"
+                        return {"messages": [AIMessage(content=response)]}
 
-                prompt_template = get_prompt_template("rag", prompt_name)
-                input_msg = History(role="user", content=prompt_template).to_msg_template(False)
-                chat_prompt = ChatPromptTemplate.from_messages([input_msg])
-                logger.info(f"这是prompt_template{prompt_template}")
-                logger.info(f"这是input_msg{input_msg}")
+                    prompt_template = get_prompt_template("rag", prompt_name)
+                    input_msg = History(role="user", content=prompt_template).to_msg_template(False)
+                    chat_prompt = ChatPromptTemplate.from_messages([input_msg])
+                    logger.info(f"这是prompt_template{prompt_template}")
+                    logger.info(f"这是input_msg{input_msg}")
 
-                llm = ChatOllama(
-                    model="qwen:1.8b",
-                    temperature=0.7,  # 降到最低
-                )
-                chain = chat_prompt | llm
+                    llm = ChatOllama(
+                        model="qwen:1.8b",
+                        temperature=0.7,  # 降到最低
+                    )
+                    chain = chat_prompt | llm
 
-                try:
-                    response = await chain.ainvoke({
-                        "context": state["context"],
-                        "sources": state["sources"] if state["sources"] else "未知来源",
-                        "question": state["question"],
-                    })
-                    # 确保不是空响应
-                    if not response:
-                        response.content = "无法生成答案，请稍后重试。"
-                    return {"messages": [AIMessage(content=response.content)]}
+                    try:
+                        response = await chain.ainvoke({
+                            "context": state["context"],
+                            "sources": state["sources"] if state["sources"] else "未知来源",
+                            "question": state["question"],
+                        })
+                        # 确保不是空响应
+                        if not response:
+                            response.content = "无法生成答案，请稍后重试。"
+                        return {"messages": [AIMessage(content=response.content)]}
 
-                except Exception as e:
-                    logger.error(f"LLM调用失败: {str(e)}")
-                    return {"messages": [AIMessage(content=f"处理过程中出错: {str(e)}")]}
+                    except Exception as e:
+                        logger.error(f"LLM调用失败: {str(e)}")
+                        return {"messages": [AIMessage(content=f"处理过程中出错: {str(e)}")]}
 
-            workflow = StateGraph(KBChatState)
-            workflow.add_node("retrieve", retrieve_documents)
-            workflow.add_node("generate", generate_response)
-            workflow.add_edge(START, "retrieve")
-            workflow.add_edge("retrieve", "generate")
-            workflow.add_edge("generate", END)
+                workflow = StateGraph(KBChatState)
+                workflow.add_node("retrieve", retrieve_documents)
+                workflow.add_node("generate", generate_response)
+                workflow.add_edge(START, "retrieve")
+                workflow.add_edge("retrieve", "generate")
+                workflow.add_edge("generate", END)
 
-            kb_app = workflow.compile(checkpointer=checkpointer)
+                kb_app = workflow.compile(checkpointer=checkpointer)
 
-            inputs = {"messages": [HumanMessage(content=query)]}
-            config = {"configurable": {"thread_id": "default_thread"}}
+                inputs = {"messages": [HumanMessage(content=query)]}
+                config = {"configurable": {"thread_id": "default_thread"}}
 
-            async for event in kb_app.astream(inputs, stream_mode="values", config=config):
-                if isinstance(event, dict) and "messages" in event:
-                    messages = event["messages"]
-                    if messages:
-                        latest_message = messages[-1]
-                        if isinstance(latest_message, AIMessage):
-                            content = latest_message.content
-                            logger.info(f"最终输出: {content[:100]}")
+                async for event in kb_app.astream(inputs, stream_mode="values", config=config):
+                    if isinstance(event, dict) and "messages" in event:
+                        messages = event["messages"]
+                        if messages:
+                            latest_message = messages[-1]
+                            if isinstance(latest_message, AIMessage):
+                                content = latest_message.content
+                                logger.info(f"最终输出: {content[:100]}")
 
-                            if not isinstance(content, str):
-                                content = str(content)
+                                if not isinstance(content, str):
+                                    content = str(content)
 
-                            ret = OpenAIChatOutput(
-                                id=f"chat{uuid.uuid4()}",
-                                object="chat.completion.chunk",
-                                content=content,
-                                role="assistant",
-                                model=model,
-                            )
-                            yield ret.model_dump_json()
+                                ret = OpenAIChatOutput(
+                                    id=f"chat{uuid.uuid4()}",
+                                    object="chat.completion.chunk",
+                                    content=content,
+                                    role="assistant",
+                                    model=model,
+                                )
+                                yield ret.model_dump_json()
 
         except Exception as e:
             logger.exception(e)
