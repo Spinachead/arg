@@ -598,6 +598,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 inputs = {"messages": all_messages}
 
                 async for event in kb_app.astream(inputs, stream_mode="values", config=config):
+                    #todo:这里可以简化一下 参考https://docs.langchain.com/oss/python/langchain/agents  streaming
                     if isinstance(event, dict) and "messages" in event:
                         messages = event["messages"]
                         if messages:
