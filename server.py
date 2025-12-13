@@ -529,7 +529,6 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                     }
 
                 async def generate_response(state: KBChatState) -> KBChatState:
-                    # ✅ 第一道防线：检查是否有真正的上下文
                     if not state["context"] or state["context"].strip() == "":
                         response = "根据提供的资料无法回答您的问题。知识库中不包含相关信息。"
                         return {"messages": [AIMessage(content=response)]}
@@ -537,14 +536,12 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                     prompt_template = get_prompt_template("rag", prompt_name)
                     input_msg = History(role="user", content=prompt_template).to_msg_template(False)
                     chat_prompt = ChatPromptTemplate.from_messages([input_msg])
-                    logger.info(f"这是prompt_template{prompt_template}")
-                    logger.info(f"这是input_msg{input_msg}")
 
                     llm = ChatOllama(
                         model="qwen:1.8b",
                         temperature=0.7,  # 降到最低
                     )
-                    chain = chat_prompt | llm
+                    chain = chat_prompt | llm | StrOutputParser()
 
                     try:
                         response = await chain.ainvoke({
@@ -554,8 +551,8 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                         })
                         # 确保不是空响应
                         if not response:
-                            response.content = "无法生成答案，请稍后重试。"
-                        return {"messages": [AIMessage(content=response.content)]}
+                            response = "无法生成答案，请稍后重试。"
+                        return {"messages": [AIMessage(content=response)]}
 
                     except Exception as e:
                         logger.error(f"LLM调用失败: {str(e)}")
