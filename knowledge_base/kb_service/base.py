@@ -388,6 +388,12 @@ class KBServiceFactory:
                 FaissKBService,
             )
             return FaissKBService(**params)
+        elif SupportedVSType.CHROMADB == vector_store_type:
+            from knowledge_base.kb_service.chromadb_kb_service import (
+                ChromaKBService,
+            )
+            return ChromaKBService(**params)
+
         else:
             from knowledge_base.kb_service.default_kb_service import DefaultKBService
             return DefaultKBService(kb_name)

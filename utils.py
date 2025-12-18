@@ -296,3 +296,15 @@ def run_in_thread_pool(
                 logger = build_logger()
                 logger.exception(f"error in sub thread: {e}")
 
+class BaseResponse(BaseModel):
+    code: int = Field(200, description="API status code")
+    msg: str = Field("success", description="API status message")
+    data: Any = Field(None, description="API data")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "code": 200,
+                "msg": "success",
+            }
+        }
