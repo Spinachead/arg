@@ -9,6 +9,7 @@ from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph, add_messages
 
+from db.repository.knowledge_base_repository import list_kbs_from_db
 from db.repository.knowledge_file_repository import get_file_detail
 from knowledge_base.utils import get_file_path, KnowledgeFile, files2docs_in_thread, get_kb_path
 from settings import Settings
@@ -29,7 +30,7 @@ import asyncio
 import json
 
 from api_schemas import OpenAIChatOutput
-from knowledge_base.kb_service.base import KBServiceFactory
+from knowledge_base.kb_service.base import KBServiceFactory, get_kb_file_details
 from knowledge_base.model.kb_document_model import DocumentWithVSId
 from rag_chain import create_rag_graph
 from langserve import add_routes
@@ -40,7 +41,7 @@ import os
 from sse_starlette.sse import EventSourceResponse
 
 from utils import format_reference, get_ChatOpenAI, wrap_done, get_prompt_template, History, run_in_thread_pool, \
-    get_default_embedding, BaseResponse
+    get_default_embedding, BaseResponse, ListResponse
 # 在导入语句之后，FastAPI应用创建之前添加
 from db.base import Base, engine
 from utils import build_logger
@@ -875,6 +876,27 @@ def delete_kb(
         return BaseResponse(code=500, msg=msg)
 
     return BaseResponse(code=500, msg=f"删除知识库失败 {knowledge_base_name}")
+
+@app.post("/api/list_knowledge_bases", summary="获取知识库列表")
+def list_kbs():
+    return BaseResponse(data=list_kbs_from_db())
+
+@app.get("/api/list_files", summary="获取知识库内的文件列表")
+def list_files(
+        knowledge_base_name:str
+)-> ListResponse:
+    # if not validate_kb_name(knowledge_base_name):
+    #     return ListResponse(code=403, msg="Don't attack me", data=[])
+
+    knowledge_base_name = urllib.parse.unquote(knowledge_base_name)
+    kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
+    if kb is None:
+        return ListResponse(
+            code=404, msg=f"未找到知识库 {knowledge_base_name}", data=[]
+        )
+    else:
+        all_docs = get_kb_file_details(knowledge_base_name)
+        return ListResponse(data=all_docs)
 
 
 if __name__ == "__main__":

@@ -63,14 +63,13 @@ class KBService(ABC):
         if not os.path.exists(self.doc_path):
             os.makedirs(self.doc_path)
 
-        # status = add_kb_to_db(
-        #     self.kb_name, self.kb_info, self.vs_type(), self.embed_model
-        # )
-        #
-        # if status:
-        #     self.do_create_kb()
-        # return status
-        return
+        status = add_kb_to_db(
+            self.kb_name, self.kb_info, self.vs_type(), self.embed_model
+        )
+
+        if status:
+            self.do_create_kb()
+        return status
 
     def clear_vs(self):
         """

@@ -235,7 +235,7 @@ class History(BaseModel):
         return h
 
 def get_default_embedding():
-    return "qllama/bge-small-zh-v1.5:latest"
+    return "bge-m3"
 
 
 def _filter_logs(record: dict) -> bool:
@@ -306,5 +306,17 @@ class BaseResponse(BaseModel):
             "example": {
                 "code": 200,
                 "msg": "success",
+            }
+        }
+
+class ListResponse(BaseResponse):
+    data: List[Any] = Field(..., description="List of data")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "code": 200,
+                "msg": "success",
+                "data": ["doc1.docx", "doc2.pdf", "doc3.txt"],
             }
         }
