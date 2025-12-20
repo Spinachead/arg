@@ -83,6 +83,12 @@ class ChromaKBService(KBService):
     def do_drop_kb(self):
         # Dropping a KB is equivalent to deleting a collection in ChromaDB
         try:
+
+            collections = self.client.list_collections()
+            collection_names = [c.name for c in collections]
+            print(f"现有集合: {collection_names}")
+            if "testBob" in collection_names:
+                print("testBob 集合确实存在")
             self.client.delete_collection(self.kb_name)
         except ValueError as e:
             if not str(e) == f"Collection {self.kb_name} does not exist.":
@@ -123,7 +129,9 @@ class ChromaKBService(KBService):
 
     def do_clear_vs(self):
         # Clearing the vector store might be equivalent to dropping and recreating the collection
-        self.do_drop_kb()
+        # self.do_drop_kb()
+        pass
+
 
     def do_delete_doc(self, kb_file: KnowledgeFile, **kwargs):
         return self.chroma._collection.delete(where={"source": kb_file.filepath})

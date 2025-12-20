@@ -885,18 +885,25 @@ def list_kbs():
 def list_files(
         knowledge_base_name:str
 )-> ListResponse:
-    # if not validate_kb_name(knowledge_base_name):
-    #     return ListResponse(code=403, msg="Don't attack me", data=[])
+    try:
+        # if not validate_kb_name(knowledge_base_name):
+        #     return ListResponse(code=403, msg="Don't attack me", data=[])
 
-    knowledge_base_name = urllib.parse.unquote(knowledge_base_name)
-    kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
-    if kb is None:
-        return ListResponse(
-            code=404, msg=f"未找到知识库 {knowledge_base_name}", data=[]
-        )
-    else:
-        all_docs = get_kb_file_details(knowledge_base_name)
-        return ListResponse(data=all_docs)
+        knowledge_base_name = urllib.parse.unquote(knowledge_base_name)
+        kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
+        if kb is None:
+            return ListResponse(
+                code=404, msg=f"未找到知识库 {knowledge_base_name}", data=[]
+            )
+        else:
+            all_docs = get_kb_file_details(knowledge_base_name)
+            return ListResponse(data=all_docs)
+    except Exception as e:
+        msg = f"获取文件列表时出现意外： {e}"
+        logger.error(f"{e.__class__.__name__}: {msg}")
+        return ListResponse(code=200, msg=msg, data=[])
+
+
 
 @app.post("/api/delete_docs", summary="删除知识库内指定文件")
 def delete_docs(

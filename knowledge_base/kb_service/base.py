@@ -7,9 +7,10 @@ from typing import Dict, List, Optional, Tuple, Union
 from langchain_core.documents import Document
 
 from db.models.knowledge_base_model import KnowledgeBaseSchema
-from db.repository.knowledge_base_repository import add_kb_to_db, list_kbs_from_db, kb_exists, load_kb_from_db
+from db.repository.knowledge_base_repository import add_kb_to_db, list_kbs_from_db, kb_exists, load_kb_from_db, \
+    delete_kb_from_db
 from db.repository.knowledge_file_repository import add_file_to_db, delete_file_from_db, file_exists_in_db, \
-    list_files_from_db, count_files_from_db, list_docs_from_db, get_file_detail
+    list_files_from_db, count_files_from_db, list_docs_from_db, get_file_detail, delete_files_from_db
 # DefaultKBService will be imported locally when needed to avoid circular imports
 from knowledge_base.model.kb_document_model import DocumentWithVSId
 from knowledge_base.utils import KnowledgeFile, list_kbs_from_folder, list_files_from_folder
@@ -76,18 +77,16 @@ class KBService(ABC):
         删除向量库中所有内容
         """
         self.do_clear_vs()
-        # status = delete_files_from_db(self.kb_name)
-        # return status
-        return
+        status = delete_files_from_db(self.kb_name)
+        return status
 
     def drop_kb(self):
         """
         删除知识库
         """
         self.do_drop_kb()
-        # status = delete_kb_from_db(self.kb_name)
-        # return status
-        return
+        status = delete_kb_from_db(self.kb_name)
+        return status
 
     def add_doc(self, kb_file: KnowledgeFile, docs: List[Document] = [], **kwargs):
         """
