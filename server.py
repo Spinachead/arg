@@ -762,7 +762,7 @@ def update_docs(
     return {"status": 'Fail', "message": "成功", "data": {"failed_files": failed_files}}
 
 
-@app.post("/upload_docs", summary="上传文件到知识库并进行向量化")
+@app.post("/api/upload_docs", summary="上传文件到知识库并进行向量化")
 def upload_docs(
         files: List[UploadFile] = File(..., description="上传文件，支持多文件"),
         knowledge_base_name: str = Form(
@@ -853,7 +853,7 @@ def create_kb(
 
 @app.post("/api/delete_knowledge_base", summary="删除知识库")
 def delete_kb(
-        knowledge_base_name: str = Body(..., examples=["samples"])
+        knowledge_base_name: str = Body(..., embed=True, examples=["samples"]),
 ) -> BaseResponse:
     # Delete selected knowledge base
     # if not validate_kb_name(knowledge_base_name):
@@ -897,6 +897,85 @@ def list_files(
     else:
         all_docs = get_kb_file_details(knowledge_base_name)
         return ListResponse(data=all_docs)
+
+@app.post("/api/delete_docs", summary="删除知识库内指定文件")
+def delete_docs(
+        knowledge_base_name: str = Body(..., examples=["samples"]),
+        file_names: List[str] = Body(..., examples=[["file_name.md", "test.txt"]]),
+        delete_content: bool = Body(False),
+        not_refresh_vs_cache: bool = Body(False, description="暂不保存向量库（用于FAISS）"),
+) -> BaseResponse:
+    # if not validate_kb_name(knowledge_base_name):
+    #     return BaseResponse(code=403, msg="Don't attack me")
+
+    knowledge_base_name = urllib.parse.unquote(knowledge_base_name)
+    kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
+    if kb is None:
+        return BaseResponse(code=404, msg=f"未找到知识库 {knowledge_base_name}")
+
+    failed_files = {}
+    for file_name in file_names:
+        if not kb.exist_doc(file_name):
+            failed_files[file_name] = f"未找到文件 {file_name}"
+
+        try:
+            kb_file = KnowledgeFile(
+                filename=file_name, knowledge_base_name=knowledge_base_name
+            )
+            kb.delete_doc(kb_file, delete_content, not_refresh_vs_cache=True)
+        except Exception as e:
+            msg = f"{file_name} 文件删除失败，错误信息：{e}"
+            logger.error(f"{e.__class__.__name__}: {msg}")
+            failed_files[file_name] = msg
+
+    if not not_refresh_vs_cache:
+        kb.save_vector_store()
+
+    return BaseResponse(
+        code=200, msg=f"文件删除完成", data={"failed_files": failed_files}
+    )
+
+# @app.post("/api/download_doc", summary="下载对应的知识文件")
+# def download_doc(
+#         knowledge_base_name: str = Query(
+#             ..., description="知识库名称", examples=["samples"]
+#         ),
+#         file_name: str = Query(..., description="文件名称", examples=["test.txt"]),
+#         preview: bool = Query(False, description="是：浏览器内预览；否：下载"),
+# ):
+#     """
+#     下载知识库文档
+#     """
+#     if not validate_kb_name(knowledge_base_name):
+#         return BaseResponse(code=403, msg="Don't attack me")
+#
+#     kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
+#     if kb is None:
+#         return BaseResponse(code=404, msg=f"未找到知识库 {knowledge_base_name}")
+#
+#     if preview:
+#         content_disposition_type = "inline"
+#     else:
+#         content_disposition_type = None
+#
+#     try:
+#         kb_file = KnowledgeFile(
+#             filename=file_name, knowledge_base_name=knowledge_base_name
+#         )
+#
+#         if os.path.exists(kb_file.filepath):
+#             return FileResponse(
+#                 path=kb_file.filepath,
+#                 filename=kb_file.filename,
+#                 media_type="multipart/form-data",
+#                 content_disposition_type=content_disposition_type,
+#             )
+#     except Exception as e:
+#         msg = f"{kb_file.filename} 读取文件失败，错误信息是：{e}"
+#         logger.error(f"{e.__class__.__name__}: {msg}")
+#         return BaseResponse(code=500, msg=msg)
+#
+#     return BaseResponse(code=500, msg=f"{kb_file.filename} 读取文件失败")
 
 
 if __name__ == "__main__":
