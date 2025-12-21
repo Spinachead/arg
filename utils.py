@@ -235,7 +235,8 @@ class History(BaseModel):
         return h
 
 def get_default_embedding():
-    return "bge-m3"
+    #qllama/bge-small-zh-v1.5
+    return "qllama/bge-small-zh-v1.5"
 
 
 def _filter_logs(record: dict) -> bool:

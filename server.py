@@ -328,7 +328,6 @@ def search_docs(
     data = []
     if kb is not None:
         if query:
-            logger.info("开始执行")
             docs = kb.search_docs(query, top_k, score_threshold)
             # data = [DocumentWithVSId(**x[0].dict(), score=x[1], id=x[0].metadata.get("id")) for x in docs]
             data = [DocumentWithVSId(**{"id": x.metadata.get("id"), **x.dict()}) for x in docs]
@@ -521,6 +520,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                         file_name="",
                         metadata={}
                     )
+                    logger.info(f"这是docs{docs}")
                     source_documents = format_reference(kb_name, docs, "")
                     context = "\n\n".join([doc.get("page_content", "") for doc in docs])
 
