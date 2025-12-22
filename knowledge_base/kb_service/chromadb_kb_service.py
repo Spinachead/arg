@@ -133,5 +133,24 @@ class ChromaKBService(KBService):
         pass
 
 
-    def do_delete_doc(self, kb_file: KnowledgeFile, **kwargs):
-        return self.chroma._collection.delete(where={"source": kb_file.filepath})
+    # def do_delete_doc(self, kb_file: KnowledgeFile, **kwargs):
+    #     return self.chroma._collection.delete(where={"source": kb_file.filepath})
+
+    def do_delete_doc(self, kb_file: KnowledgeFile,
+                      **kwargs):
+        # 通过获取所有文档并筛选需要删除的文档ID来避免where子句错误
+        try:
+            all_docs = self.chroma._collection.get(include=['metadatas'])
+            ids_to_delete = [
+                doc_id for doc_id, metadata in zip(all_docs['ids'], all_docs['metadatas'])
+                if metadata.get('source') == kb_file.filepath
+            ]
+            # 如果有需要删除的文档，则执行删除操作
+            if ids_to_delete:
+                self.chroma._collection.delete(ids=ids_to_delete)
+                return True
+
+        except Exception as e:
+            print(f"Error deleting documents: {e}")
+        # 返回False表示删除失败
+        return False
