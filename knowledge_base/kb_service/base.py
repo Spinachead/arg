@@ -13,7 +13,7 @@ from db.repository.knowledge_file_repository import add_file_to_db, delete_file_
     list_files_from_db, count_files_from_db, list_docs_from_db, get_file_detail, delete_files_from_db
 # DefaultKBService will be imported locally when needed to avoid circular imports
 from knowledge_base.model.kb_document_model import DocumentWithVSId
-from knowledge_base.utils import KnowledgeFile, list_kbs_from_folder, list_files_from_folder
+from knowledge_base.utils import KnowledgeFile, list_kbs_from_folder, list_files_from_folder, get_kb_path, get_doc_path
 import typing as t
 
 from utils import get_default_embedding,build_logger
@@ -41,8 +41,8 @@ class KBService(ABC):
         self.kb_name = knowledge_base_name
         self.kb_info = kb_info
         self.embed_model = embed_model
-        self.kb_path = "/chroma_db"
-        self.doc_path = "/documents"
+        self.kb_path = get_kb_path(self.kb_name)
+        self.doc_path = get_doc_path(self.kb_name)
         self.do_init()
 
     def __repr__(self) -> str:

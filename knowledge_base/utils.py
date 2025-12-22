@@ -133,7 +133,7 @@ LOADER_DICT = {
     ],
     "RapidOCRLoader": [".png", ".jpg", ".jpeg", ".bmp"],
     "UnstructuredWordDocumentLoader": [".doc", ".docx"],  # 添加对 .doc 文件的支持
-    "UnstructuredFileLoader": [
+    "UnstructuredLoader": [  # 替换 UnstructuredFileLoader 为 UnstructuredLoader
         ".eml",
         ".msg",
         ".rst",
@@ -212,12 +212,19 @@ def get_loader(loader_name: str, file_path: str, loader_kwargs: Dict = None):
         DocumentLoader = getattr(document_loaders_module, loader_name)
     except Exception as e:
         msg = f"为文件{file_path}查找加载器{loader_name}时出错：{e}"
-        document_loaders_module = importlib.import_module(
-            "langchain_community.document_loaders"
-        )
-        DocumentLoader = getattr(document_loaders_module, "UnstructuredFileLoader")
+        # 使用新的 langchain_unstructured 替代已弃用的 UnstructuredFileLoader
+        try:
+            from langchain_unstructured import UnstructuredLoader
+            DocumentLoader = UnstructuredLoader
+            loader_name = "UnstructuredLoader"
+        except ImportError:
+            # 如果新包不可用，则回退到旧的实现
+            document_loaders_module = importlib.import_module(
+                "langchain_community.document_loaders"
+            )
+            DocumentLoader = getattr(document_loaders_module, "UnstructuredFileLoader")
 
-    if loader_name == "UnstructuredFileLoader":
+    if loader_name == "UnstructuredFileLoader" or loader_name == "UnstructuredLoader":
         loader_kwargs.setdefault("autodetect_encoding", True)
     elif loader_name == "CSVLoader":
         if not loader_kwargs.get("encoding"):
@@ -237,6 +244,7 @@ def get_loader(loader_name: str, file_path: str, loader_kwargs: Dict = None):
 
     loader = DocumentLoader(file_path, **loader_kwargs)
     return loader
+
 
 
 @lru_cache()

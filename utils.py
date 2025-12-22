@@ -100,7 +100,7 @@ def get_Embeddings(
         embed_model: str = None,
         local_wrap: bool = False,  # use local wrapped api
 ) -> Embeddings:
-    from langchain_community.embeddings import OllamaEmbeddings
+    from langchain_ollama import OllamaEmbeddings
     embedding = OllamaEmbeddings(
         model=get_default_embedding(),
         base_url="http://localhost:11434"
