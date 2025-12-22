@@ -699,8 +699,7 @@ def update_docs(
 
     kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
     if kb is None:
-        # return BaseResponse(code=404, msg=f"未找到知识库 {knowledge_base_name}")
-        return {"status": 'Fail', "message": f"未找到知识库 {knowledge_base_name}", "data": None}
+        return BaseResponse(code=404, msg=f"未找到知识库 {knowledge_base_name}")
 
     failed_files = {}
     kb_files = []
@@ -759,7 +758,7 @@ def update_docs(
     if not not_refresh_vs_cache:
         kb.save_vector_store()
 
-    return {"status": 'Fail', "message": "成功", "data": {"failed_files": failed_files}}
+    return BaseResponse(code=200, msg="成功", data={"failed_files": failed_files})
 
 
 @app.post("/api/upload_docs", summary="上传文件到知识库并进行向量化")
@@ -813,14 +812,17 @@ def upload_docs(
             docs=docs,
             not_refresh_vs_cache=True,
         )
-        # logger.info(f"更新文档结果：{result['data']['failed_files']}")
-        failed_files.update(result['data']['failed_files'])
-        # failed_files.update(result.data["failed_files"])
+        # failed_files.update(result['data']['failed_files'])
+        failed_files.update(result.data["failed_files"])
+        if not not_refresh_vs_cache:
+            kb.save_vector_store()
 
         if not not_refresh_vs_cache:
             kb.save_vector_store()
 
-    return {"status": 'success', "message": "成功", "data": None}
+    return BaseResponse(
+        code=200, msg="文件上传与向量化完成", data={"failed_files": failed_files}
+    )
 
 @app.post("/api/create_knowledge_base", summary="创建知识库")
 def create_kb(
