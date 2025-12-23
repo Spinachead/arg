@@ -1,4 +1,5 @@
 import asyncio
+import json
 from abc import ABC, abstractmethod
 from typing import (
     TYPE_CHECKING,
@@ -190,6 +191,7 @@ def get_prompt_template(type: str, name: str) -> Optional[str]:
 
     return Settings.prompt_settings.model_dump().get(type, {}).get(name)
 
+
 class History(BaseModel):
     """
     对话历史
@@ -231,6 +233,7 @@ class History(BaseModel):
 
         return h
 
+
 def _filter_logs(record: dict) -> bool:
     # hide debug logs if Settings.basic_settings.log_verbose=False
     if record["level"].no <= 10 and not False:
@@ -239,6 +242,7 @@ def _filter_logs(record: dict) -> bool:
     if record["level"].no == 40 and not False:
         record["exception"] = None
     return True
+
 
 @cached(max_size=100, algorithm=CachingAlgorithmFlag.LRU)
 def build_logger(log_file: str = "chatchat"):
@@ -289,10 +293,12 @@ def get_config_platforms() -> Dict[str, Dict]:
     platforms = [m.model_dump() for m in Settings.model_settings.MODEL_PLATFORMS]
     return {m["platform_name"]: m for m in platforms}
 
+
 def get_base_url(url):
     parsed_url = urlparse(url)  # 解析url
     base_url = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_url)  # 格式化基础url
     return base_url.rstrip('/')
+
 
 @cached(max_size=10, ttl=60, algorithm=CachingAlgorithmFlag.LRU)
 def detect_xf_models(xf_url: str) -> Dict[str, List[str]]:
@@ -342,6 +348,7 @@ def detect_xf_models(xf_url: str) -> Dict[str, List[str]]:
         logger = build_logger()
         logger.warning(f"error when connect to xinference server({xf_url}): {e}")
     return models
+
 
 def get_config_models(
         model_name: str = None,
@@ -414,6 +421,23 @@ def get_config_models(
     return result
 
 
+def sanitize_metadata(metadata: Dict) -> Dict:
+    """
+    将 metadata 中的不支持的值转换为 ChromaDB 支持的格式
+    """
+    sanitized = {}
+    for key, value in metadata.items():
+        if isinstance(value, (str, int, float, bool)) or value is None:
+            sanitized[key] = value
+        elif isinstance(value, (list, tuple, dict)):
+            # 将复杂数据结构转换为 JSON 字符串
+            sanitized[key] = json.dumps(value, ensure_ascii=False)
+        else:
+            # 将其他类型转换为字符串
+            sanitized[key] = str(value)
+    return sanitized
+
+
 def run_in_thread_pool(
         func: Callable,
         params: List[Dict] = [],
@@ -434,6 +458,7 @@ def run_in_thread_pool(
                 logger = build_logger()
                 logger.exception(f"error in sub thread: {e}")
 
+
 class BaseResponse(BaseModel):
     code: int = Field(200, description="API status code")
     msg: str = Field("success", description="API status message")
@@ -447,6 +472,7 @@ class BaseResponse(BaseModel):
             }
         }
 
+
 class ListResponse(BaseResponse):
     data: List[Any] = Field(..., description="List of data")
 
@@ -458,6 +484,7 @@ class ListResponse(BaseResponse):
                 "data": ["doc1.docx", "doc2.pdf", "doc3.txt"],
             }
         }
+
 
 if __name__ == "__main__":
     # for debug

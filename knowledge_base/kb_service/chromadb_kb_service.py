@@ -1,3 +1,4 @@
+import json
 import uuid
 from typing import Any, Dict, List, Tuple
 
@@ -10,7 +11,7 @@ from file_rag.utils import get_Retriever
 from knowledge_base.kb_service.base import KBService, SupportedVSType
 from knowledge_base.utils import get_vs_path, get_kb_path, KnowledgeFile
 from settings import Settings
-from utils import get_Embeddings, build_logger
+from utils import get_Embeddings, build_logger,sanitize_metadata
 
 logger = build_logger(__name__)
 
@@ -107,6 +108,8 @@ class ChromaKBService(KBService):
         docs = retriever.get_relevant_documents(query)
         return docs
 
+
+
     def do_add_doc(self, docs: List[Document], **kwargs) -> List[Dict]:
         doc_infos = []
         embed_func = get_Embeddings(self.embed_model)
@@ -115,9 +118,11 @@ class ChromaKBService(KBService):
         embeddings = embed_func.embed_documents(texts=texts)
         ids = [str(uuid.uuid1()) for _ in range(len(texts))]
         for _id, text, embedding, metadata in zip(ids, texts, embeddings, metadatas):
-            logger.info(f"这是metadata: {metadata}")
+            # 对 metadata 进行清洗，确保所有值都是 ChromaDB 支持的类型
+            sanitized_metadata = sanitize_metadata(metadata)
+            logger.info(f"这是metadata: {sanitized_metadata}")
             self.chroma._collection.add(
-                ids=_id, embeddings=embedding, metadatas=metadata, documents=text
+                ids=_id, embeddings=embedding, metadatas=sanitized_metadata, documents=text
             )
             doc_infos.append({"id": _id, "metadata": metadata})
         return doc_infos
