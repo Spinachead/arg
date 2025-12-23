@@ -6,8 +6,9 @@ import tqdm
 from langchain_community.document_loaders.unstructured import UnstructuredFileLoader
 from PIL import Image
 
-# from file_rag.document_loaders.ocr import get_ocr
 import typing as t
+
+from file_rag.document_loaders.ocr import get_ocr
 
 PDF_OCR_THRESHOLD: t.Tuple[float, float] = (0.6, 0.6)
 

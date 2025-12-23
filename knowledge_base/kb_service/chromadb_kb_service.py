@@ -10,7 +10,9 @@ from file_rag.utils import get_Retriever
 from knowledge_base.kb_service.base import KBService, SupportedVSType
 from knowledge_base.utils import get_vs_path, get_kb_path, KnowledgeFile
 from settings import Settings
-from utils import get_Embeddings
+from utils import get_Embeddings, build_logger
+
+logger = build_logger(__name__)
 
 
 def _get_result_to_documents(get_result: GetResult) -> List[Document]:
@@ -113,6 +115,7 @@ class ChromaKBService(KBService):
         embeddings = embed_func.embed_documents(texts=texts)
         ids = [str(uuid.uuid1()) for _ in range(len(texts))]
         for _id, text, embedding, metadata in zip(ids, texts, embeddings, metadatas):
+            logger.info(f"这是metadata: {metadata}")
             self.chroma._collection.add(
                 ids=_id, embeddings=embedding, metadatas=metadata, documents=text
             )

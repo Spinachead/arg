@@ -458,3 +458,12 @@ class ListResponse(BaseResponse):
                 "data": ["doc1.docx", "doc2.pdf", "doc3.txt"],
             }
         }
+
+if __name__ == "__main__":
+    # for debug
+    # print(get_default_llm())
+    print(get_default_embedding())
+    platforms = get_config_platforms()
+    # models = get_config_models()
+    # model_info = get_model_info(platform_name="xinference-auto")
+    print(1)
