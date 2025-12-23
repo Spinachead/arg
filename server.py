@@ -1,11 +1,8 @@
 import os
 import urllib
 
-import psycopg
 from langchain_core.documents import Document
 from langchain_ollama import OllamaLLM, ChatOllama
-from langgraph.checkpoint.memory import InMemorySaver
-from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph, add_messages
 
@@ -15,8 +12,6 @@ from knowledge_base.utils import get_file_path, KnowledgeFile, files2docs_in_thr
 from settings import Settings
 
 os.environ["OTEL_SDK_DISABLED"] = "true"
-# server.py
-import pprint
 import uuid
 from datetime import datetime
 
@@ -35,12 +30,11 @@ from knowledge_base.model.kb_document_model import DocumentWithVSId
 from rag_chain import create_rag_graph
 from langserve import add_routes
 from fastapi.middleware.cors import CORSMiddleware
-from langchain_core.messages import HumanMessage
 from dotenv import load_dotenv
 import os
 from sse_starlette.sse import EventSourceResponse
 
-from utils import format_reference, get_ChatOpenAI, wrap_done, get_prompt_template, History, run_in_thread_pool, \
+from utils import format_reference, wrap_done, get_prompt_template, History, run_in_thread_pool, \
     get_default_embedding, BaseResponse, ListResponse
 # 在导入语句之后，FastAPI应用创建之前添加
 from db.base import Base, engine
@@ -466,14 +460,6 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
         return EventSourceResponse(knowledge_base_chat_iterator())
     else:
         return await knowledge_base_chat_iterator().__anext__()
-
-
-from psycopg_pool import ConnectionPool
-from contextlib import asynccontextmanager
-import os
-
-# 全局连接池
-pool = None
 
 
 @app.post("/api/kb_chat2", summary="知识库对话")

@@ -405,9 +405,11 @@ class ApiModelSettings(BaseFileSettings):
             "llm_models": [
                 "qwen:7b",
                 "qwen2:7b",
+                "qwen:1.8b"
             ],
             "embed_models": [
-                "quentinz/bge-large-zh-v1.5",
+                "qllama/bge-small-zh-v1.5",
+                "bge-m3"
             ],
         }),
         PlatformConfig(**{
