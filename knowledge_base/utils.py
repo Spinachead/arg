@@ -8,7 +8,6 @@ from typing import Dict, Generator, List, Tuple, Union
 
 import chardet
 import langchain_community.document_loaders
-import langchain_text_splitters
 from langchain_community.document_loaders import JSONLoader, TextLoader
 import typing as t
 
@@ -125,6 +124,7 @@ LOADER_DICT = {
     "JSONLinesLoader": [".jsonl"],
     "CSVLoader": [".csv"],
     # "FilteredCSVLoader": [".csv"], 如果使用自定义分割csv
+    "SimplePDFLoader": [".pdf"],
     "RapidOCRPDFLoader": [".pdf"],
     "RapidOCRDocLoader": [".docx"],
     "RapidOCRPPTLoader": [
@@ -201,29 +201,22 @@ def get_loader(loader_name: str, file_path: str, loader_kwargs: Dict = None):
             "FilteredCSVLoader",
             "RapidOCRDocLoader",
             "RapidOCRPPTLoader",
+            "SimplePDFLoader"
         ]:
             document_loaders_module = importlib.import_module(
                 "file_rag.document_loaders"
             )
         else:
             document_loaders_module = importlib.import_module(
-                "langchain_community.document_loaders"
+                "langchain_unstructured"
             )
         DocumentLoader = getattr(document_loaders_module, loader_name)
     except Exception as e:
         msg = f"为文件{file_path}查找加载器{loader_name}时出错：{e}"
         logger.error(msg)
-        # 使用新的 langchain_unstructured 替代已弃用的 UnstructuredFileLoader
-        try:
-            from langchain_unstructured import UnstructuredLoader
-            DocumentLoader = UnstructuredLoader
-            loader_name = "UnstructuredLoader"
-        except ImportError:
-            # 如果新包不可用，则回退到旧的实现
-            document_loaders_module = importlib.import_module(
-                "langchain_community.document_loaders"
-            )
-            DocumentLoader = getattr(document_loaders_module, "UnstructuredFileLoader")
+        from langchain_unstructured import UnstructuredLoader
+        DocumentLoader = UnstructuredLoader
+        loader_name = "UnstructuredLoader"
 
     if loader_name == "UnstructuredFileLoader" or loader_name == "UnstructuredLoader":
         loader_kwargs.setdefault("autodetect_encoding", True)

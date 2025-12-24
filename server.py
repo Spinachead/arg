@@ -15,7 +15,7 @@ os.environ["OTEL_SDK_DISABLED"] = "true"
 import uuid
 from datetime import datetime
 
-from fastapi import FastAPI, Request, Body, UploadFile, File, Form
+from fastapi import FastAPI, Request, Body, UploadFile, File, Form, Query
 from fastapi.responses import StreamingResponse
 from langchain_classic.callbacks import AsyncIteratorCallbackHandler
 from langchain_core.prompts import ChatPromptTemplate
@@ -972,6 +972,18 @@ def delete_docs(
 #
 #     return BaseResponse(code=500, msg=f"{kb_file.filename} 读取文件失败")
 
+@app.get("/api/testChroma", summary="测试Chroma")
+def test_chroma(
+        knowledge_base_name: str = Query(
+            ..., description="知识库名称", examples=["samples"]
+        ),
+        file_name: str = Query(..., description="文件名称", examples=["test.txt"]),
+        query: str = Query(..., description="查询内容"),
+)-> BaseResponse:
+    kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
+    # data = kb.list_docs(file_name="体检报告.pdf")
+    data = kb.search_docs(query)
+    return BaseResponse(code=200, msg="成功", data=data)
 
 if __name__ == "__main__":
     import uvicorn

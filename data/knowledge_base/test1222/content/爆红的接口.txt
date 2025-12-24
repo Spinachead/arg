@@ -1,0 +1,11 @@
+https://name.jiaoguanyi.cn/api/manageVersionPer
+https://name.jiaoguanyi.cn/api/RomVersionPer
+https://name.jiaoguanyi.cn/api/OnlineCount
+https://name.jiaoguanyi.cn/api/SumCount
+https://name.jiaoguanyi.cn/api/activateMacNum
+https://name.jiaoguanyi.cn/api/lockCount
+https://name.jiaoguanyi.cn/api/getAppUploadLog?userId=11
+https://name.jiaoguanyi.cn/api/getSnOnlineCount?userId=11
+https://name.jiaoguanyi.cn/api/classifyCount
+https://name.jiaoguanyi.cn/api/getSelectUserId?userId=11
+https://name.jiaoguanyi.cn/api/classifyCount
