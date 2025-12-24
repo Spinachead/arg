@@ -26,14 +26,14 @@ class VectorstoreRetrieverService(BaseRetrieverService):
         top_k: int,
         score_threshold: int | float,
     ):
-        # retriever = vectorstore.as_retriever(
-        #     search_type="similarity_score_threshold",
-        #     search_kwargs={"score_threshold": score_threshold, "k": top_k},
-        # )
         retriever = vectorstore.as_retriever(
-            search_type="similarity",  # 改为简单相似度搜索
-            search_kwargs={"k": top_k},
+            search_type="similarity_score_threshold",
+            search_kwargs={"score_threshold": score_threshold, "k": top_k},
         )
+        # retriever = vectorstore.as_retriever(
+        #     search_type="similarity",  # 改为简单相似度搜索
+        #     search_kwargs={"k": top_k},
+        # )
         return VectorstoreRetrieverService(retriever=retriever, top_k=top_k)
 
 

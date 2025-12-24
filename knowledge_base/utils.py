@@ -208,17 +208,18 @@ def get_loader(loader_name: str, file_path: str, loader_kwargs: Dict = None):
             )
         else:
             document_loaders_module = importlib.import_module(
-                "langchain_unstructured"
+                "langchain_community.document_loaders"
             )
         DocumentLoader = getattr(document_loaders_module, loader_name)
     except Exception as e:
         msg = f"为文件{file_path}查找加载器{loader_name}时出错：{e}"
-        logger.error(msg)
-        from langchain_unstructured import UnstructuredLoader
-        DocumentLoader = UnstructuredLoader
-        loader_name = "UnstructuredLoader"
+        logger.error(f"{e.__class__.__name__}: {msg}")
+        document_loaders_module = importlib.import_module(
+            "langchain_community.document_loaders"
+        )
+        DocumentLoader = getattr(document_loaders_module, "UnstructuredFileLoader")
 
-    if loader_name == "UnstructuredFileLoader" or loader_name == "UnstructuredLoader":
+    if loader_name == "UnstructuredFileLoader":
         loader_kwargs.setdefault("autodetect_encoding", True)
     elif loader_name == "CSVLoader":
         if not loader_kwargs.get("encoding"):
@@ -235,15 +236,9 @@ def get_loader(loader_name: str, file_path: str, loader_kwargs: Dict = None):
     elif loader_name == "JSONLinesLoader":
         loader_kwargs.setdefault("jq_schema", ".")
         loader_kwargs.setdefault("text_content", False)
-    try:
-        loader = DocumentLoader(file_path, **loader_kwargs)
-        logger.info(f"成功创建加载器 {loader_name} 用于文件 {file_path}")
-        return loader
-    except Exception as e:
-        logger.error(f"创建加载器 {loader_name} 用于文件 {file_path} 时出错: {e}")
-        import traceback
-        logger.error(f"详细错误堆栈: {traceback.format_exc()}")
-        raise
+
+    loader = DocumentLoader(file_path, **loader_kwargs)
+    return loader
 
 
 @lru_cache()
@@ -487,35 +482,6 @@ def files2docs_in_thread(
             func=files2docs_in_thread_file2docs, params=kwargs_list
     ):
         yield result
-
-
-
-def format_reference(kb_name: str, docs: List[Dict], api_base_url: str = "") -> List[Dict]:
-    '''
-    将知识库检索结果格式化为参考文档的格式
-    '''
-    api_base_url = api_base_url or api_address(is_public=True)
-
-    source_documents = []
-    for inum, doc in enumerate(docs):
-        filename = doc.get("metadata", {}).get("source")
-        parameters = urlencode(
-            {
-                "knowledge_base_name": kb_name,
-                "file_name": filename,
-            }
-        )
-        api_base_url = api_base_url.strip(" /")
-        url = (
-                f"{api_base_url}/knowledge_base/download_doc?" + parameters
-        )
-        page_content = doc.get("page_content")
-        ref = f"""出处 [{inum + 1}] [{filename}]({url}) \n\n{page_content}\n\n"""
-        source_documents.append(ref)
-
-    return source_documents
-
-
 
 if __name__ == "__main__":
     from pprint import pprint
