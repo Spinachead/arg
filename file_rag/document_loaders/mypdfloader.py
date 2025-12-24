@@ -9,6 +9,9 @@ from PIL import Image
 import typing as t
 
 from file_rag.document_loaders.ocr import get_ocr
+from utils import build_logger
+
+logger = build_logger(__name__)
 
 PDF_OCR_THRESHOLD: t.Tuple[float, float] = (0.6, 0.6)
 
@@ -55,40 +58,42 @@ class RapidOCRPDFLoader(UnstructuredFileLoader):
                     "RapidOCRPDFLoader context page index: {}".format(i)
                 )
                 b_unit.refresh()
-                text = page.get_text("")
-                resp += text + "\n"
+                try:
+                    text = page.get_text("")
+                    resp += text + "\n"
 
-                img_list = page.get_image_info(xrefs=True)
-                for img in img_list:
-                    if xref := img.get("xref"):
-                        bbox = img["bbox"]
-                        # 检查图片尺寸是否超过设定的阈值
-                        if (bbox[2] - bbox[0]) / (page.rect.width) < PDF_OCR_THRESHOLD[
-                            0
-                        ] or (bbox[3] - bbox[1]) / (
-                            page.rect.height
-                        ) < PDF_OCR_THRESHOLD[1]:
-                            continue
-                        pix = fitz.Pixmap(doc, xref)
-                        samples = pix.samples
-                        if int(page.rotation) != 0:  # 如果Page有旋转角度，则旋转图片
-                            img_array = np.frombuffer(
-                                pix.samples, dtype=np.uint8
-                            ).reshape(pix.height, pix.width, -1)
-                            tmp_img = Image.fromarray(img_array)
-                            ori_img = cv2.cvtColor(np.array(tmp_img), cv2.COLOR_RGB2BGR)
-                            rot_img = rotate_img(img=ori_img, angle=360 - page.rotation)
-                            img_array = cv2.cvtColor(rot_img, cv2.COLOR_RGB2BGR)
-                        else:
-                            img_array = np.frombuffer(
-                                pix.samples, dtype=np.uint8
-                            ).reshape(pix.height, pix.width, -1)
+                    img_list = page.get_image_info(xrefs=True)
+                    for img in img_list:
+                        if xref := img.get("xref"):
+                            bbox = img["bbox"]
+                            # 检查图片尺寸是否超过设定的阈值
+                            if (bbox[2] - bbox[0]) / (page.rect.width) < PDF_OCR_THRESHOLD[
+                                0
+                            ] or (bbox[3] - bbox[1]) / (
+                                    page.rect.height
+                            ) < PDF_OCR_THRESHOLD[1]:
+                                continue
+                            pix = fitz.Pixmap(doc, xref)
+                            samples = pix.samples
+                            if int(page.rotation) != 0:  # 如果Page有旋转角度，则旋转图片
+                                img_array = np.frombuffer(
+                                    pix.samples, dtype=np.uint8
+                                ).reshape(pix.height, pix.width, -1)
+                                tmp_img = Image.fromarray(img_array)
+                                ori_img = cv2.cvtColor(np.array(tmp_img), cv2.COLOR_RGB2BGR)
+                                rot_img = rotate_img(img=ori_img, angle=360 - page.rotation)
+                                img_array = cv2.cvtColor(rot_img, cv2.COLOR_RGB2BGR)
+                            else:
+                                img_array = np.frombuffer(
+                                    pix.samples, dtype=np.uint8
+                                ).reshape(pix.height, pix.width, -1)
 
-                        result, _ = ocr(img_array)
-                        if result:
-                            ocr_result = [line[1] for line in result]
-                            resp += "\n".join(ocr_result)
-
+                            result, _ = ocr(img_array)
+                            if result:
+                                ocr_result = [line[1] for line in result]
+                                resp += "\n".join(ocr_result)
+                except Exception as e:
+                    logger.error(f"处理PDF页面 {i} 时出错: {e}")
                 # 更新进度
                 b_unit.update(1)
             return resp

@@ -16,7 +16,7 @@ from langchain_core.documents import Document
 from langchain_text_splitters import MarkdownHeaderTextSplitter, CharacterTextSplitter, TextSplitter
 
 from settings import Settings
-from utils import run_in_thread_pool
+from utils import run_in_thread_pool, api_address
 from utils import build_logger
 logger = build_logger()
 
@@ -203,7 +203,7 @@ def get_loader(loader_name: str, file_path: str, loader_kwargs: Dict = None):
             "RapidOCRPPTLoader",
         ]:
             document_loaders_module = importlib.import_module(
-                "chatchat.server.file_rag.document_loaders"
+                "file_rag.document_loaders"
             )
         else:
             document_loaders_module = importlib.import_module(
@@ -212,6 +212,7 @@ def get_loader(loader_name: str, file_path: str, loader_kwargs: Dict = None):
         DocumentLoader = getattr(document_loaders_module, loader_name)
     except Exception as e:
         msg = f"为文件{file_path}查找加载器{loader_name}时出错：{e}"
+        logger.error(msg)
         # 使用新的 langchain_unstructured 替代已弃用的 UnstructuredFileLoader
         try:
             from langchain_unstructured import UnstructuredLoader
@@ -241,10 +242,15 @@ def get_loader(loader_name: str, file_path: str, loader_kwargs: Dict = None):
     elif loader_name == "JSONLinesLoader":
         loader_kwargs.setdefault("jq_schema", ".")
         loader_kwargs.setdefault("text_content", False)
-
-    loader = DocumentLoader(file_path, **loader_kwargs)
-    return loader
-
+    try:
+        loader = DocumentLoader(file_path, **loader_kwargs)
+        logger.info(f"成功创建加载器 {loader_name} 用于文件 {file_path}")
+        return loader
+    except Exception as e:
+        logger.error(f"创建加载器 {loader_name} 用于文件 {file_path} 时出错: {e}")
+        import traceback
+        logger.error(f"详细错误堆栈: {traceback.format_exc()}")
+        raise
 
 
 @lru_cache()
@@ -265,7 +271,7 @@ def make_text_splitter(splitter_name, chunk_size, chunk_overlap):
             )
         else:
             try:  # 优先使用用户自定义的text_splitter
-                text_splitter_module = importlib.import_module("chatchat.server.file_rag.text_splitter")
+                text_splitter_module = importlib.import_module("file_rag.text_splitter")
                 TextSplitter = getattr(text_splitter_module, splitter_name)
             except:  # 否则使用langchain的text_splitter
                 text_splitter_module = importlib.import_module(
@@ -445,6 +451,8 @@ def files2docs_in_thread_file2docs(
     except Exception as e:
         msg = f"从文件 {file.kb_name}/{file.filename} 加载文档时出错：{e}"
         logger.error(f"{e.__class__.__name__}: {msg}")
+        import traceback
+        logger.error(f"详细错误信息: {traceback.format_exc()}")
         return False, (file.kb_name, file.filename, msg)
 
 
@@ -488,32 +496,31 @@ def files2docs_in_thread(
         yield result
 
 
-#
-# def format_reference(kb_name: str, docs: List[Dict], api_base_url: str = "") -> List[Dict]:
-#     '''
-#     将知识库检索结果格式化为参考文档的格式
-#     '''
-#     from chatchat.server.utils import api_address
-#     api_base_url = api_base_url or api_address(is_public=True)
-#
-#     source_documents = []
-#     for inum, doc in enumerate(docs):
-#         filename = doc.get("metadata", {}).get("source")
-#         parameters = urlencode(
-#             {
-#                 "knowledge_base_name": kb_name,
-#                 "file_name": filename,
-#             }
-#         )
-#         api_base_url = api_base_url.strip(" /")
-#         url = (
-#                 f"{api_base_url}/knowledge_base/download_doc?" + parameters
-#         )
-#         page_content = doc.get("page_content")
-#         ref = f"""出处 [{inum + 1}] [{filename}]({url}) \n\n{page_content}\n\n"""
-#         source_documents.append(ref)
-#
-#     return source_documents
+
+def format_reference(kb_name: str, docs: List[Dict], api_base_url: str = "") -> List[Dict]:
+    '''
+    将知识库检索结果格式化为参考文档的格式
+    '''
+    api_base_url = api_base_url or api_address(is_public=True)
+
+    source_documents = []
+    for inum, doc in enumerate(docs):
+        filename = doc.get("metadata", {}).get("source")
+        parameters = urlencode(
+            {
+                "knowledge_base_name": kb_name,
+                "file_name": filename,
+            }
+        )
+        api_base_url = api_base_url.strip(" /")
+        url = (
+                f"{api_base_url}/knowledge_base/download_doc?" + parameters
+        )
+        page_content = doc.get("page_content")
+        ref = f"""出处 [{inum + 1}] [{filename}]({url}) \n\n{page_content}\n\n"""
+        source_documents.append(ref)
+
+    return source_documents
 
 
 

@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from utils import get_default_embedding
 
@@ -38,6 +39,19 @@ def create_rag_graph():
         base_url="http://localhost:11434"
     )
     persist_dir = str((Path(__file__).parent / "chroma_db").resolve())
+    if os.path.exists(persist_dir):
+        print(f"检测到数据库目录 {persist_dir}，检查兼容性...")
+        try:
+            # 尝试连接现有数据库
+            vectorstore = Chroma(
+                persist_directory=persist_dir,
+                embedding_function=embedding
+            )
+            print("数据库兼容，继续使用...")
+        except Exception as e:
+            print(f"检测到数据库不兼容: {e}，正在清理数据库目录: {persist_dir}")
+            shutil.rmtree(persist_dir, ignore_errors=True)
+            print("数据库目录已清理，将创建新的数据库")
     vectorstore = Chroma(
         persist_directory=persist_dir,
         embedding_function=embedding

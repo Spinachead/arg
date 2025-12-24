@@ -1,0 +1,18 @@
+conda env list 查看所有环境
+conda create -n myenv python=3.10 # 创建名为 myenv 的环境，指定 Python 版本
+conda create -n myenv python=3.10 numpy pandas jupyter 同时安装包（推荐）
+conda activate myenv 激活
+conda deactivate 退出
+conda env remove -n myenv 删除env环境
+conda remove -n myenv --all 删除环境
+
+cond install numpy 从默认channel安装
+conda install -c conda-forge langchain-chroma 从指定 channel 安装（推荐使用 conda-forge）
+conda update numpy
+conda update --all
+conda list
+conda list | grep numpy  搜索特定包
+conda list | findstr numpy 搜索特定包
+conda remove numpy 卸载包
+
+

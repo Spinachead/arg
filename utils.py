@@ -484,6 +484,21 @@ class ListResponse(BaseResponse):
                 "data": ["doc1.docx", "doc2.pdf", "doc3.txt"],
             }
         }
+def api_address(is_public: bool = False) -> str:
+    '''
+    允许用户在 basic_settings.API_SERVER 中配置 public_host, public_port
+    以便使用云服务器或反向代理时生成正确的公网 API 地址（如知识库文档下载链接）
+    '''
+    server = Settings.basic_settings.API_SERVER
+    if is_public:
+        host = server.get("public_host", "127.0.0.1")
+        port = server.get("public_port", "7861")
+    else:
+        host = server.get("host", "127.0.0.1")
+        port = server.get("port", "7861")
+        if host == "0.0.0.0":
+            host = "127.0.0.1"
+    return f"http://{host}:{port}"
 
 
 if __name__ == "__main__":
