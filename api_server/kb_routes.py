@@ -1,8 +1,9 @@
 from typing import List
 from fastapi import APIRouter, Request
+
+from chat.kb_chat import search_docs
 from knowledge_base.kb_api import create_kb, list_kbs, delete_kb, list_files
-from knowledge_base.kb_doc_api import delete_docs, update_docs
-from server import upload_docs, search_docs
+from knowledge_base.kb_doc_api import delete_docs, update_docs, upload_docs
 from utils import BaseResponse, ListResponse
 
 kb_router = APIRouter(prefix="/api", tags=["Knowledge Base Management"])

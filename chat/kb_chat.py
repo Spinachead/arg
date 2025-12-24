@@ -203,3 +203,74 @@ def search_docs(
                 if "vector" in d.metadata:
                     del d.metadata["vector"]
     return [x.dict() for x in data]
+
+
+from pydantic import BaseModel
+from typing import Optional, Dict, Any, AsyncIterable, Literal, List, TypedDict, Annotated
+from rag_chain import create_rag_graph
+rag_chain = create_rag_graph()
+
+
+class ChatProcessRequest(BaseModel):
+    prompt: str
+    options: Optional[Dict[str, Any]] = {}
+    systemMessage: Optional[str] = ""
+    temperature: Optional[float] = 0.7
+    top_p: Optional[float] = 0.9
+
+async def chat_process(request: ChatProcessRequest):
+    if not request.prompt:
+        return {"status": "Error", "data": None, "message": "Question input is required"}
+
+    try:
+        # 获取会话ID，用于记忆功能
+        session_id = request.options.get("sessionId", "default_session") if request.options else "default_session"
+        config = {"configurable": {"thread_id": session_id}}
+
+        # 使用带记忆功能的 RAG 链处理请求
+        input_data = {
+            "messages": [HumanMessage(content=request.prompt)]
+        }
+        response = rag_chain.invoke(input_data, config=config)
+
+        return {
+            "status": "Success",
+            "data": {
+                "id": "chat-1",
+                "role": "assistant",
+                "text": response["messages"][-1].content,
+                "dateTime": "1111111"
+            },
+            "message": "Success"
+        }
+    except Exception as e:
+        return {"status": "Error", "data": None, "message": str(e)}
+
+
+async def chat_process(request: ChatProcessRequest):
+    if not request.prompt:
+        return {"status": "Error", "data": None, "message": "Question input is required"}
+
+    try:
+        # 获取会话ID，用于记忆功能
+        session_id = request.options.get("sessionId", "default_session") if request.options else "default_session"
+        config = {"configurable": {"thread_id": session_id}}
+
+        # 使用带记忆功能的 RAG 链处理请求
+        input_data = {
+            "messages": [HumanMessage(content=request.prompt)]
+        }
+        response = rag_chain.invoke(input_data, config=config)
+
+        return {
+            "status": "Success",
+            "data": {
+                "id": "chat-1",
+                "role": "assistant",
+                "text": response["messages"][-1].content,
+                "dateTime": "1111111"
+            },
+            "message": "Success"
+        }
+    except Exception as e:
+        return {"status": "Error", "data": None, "message": str(e)}
