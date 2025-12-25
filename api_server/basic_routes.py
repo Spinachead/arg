@@ -13,4 +13,4 @@ basicRouter.post("/session", summary="获取session")(session)
 
 basicRouter.post("/verify", summary="验证")(verify)
 
-basicRouter.post("/test_chroma", summary="测试chroma")(test_chroma)
+basicRouter.get("/test_chroma", summary="测试chroma")(test_chroma)

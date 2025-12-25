@@ -1,0 +1,4 @@
+2025-12-25 22:07:06.073 | WARNING  | utils:detect_xf_models:346 - cannot connect to xinference host: http://127.0.0.1:9997, please check your configuration.
+2025-12-25 22:08:35.809 | WARNING  | utils:detect_xf_models:346 - cannot connect to xinference host: http://127.0.0.1:9997, please check your configuration.
+2025-12-25 22:12:27.383 | WARNING  | utils:detect_xf_models:346 - cannot connect to xinference host: http://127.0.0.1:9997, please check your configuration.
+2025-12-25 22:14:10.711 | WARNING  | utils:detect_xf_models:346 - cannot connect to xinference host: http://127.0.0.1:9997, please check your configuration.

@@ -7,6 +7,7 @@ from api_server.chat_routes import chat_router
 from api_server.kb_routes import kb_router
 from settings import Settings
 from starlette.responses import RedirectResponse
+from basic_routes import basicRouter
 
 
 def create_app():
@@ -30,6 +31,7 @@ def create_app():
 
     app.include_router(chat_router)
     app.include_router(kb_router)
+    app.include_router(basicRouter)
     return app
 
 def run_api(host, port, **kwargs):
@@ -52,7 +54,7 @@ if __name__ == "__main__":
         description="About langchain-ChatGLM, local knowledge based ChatGLM with langchain"
         " ｜ 基于本地知识库的 ChatGLM 问答",
     )
-    parser.add_argument("--host", type=str, default="0.0.0.0")
+    parser.add_argument("--host", type=str, default="127.0.0.1")
     parser.add_argument("--port", type=int, default=7861)
     parser.add_argument("--ssl_keyfile", type=str)
     parser.add_argument("--ssl_certfile", type=str)
