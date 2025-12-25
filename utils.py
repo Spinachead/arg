@@ -1,5 +1,6 @@
 import asyncio
 import json
+import time
 from abc import ABC, abstractmethod
 from typing import (
     TYPE_CHECKING,
@@ -500,6 +501,137 @@ def api_address(is_public: bool = False) -> str:
             host = "127.0.0.1"
     return f"http://{host}:{port}"
 
+
+def get_config_dict(
+        log_level: str, log_file_path: str, log_backup_count: int, log_max_bytes: int
+) -> dict:
+    # for windows, the path should be a raw string.
+    log_file_path = (
+        log_file_path.encode("unicode-escape").decode()
+        if os.name == "nt"
+        else log_file_path
+    )
+    log_level = log_level.upper()
+    config_dict = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "formatter": {
+                "format": (
+                    "%(asctime)s %(name)-12s %(process)d %(levelname)-8s %(message)s"
+                )
+            },
+        },
+        "filters": {
+            "logger_name_filter": {
+                "()": __name__ + ".LoggerNameFilter",
+            },
+        },
+        "handlers": {
+            "stream_handler": {
+                "class": "logging.StreamHandler",
+                "formatter": "formatter",
+                "level": log_level,
+                # "stream": "ext://sys.stdout",
+                # "filters": ["logger_name_filter"],
+            },
+            "file_handler": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "formatter": "formatter",
+                "level": log_level,
+                "filename": log_file_path,
+                "mode": "a",
+                "maxBytes": log_max_bytes,
+                "backupCount": log_backup_count,
+                "encoding": "utf8",
+            },
+        },
+        "loggers": {
+            "chatchat_core": {
+                "handlers": ["stream_handler", "file_handler"],
+                "level": log_level,
+                "propagate": False,
+            }
+        },
+        "root": {
+            "level": log_level,
+            "handlers": ["stream_handler", "file_handler"],
+        },
+    }
+    return config_dict
+
+
+def get_log_file(log_path: str, sub_dir: str):
+    """
+    sub_dir should contain a timestamp.
+    """
+    log_dir = os.path.join(log_path, sub_dir)
+    # Here should be creating a new directory each time, so `exist_ok=False`
+    os.makedirs(log_dir, exist_ok=False)
+    return os.path.join(log_dir, f"{sub_dir}.log")
+
+
+def get_timestamp_ms():
+    t = time.time()
+    return int(round(t * 1000))
+
+
+def set_httpx_config(
+        timeout: float = Settings.basic_settings.HTTPX_DEFAULT_TIMEOUT,
+        proxy: Union[str, Dict] = None,
+        unused_proxies: List[str] = [],
+):
+    """
+    设置httpx默认timeout。httpx默认timeout是5秒，在请求LLM回答时不够用。
+    将本项目相关服务加入无代理列表，避免fastchat的服务器请求错误。(windows下无效)
+    对于chatgpt等在线API，如要使用代理需要手动配置。搜索引擎的代理如何处置还需考虑。
+    """
+
+    import os
+
+    import httpx
+
+    httpx._config.DEFAULT_TIMEOUT_CONFIG.connect = timeout
+    httpx._config.DEFAULT_TIMEOUT_CONFIG.read = timeout
+    httpx._config.DEFAULT_TIMEOUT_CONFIG.write = timeout
+
+    # 在进程范围内设置系统级代理
+    proxies = {}
+    if isinstance(proxy, str):
+        for n in ["http", "https", "all"]:
+            proxies[n + "_proxy"] = proxy
+    elif isinstance(proxy, dict):
+        for n in ["http", "https", "all"]:
+            if p := proxy.get(n):
+                proxies[n + "_proxy"] = p
+            elif p := proxy.get(n + "_proxy"):
+                proxies[n + "_proxy"] = p
+
+    for k, v in proxies.items():
+        os.environ[k] = v
+
+    # set host to bypass proxy
+    no_proxy = [
+        x.strip() for x in os.environ.get("no_proxy", "").split(",") if x.strip()
+    ]
+    no_proxy += [
+        # do not use proxy for locahost
+        "http://127.0.0.1",
+        "http://localhost",
+    ]
+    # do not use proxy for user deployed fastchat servers
+    for x in unused_proxies:
+        host = ":".join(x.split(":")[:2])
+        if host not in no_proxy:
+            no_proxy.append(host)
+    os.environ["NO_PROXY"] = ",".join(no_proxy)
+
+    def _get_proxies():
+        return proxies
+
+    import urllib.request
+
+    urllib.request.getproxies = _get_proxies
 
 if __name__ == "__main__":
     # for debug
