@@ -7,7 +7,7 @@ from api_server.chat_routes import chat_router
 from api_server.kb_routes import kb_router
 from settings import Settings
 from starlette.responses import RedirectResponse
-from basic_routes import basicRouter
+from api_server.basic_routes import basicRouter
 
 
 def create_app():
