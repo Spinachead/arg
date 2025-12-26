@@ -75,7 +75,10 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 async def generate_response(state: KBChatState) -> KBChatState:
                     if not state["context"] or state["context"].strip() == "":
                         response = "根据提供的资料无法回答您的问题。知识库中不包含相关信息。"
-                        return {"messages": [AIMessage(content=response)]}
+                        return {
+                            "messages": [AIMessage(content=response)],
+                            "sources": state.get("sources", [])
+                        }
 
                     prompt_template = get_prompt_template("rag", prompt_name)
 
@@ -105,22 +108,26 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                     chain = chat_prompt | llm | StrOutputParser()
 
                     try:
-                        # 将来源信息添加到上下文中，让大模型知道文档来源
-                        sources_text = '\n'.join(state['sources']) if state['sources'] else '无参考文档'
-                        context_with_sources = f"{state['context']}\n\n参考文档:\n{sources_text}"
                         
                         response = await chain.ainvoke({
-                            "context": context_with_sources,
+                            "context": state["context"],
                             "sources": state["sources"] if state["sources"] else "未知来源",
                             "question": state["question"],
                         })
                         if not response:
                             response = "无法生成答案，请稍后重试。"
-                        return {"messages": [AIMessage(content=response)]}
+                        # 保留 sources 字段在 state 中，以便在响应中返回
+                        return {
+                            "messages": [AIMessage(content=response)],
+                            "sources": state.get("sources", [])
+                        }
 
                     except Exception as e:
                         logger.error(f"LLM调用失败: {str(e)}")
-                        return {"messages": [AIMessage(content=f"处理过程中出错: {str(e)}")]}
+                        return {
+                            "messages": [AIMessage(content=f"处理过程中出错: {str(e)}")],
+                            "sources": state.get("sources", [])
+                        }
 
                 workflow = StateGraph(KBChatState)
                 workflow.add_node("retrieve", retrieve_documents)
@@ -143,27 +150,41 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
 
                 inputs = {"messages": all_messages}
 
+                sources_info = None
                 async for event in kb_app.astream(inputs, stream_mode="values", config=config):
                     #todo:这里可以简化一下 参考https://docs.langchain.com/oss/python/langchain/agents  streaming
-                    if isinstance(event, dict) and "messages" in event:
-                        messages = event["messages"]
-                        if messages:
-                            latest_message = messages[-1]
-                            if isinstance(latest_message, AIMessage):
-                                content = latest_message.content
-                                logger.info(f"最终输出: {content[:100]}")
+                    if isinstance(event, dict):
+                        # 保存文档来源信息（从 state 中获取）
+                        if "sources" in event:
+                            sources_info = event.get("sources", [])
+                        
+                        # 处理消息响应
+                        if "messages" in event:
+                            messages = event["messages"]
+                            if messages:
+                                latest_message = messages[-1]
+                                if isinstance(latest_message, AIMessage):
+                                    content = latest_message.content
+                                    logger.info(f"最终输出: {content[:100]}")
 
-                                if not isinstance(content, str):
-                                    content = str(content)
+                                    if not isinstance(content, str):
+                                        content = str(content)
 
-                                ret = OpenAIChatOutput(
-                                    id=f"chat{uuid.uuid4()}",
-                                    object="chat.completion.chunk",
-                                    content=content,
-                                    role="assistant",
-                                    model=model,
-                                )
-                                yield ret.model_dump_json()
+                                    ret = OpenAIChatOutput(
+                                        id=f"chat{uuid.uuid4()}",
+                                        object="chat.completion.chunk",
+                                        content=content,
+                                        role="assistant",
+                                        model=model,
+                                    )
+                                    # 添加文档来源信息到响应中
+                                    ret_dict = ret.model_dump()
+                                    # 从当前 event 或之前保存的 sources_info 中获取文档来源
+                                    current_sources = event.get("sources", sources_info)
+                                    if current_sources:
+                                        ret_dict["sources"] = current_sources
+                                        sources_info = current_sources  # 更新保存的 sources_info
+                                    yield json.dumps(ret_dict, ensure_ascii=False)
 
         except Exception as e:
             logger.exception(e)
