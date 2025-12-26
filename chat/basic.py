@@ -57,6 +57,8 @@ def test_chroma(
 
 )-> BaseResponse:
     kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
+    if kb is None:
+        return BaseResponse(code=404, msg=f"未找到知识库 {knowledge_base_name}", data=[])
     # data = kb.list_docs(file_name="体检报告.pdf")
     data = kb.search_docs(query, top_k=3, score_threshold=score_threshold)
     return BaseResponse(code=200, msg="成功", data=data)
