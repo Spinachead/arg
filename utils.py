@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import time
 from abc import ABC, abstractmethod
 from typing import (
@@ -574,6 +575,14 @@ def get_log_file(log_path: str, sub_dir: str):
 def get_timestamp_ms():
     t = time.time()
     return int(round(t * 1000))
+
+class LoggerNameFilter(logging.Filter):
+    def filter(self, record):
+        # return record.name.startswith("{}_core") or record.name in "ERROR" or (
+        #         record.name.startswith("uvicorn.error")
+        #         and record.getMessage().startswith("Uvicorn running on")
+        # )
+        return True
 
 
 def set_httpx_config(
