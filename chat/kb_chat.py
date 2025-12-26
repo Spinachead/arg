@@ -22,7 +22,7 @@ logger = build_logger()
 async def kb_chat(query: str = Body(..., description="用户输入", example=["你好"]),
                   top_k: int = Body(3, description="匹配向量数字"),
                   score_threshold: float = Body(
-                      2.0,
+                      0.5,
                       description="知识库匹配相关度阈值，取值范围在0-1之间，SCORE越小，相关度越高，取到1相当于不筛选，建议设置在0.5左右",
                       ge=0,
                       le=2,
@@ -98,8 +98,6 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                     # 添加当前问题的模板
                     input_msg = History(role="user", content=prompt_template).to_msg_template(False)
                     chat_prompt = ChatPromptTemplate.from_messages(history_messages + [input_msg])
-                    logger.info(f"总共使用 {len(history_messages)} 条历史消息")
-
                     llm = ChatOllama(
                         model="qwen:1.8b",
                         temperature=0.7,
@@ -107,13 +105,15 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                     chain = chat_prompt | llm | StrOutputParser()
 
                     try:
+                        # 将来源信息添加到上下文中，让大模型知道文档来源
+                        sources_text = '\n'.join(state['sources']) if state['sources'] else '无参考文档'
+                        context_with_sources = f"{state['context']}\n\n参考文档:\n{sources_text}"
+                        
                         response = await chain.ainvoke({
-                            "context": state["context"],
+                            "context": context_with_sources,
                             "sources": state["sources"] if state["sources"] else "未知来源",
                             "question": state["question"],
                         })
-                        logger.info(f"模型响应长度: {len(response)} 字符")
-
                         if not response:
                             response = "无法生成答案，请稍后重试。"
                         return {"messages": [AIMessage(content=response)]}

@@ -278,13 +278,11 @@ def build_logger(log_file: str = "chatchat"):
 def get_default_embedding():
     available_embeddings = list(get_config_models(model_type="embed").keys())
     if Settings.model_settings.DEFAULT_EMBEDDING_MODEL in available_embeddings:
-        print(f"这是embedding:{Settings.model_settings.DEFAULT_EMBEDDING_MODEL}")
         return Settings.model_settings.DEFAULT_EMBEDDING_MODEL
     else:
         logger = build_logger()
         logger.warning(f"default embedding model {Settings.model_settings.DEFAULT_EMBEDDING_MODEL} is not found in "
                        f"available embeddings, using {available_embeddings[0]} instead")
-        print(f"这是embedding:{available_embeddings[0]}")
         return available_embeddings[0]
 
 

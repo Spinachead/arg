@@ -51,8 +51,12 @@ def test_chroma(
         ),
         file_name: str = Query(..., description="文件名称", examples=["test.txt"]),
         query: str = Query(..., description="查询内容"),
+        score_threshold: float = Query(
+            None, description="相似度阈值", examples=[0.5]
+        ),
+
 )-> BaseResponse:
     kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
     # data = kb.list_docs(file_name="体检报告.pdf")
-    data = kb.search_docs(query)
+    data = kb.search_docs(query, top_k=3, score_threshold=score_threshold)
     return BaseResponse(code=200, msg="成功", data=data)

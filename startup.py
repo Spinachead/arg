@@ -53,7 +53,7 @@ def run_api_server(
 
     logger.info(f"Api MODEL_PLATFORMS: {Settings.model_settings.MODEL_PLATFORMS}")
     set_httpx_config()
-    app = create_app(run_mode=run_mode)
+    app = create_app()
     _set_app_event(app, started_event)
 
     host = Settings.basic_settings.API_SERVER["host"]
@@ -250,4 +250,7 @@ def main(all, api, webui):
 
 
 if __name__ == "__main__":
+    # 如果没有传入任何命令行参数，默认等同于运行 `python startup.py -a`
+    if len(sys.argv) == 1:
+        sys.argv.append("-a")
     main()
