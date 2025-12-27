@@ -45,8 +45,6 @@ class VectorstoreRetrieverService(BaseRetrieverService):
         try:
             # 先检查是否能调用检索器
             docs = self.retriever.invoke(query)
-            logger.info(f"这是docs", docs)
-
             # 如果返回空列表，打印调试信息
             if not docs:
                 logger.warning(f"No documents found for query: {query}")

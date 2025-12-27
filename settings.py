@@ -463,6 +463,25 @@ class ApiModelSettings(BaseFileSettings):
                 "text-embedding-3-large",
             ],
         }),
+        PlatformConfig(**{
+            "platform_name": "dashscope",
+            "platform_type": "openai",  # 使用OpenAI兼容模式
+            "api_base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "api_key": "sk-1de289eb5e8a4610a51d45d8cd5f03a8",  # 阿里云DashScope API密钥
+            "api_concurrencies": 5,
+            "llm_models": [
+                "qwen-max",
+                "qwen-plus",
+                "qwen-turbo",
+                "qwen2-instruct",
+                "qwen2.5-72b-instruct",
+            ],
+            "embed_models": [
+                "text-embedding-v1",
+                "text-embedding-v2",
+                "text-embedding-v3",
+            ],
+        }),
     ]
     """模型平台配置"""
 

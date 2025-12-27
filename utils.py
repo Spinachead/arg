@@ -167,9 +167,11 @@ def get_ChatOpenAI(
                 openai_api_base="http://127.0.0.1/v1",
                 openai_api_key="EMPTY",
             )
-
+        print( params)
         model = ChatOpenAI(**params)
     except Exception as e:
+        logger = build_logger()
+        logger.error(f"创建ChatOpenAI实例时出错: {e}")
         model = None
     return model
 
