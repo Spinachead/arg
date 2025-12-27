@@ -41,14 +41,12 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                   ):
     async def knowledge_base_chat_iterator() -> AsyncIterable[str]:
         try:
-            unique_thread_id = f"thread_{uuid.uuid4()}"
             class KBChatState(TypedDict):
-                messages: Annotated[list[BaseMessage], add_messages]
                 context: str
                 sources: str
                 question: str
+            
             async def retrieve_documents(state: KBChatState) -> KBChatState:
-                last_message = state["messages"][-1].content
                 docs = search_docs(
                     query=query,
                     knowledge_base_name=kb_name,
@@ -63,15 +61,15 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 return {
                     "context": context,
                     "sources": source_documents,
-                    "question": last_message,
+                    "question": query,
                 }
 
             async def generate_response(state: KBChatState) -> KBChatState:
-                # 这里只做检查和准备工作，不生成响应
                 if not state["context"] or state["context"].strip() == "":
                     return {
-                        "messages": [AIMessage(content="ERROR_NO_CONTEXT")],
-                        "sources": state.get("sources", [])
+                        "context": "",
+                        "sources": state.get("sources", []),
+                        "question": state.get("question", ""),
                     }
                 return state
 
@@ -81,59 +79,26 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             workflow.add_edge(START, "retrieve")
             workflow.add_edge("retrieve", "generate")
             workflow.add_edge("generate", END)
-
             kb_app = workflow.compile()
-            config = {"configurable": {"thread_id": unique_thread_id}}
+            final_state = await kb_app.ainvoke({"context": "", "sources": "", "question": query})
 
-            # 由于使用唯一线程ID，所以历史消息为空
-            all_messages = [HumanMessage(content=query)]
-
-            # 运行到 generate 节点完成
-            final_state = await kb_app.ainvoke({"messages": all_messages}, config=config)
-
-            # ===== 现在流式生成 LLM 响应 =====
             prompt_template = get_prompt_template("rag", prompt_name)
-            all_messages = final_state["messages"]
-            if len(all_messages) > 4:
-                recent_messages = all_messages[-4:]
-            else:
-                recent_messages = all_messages
-
-            history_messages = []
-            for msg in recent_messages:
-                if isinstance(msg, HumanMessage):
-                    history_messages.append(History(role="user", content=msg.content).to_msg_template())
-                elif isinstance(msg, AIMessage):
-                    history_messages.append(History(role="assistant", content=msg.content).to_msg_template())
-
-            input_msg = History(role="user", content=prompt_template).to_msg_template(False)
-            chat_prompt = ChatPromptTemplate.from_messages(history_messages + [input_msg])
+            chat_prompt = ChatPromptTemplate.from_messages([
+                History(role="user", content=prompt_template).to_msg_template(False)
+            ])
 
             from utils import get_ChatOpenAI, get_config_models
-            # 获取配置的模型信息
             model_info = get_config_models(model_name=model, model_type="llm")
-            if model_info and model in model_info:
-                logger.info(f"model_info:{model_info}")
-                # 使用配置的平台模型
-                model_config = model_info[model]
-                llm = get_ChatOpenAI(
-                    model_name=model,
-                    temperature=0.7,
-                    timeout=30,
-                    openai_api_base=model_config["api_base_url"],
-                    openai_api_key=model_config["api_key"],
-                    max_tokens=1000,
-                )
-            else:
-                # 如果配置中没有找到模型，尝试使用init_chat_model
-                logger.warning(f"未找到模型 {model} 的配置，使用默认配置")
-                llm = init_chat_model(
-                    model,
-                    temperature=0.7,
-                    timeout=30
-                )
+            model_config = model_info[model]
+            llm = get_ChatOpenAI(
+                model_name=model,
+                temperature=0.7,
+                timeout=30,
+                openai_api_base=model_config["api_base_url"],
+                openai_api_key=model_config["api_key"],
+                max_tokens=1000,
+            )
 
-            # ===== 使用 astream 逐 token 输出 =====
             async for token in llm.astream(
                     chat_prompt.format(
                         context=final_state["context"],
@@ -151,8 +116,6 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 ret_dict = ret.model_dump()
                 ret_dict["sources"] = final_state.get("sources", [])
                 yield json.dumps(ret_dict, ensure_ascii=False)
-
-
         except Exception as e:
             logger.exception(e)
             yield json.dumps({"error": str(e)})
