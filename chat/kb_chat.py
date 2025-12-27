@@ -17,9 +17,14 @@ from knowledge_base.kb_service.base import KBServiceFactory
 from knowledge_base.model.kb_document_model import DocumentWithVSId
 from utils import build_logger, format_reference, get_prompt_template, History
 from langchain_ollama import OllamaLLM, ChatOllama
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 logger = build_logger()
-
+os.environ["LANGSMITH_TRACING"] = os.getenv("LANGSMITH_TRACING")
+os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGSMITH_API_KEY")  # 从 LangSmith 复制
+os.environ["LANGSMITH_PROJECT"] = os.getenv("LANGSMITH_PROJECT")
 
 async def kb_chat(query: str = Body(..., description="用户输入", example=["你好"]),
                   top_k: int = Body(3, description="匹配向量数字"),
