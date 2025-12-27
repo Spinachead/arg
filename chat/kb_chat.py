@@ -42,115 +42,114 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             import aiosqlite
             from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
             
-            # 为每个请求生成唯一的线程ID，避免线程冲突
             unique_thread_id = f"thread_{uuid.uuid4()}"
             
             async with aiosqlite.connect("checkpoints.sqlite") as conn:
                 checkpointer = AsyncSqliteSaver(conn)
 
-            class KBChatState(TypedDict):
-                messages: Annotated[list[BaseMessage], add_messages]
-                context: str
-                sources: str
-                question: str
+                class KBChatState(TypedDict):
+                    messages: Annotated[list[BaseMessage], add_messages]
+                    context: str
+                    sources: str
+                    question: str
 
-            async def retrieve_documents(state: KBChatState) -> KBChatState:
-                last_message = state["messages"][-1].content
-                docs = search_docs(
-                    query=query,
-                    knowledge_base_name=kb_name,
-                    top_k=top_k,
-                    score_threshold=score_threshold,
-                    file_name="",
-                    metadata={}
-                )
-                source_documents = format_reference(kb_name, docs, "")
-                context = "\n\n".join([doc.get("page_content", "") for doc in docs])
+                async def retrieve_documents(state: KBChatState) -> KBChatState:
+                    last_message = state["messages"][-1].content
+                    docs = search_docs(
+                        query=query,
+                        knowledge_base_name=kb_name,
+                        top_k=top_k,
+                        score_threshold=score_threshold,
+                        file_name="",
+                        metadata={}
+                    )
+                    source_documents = format_reference(kb_name, docs, "")
+                    context = "\n\n".join([doc.get("page_content", "") for doc in docs])
 
-                return {
-                    "context": context,
-                    "sources": source_documents,
-                    "question": last_message,
-                }
-
-            # ===== 改动：生成不返回完整响应，只返回检索结果 =====
-            async def generate_response(state: KBChatState) -> KBChatState:
-                # 这里只做检查和准备工作，不生成响应
-                if not state["context"] or state["context"].strip() == "":
                     return {
-                        "messages": [AIMessage(content="ERROR_NO_CONTEXT")],
-                        "sources": state.get("sources", [])
+                        "context": context,
+                        "sources": source_documents,
+                        "question": last_message,
                     }
-                return state
 
-            workflow = StateGraph(KBChatState)
-            workflow.add_node("retrieve", retrieve_documents)
-            workflow.add_node("generate", generate_response)
-            workflow.add_edge(START, "retrieve")
-            workflow.add_edge("retrieve", "generate")
-            workflow.add_edge("generate", END)
+                # ===== 改动：生成不返回完整响应，只返回检索结果 =====
+                async def generate_response(state: KBChatState) -> KBChatState:
+                    # 这里只做检查和准备工作，不生成响应
+                    if not state["context"] or state["context"].strip() == "":
+                        return {
+                            "messages": [AIMessage(content="ERROR_NO_CONTEXT")],
+                            "sources": state.get("sources", [])
+                        }
+                    return state
 
-            kb_app = workflow.compile(checkpointer=checkpointer)
-            config = {"configurable": {"thread_id": unique_thread_id}}
+                workflow = StateGraph(KBChatState)
+                workflow.add_node("retrieve", retrieve_documents)
+                workflow.add_node("generate", generate_response)
+                workflow.add_edge(START, "retrieve")
+                workflow.add_edge("retrieve", "generate")
+                workflow.add_edge("generate", END)
 
-            # 由于使用唯一线程ID，所以历史消息为空
-            all_messages = [HumanMessage(content=query)]
+                kb_app = workflow.compile(checkpointer=checkpointer)
+                config = {"configurable": {"thread_id": unique_thread_id}}
 
-            # 运行到 generate 节点完成
-            final_state = await kb_app.ainvoke({"messages": all_messages}, config=config)
+                # 由于使用唯一线程ID，所以历史消息为空
+                all_messages = [HumanMessage(content=query)]
 
-            if "ERROR_NO_CONTEXT" in final_state["messages"][-1].content:
-                yield json.dumps({
-                    "id": f"chat{uuid.uuid4()}",
-                    "object": "chat.completion.chunk",
-                    "content": "根据提供的资料无法回答您的问题。",
-                    "role": "assistant",
-                    "model": model,
-                    "sources": final_state.get("sources", [])
-                })
-                return
+                # 运行到 generate 节点完成
+                final_state = await kb_app.ainvoke({"messages": all_messages}, config=config)
 
-            # ===== 现在流式生成 LLM 响应 =====
-            prompt_template = get_prompt_template("rag", prompt_name)
-            all_messages = final_state["messages"]
-            if len(all_messages) > 4:
-                recent_messages = all_messages[-4:]
-            else:
-                recent_messages = all_messages
+                if "ERROR_NO_CONTEXT" in final_state["messages"][-1].content:
+                    yield json.dumps({
+                        "id": f"chat{uuid.uuid4()}",
+                        "object": "chat.completion.chunk",
+                        "content": "根据提供的资料无法回答您的问题。",
+                        "role": "assistant",
+                        "model": model,
+                        "sources": final_state.get("sources", [])
+                    })
+                    return
 
-            history_messages = []
-            for msg in recent_messages:
-                if isinstance(msg, HumanMessage):
-                    history_messages.append(History(role="user", content=msg.content).to_msg_template())
-                elif isinstance(msg, AIMessage):
-                    history_messages.append(History(role="assistant", content=msg.content).to_msg_template())
+                # ===== 现在流式生成 LLM 响应 =====
+                prompt_template = get_prompt_template("rag", prompt_name)
+                all_messages = final_state["messages"]
+                if len(all_messages) > 4:
+                    recent_messages = all_messages[-4:]
+                else:
+                    recent_messages = all_messages
 
-            input_msg = History(role="user", content=prompt_template).to_msg_template(False)
-            chat_prompt = ChatPromptTemplate.from_messages(history_messages + [input_msg])
-            
-            llm = ChatOllama(
-                model="qwen:1.8b",
-                temperature=0.7,
-            )
+                history_messages = []
+                for msg in recent_messages:
+                    if isinstance(msg, HumanMessage):
+                        history_messages.append(History(role="user", content=msg.content).to_msg_template())
+                    elif isinstance(msg, AIMessage):
+                        history_messages.append(History(role="assistant", content=msg.content).to_msg_template())
 
-            # ===== 使用 astream 逐 token 输出 =====
-            async for token in llm.astream(
-                chat_prompt.format(
-                    context=final_state["context"],
-                    sources=final_state["sources"] if final_state["sources"] else "未知来源",
-                    question=final_state["question"],
+                input_msg = History(role="user", content=prompt_template).to_msg_template(False)
+                chat_prompt = ChatPromptTemplate.from_messages(history_messages + [input_msg])
+                
+                llm = ChatOllama(
+                    model="qwen:1.8b",
+                    temperature=0.7,
                 )
-            ):
-                ret = OpenAIChatOutput(
-                    id=f"chat{uuid.uuid4()}",
-                    object="chat.completion.chunk",
-                    content=token,  # 单个 token
-                    role="assistant",
-                    model=model,
-                )
-                ret_dict = ret.model_dump()
-                ret_dict["sources"] = final_state.get("sources", [])
-                yield json.dumps(ret_dict, ensure_ascii=False)
+
+                # ===== 使用 astream 逐 token 输出 =====
+                async for token in llm.astream(
+                    chat_prompt.format(
+                        context=final_state["context"],
+                        sources=final_state["sources"] if final_state["sources"] else "未知来源",
+                        question=final_state["question"],
+                    )
+                ):
+                    ret = OpenAIChatOutput(
+                        id=f"chat{uuid.uuid4()}",
+                        object="chat.completion.chunk",
+                        content=token.content,  # 单个 token
+                        role="assistant",
+                        model=model,
+                    )
+                    ret_dict = ret.model_dump()
+                    ret_dict["sources"] = final_state.get("sources", [])
+                    yield json.dumps(ret_dict, ensure_ascii=False)
         except Exception as e:
             logger.exception(e)
             yield json.dumps({"error": str(e)})
