@@ -19,181 +19,6 @@ from langchain_ollama import OllamaLLM, ChatOllama
 logger = build_logger()
 
 
-async def kb_chat2(query: str = Body(..., description="用户输入", example=["你好"]),
-                  top_k: int = Body(3, description="匹配向量数字"),
-                  score_threshold: float = Body(
-                      0.5,
-                      description="知识库匹配相关度阈值，取值范围在0-1之间，SCORE越小，相关度越高，取到1相当于不筛选，建议设置在0.5左右",
-                      ge=0,
-                      le=2,
-                  ),
-                  kb_name: str = Body("",
-                                      description="mode=local_kb时为知识库名称；temp_kb时为临时知识库ID，search_engine时为搜索引擎名称",
-                                      examples=["samples"]),
-                  prompt_name: str = Body(
-                      "default",
-                      description="使用的prompt模板名称(在prompt_settings.yaml中配置)"
-                  ),
-                  model: str = Body("qwen:1.8b", description="LLM 模型名称。"),
-
-                  ):
-    async def knowledge_base_chat_iterator() -> AsyncIterable[str]:
-        try:
-            import aiosqlite
-            from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-
-            async with aiosqlite.connect("checkpoints.sqlite") as conn:
-                checkpointer = AsyncSqliteSaver(conn)
-                # checkpointer.setup()
-
-                class KBChatState(TypedDict):
-                    messages: Annotated[list[BaseMessage], add_messages]
-                    context: str
-                    sources: str
-                    question: str
-
-                async def retrieve_documents(state: KBChatState) -> KBChatState:
-                    last_message = state["messages"][-1].content
-                    docs = search_docs(
-                        query=query,
-                        knowledge_base_name=kb_name,
-                        top_k=top_k,
-                        score_threshold=score_threshold,
-                        file_name="",
-                        metadata={}
-                    )
-                    logger.info(f"这是docs{docs}")
-                    source_documents = format_reference(kb_name, docs, "")
-                    context = "\n\n".join([doc.get("page_content", "") for doc in docs])
-
-                    return {
-                        "context": context,
-                        "sources": source_documents,
-                        "question": last_message,
-                    }
-
-                async def generate_response(state: KBChatState) -> KBChatState:
-                    if not state["context"] or state["context"].strip() == "":
-                        response = "根据提供的资料无法回答您的问题。知识库中不包含相关信息。"
-                        return {
-                            "messages": [AIMessage(content=response)],
-                            "sources": state.get("sources", [])
-                        }
-
-                    prompt_template = get_prompt_template("rag", prompt_name)
-
-                    # 限制历史消息数量，只保留最近的4条消息（2轮对话）
-                    all_messages = state["messages"]
-                    if len(all_messages) > 4:
-                        recent_messages = all_messages[-4:]
-                        logger.info(f"历史消息过多，仅保留最近4条消息")
-                    else:
-                        recent_messages = all_messages
-
-                    # 构建历史消息列表，正确处理各种消息类型
-                    history_messages = []
-                    for msg in recent_messages:
-                        if isinstance(msg, HumanMessage):
-                            history_messages.append(History(role="user", content=msg.content).to_msg_template())
-                        elif isinstance(msg, AIMessage):
-                            history_messages.append(History(role="assistant", content=msg.content).to_msg_template())
-
-                    # 添加当前问题的模板
-                    input_msg = History(role="user", content=prompt_template).to_msg_template(False)
-                    chat_prompt = ChatPromptTemplate.from_messages(history_messages + [input_msg])
-                    llm = ChatOllama(
-                        model="qwen:1.8b",
-                        temperature=0.7,
-                    )
-                    chain = chat_prompt | llm | StrOutputParser()
-
-                    try:
-                        
-                        response = await chain.ainvoke({
-                            "context": state["context"],
-                            "sources": state["sources"] if state["sources"] else "未知来源",
-                            "question": state["question"],
-                        })
-                        if not response:
-                            response = "无法生成答案，请稍后重试。"
-                        # 保留 sources 字段在 state 中，以便在响应中返回
-                        return {
-                            "messages": [AIMessage(content=response)],
-                            "sources": state.get("sources", [])
-                        }
-
-                    except Exception as e:
-                        logger.error(f"LLM调用失败: {str(e)}")
-                        return {
-                            "messages": [AIMessage(content=f"处理过程中出错: {str(e)}")],
-                            "sources": state.get("sources", [])
-                        }
-
-                workflow = StateGraph(KBChatState)
-                workflow.add_node("retrieve", retrieve_documents)
-                workflow.add_node("generate", generate_response)
-                workflow.add_edge(START, "retrieve")
-                workflow.add_edge("retrieve", "generate")
-                workflow.add_edge("generate", END)
-
-                kb_app = workflow.compile(checkpointer=checkpointer)
-
-                config = {"configurable": {"thread_id": "default_thread"}}
-
-                # 关键：从数据库读取历史消息
-                state_snapshot = await checkpointer.aget(config)
-                # logger.info(f"stage_snapshot:{state_snapshot.get('channel_values', {})}")
-                history_messages = state_snapshot.get('channel_values', {}).get('messages',
-                                                                                []) if state_snapshot else []
-                # 新消息追加到历史后面
-                all_messages = history_messages + [HumanMessage(content=query)]
-
-                inputs = {"messages": all_messages}
-
-                sources_info = None
-                async for event in kb_app.astream(inputs, stream_mode="values", config=config):
-                    #todo:这里可以简化一下 参考https://docs.langchain.com/oss/python/langchain/agents  streaming
-                    if isinstance(event, dict):
-                        # 保存文档来源信息（从 state 中获取）
-                        if "sources" in event:
-                            sources_info = event.get("sources", [])
-                        
-                        # 处理消息响应
-                        if "messages" in event:
-                            messages = event["messages"]
-                            if messages:
-                                latest_message = messages[-1]
-                                if isinstance(latest_message, AIMessage):
-                                    content = latest_message.content
-                                    logger.info(f"最终输出: {content[:100]}")
-
-                                    if not isinstance(content, str):
-                                        content = str(content)
-
-                                    ret = OpenAIChatOutput(
-                                        id=f"chat{uuid.uuid4()}",
-                                        object="chat.completion.chunk",
-                                        content=content,
-                                        role="assistant",
-                                        model=model,
-                                    )
-                                    # 添加文档来源信息到响应中
-                                    ret_dict = ret.model_dump()
-                                    # 从当前 event 或之前保存的 sources_info 中获取文档来源
-                                    current_sources = event.get("sources", sources_info)
-                                    if current_sources:
-                                        ret_dict["sources"] = current_sources
-                                        sources_info = current_sources  # 更新保存的 sources_info
-                                    yield json.dumps(ret_dict, ensure_ascii=False)
-
-        except Exception as e:
-            logger.exception(e)
-            yield json.dumps({"error": str(e)})
-            return
-    return EventSourceResponse(knowledge_base_chat_iterator())
-
-
-
 async def kb_chat(query: str = Body(..., description="用户输入", example=["你好"]),
                   top_k: int = Body(3, description="匹配向量数字"),
                   score_threshold: float = Body(
@@ -216,6 +41,10 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
         try:
             import aiosqlite
             from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+            
+            # 为每个请求生成唯一的线程ID，避免线程冲突
+            unique_thread_id = f"thread_{uuid.uuid4()}"
+            
             async with aiosqlite.connect("checkpoints.sqlite") as conn:
                 checkpointer = AsyncSqliteSaver(conn)
 
@@ -262,13 +91,11 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             workflow.add_edge("generate", END)
 
             kb_app = workflow.compile(checkpointer=checkpointer)
-            config = {"configurable": {"thread_id": "default_thread"}}
+            config = {"configurable": {"thread_id": unique_thread_id}}
 
-            state_snapshot = await checkpointer.aget(config)
-            history_messages = state_snapshot.get('channel_values', {}).get('messages', []) if state_snapshot else []
-            all_messages = history_messages + [HumanMessage(content=query)]
+            # 由于使用唯一线程ID，所以历史消息为空
+            all_messages = [HumanMessage(content=query)]
 
-            # ===== 关键：先运行检索，然后逐 token 流式生成 =====
             # 运行到 generate 节点完成
             final_state = await kb_app.ainvoke({"messages": all_messages}, config=config)
 
