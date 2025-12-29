@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from db.session import SessionLocal
 from db.models.user_model import UserCreate, UserLogin
 from db.repository.user_repository import get_user_by_email, create_user, verify_password, hash_password
-from utils import generate_verification_code, send_verification_email, generate_captcha, verification_code_cache, captcha_cache
+from captcha import generate_verification_code, send_verification_email, generate_captcha, verification_code_cache, captcha_cache
 from utils import BaseResponse
 
 
