@@ -965,6 +965,16 @@ class PromptSettings(BaseFileSettings):
     """后处理模板"""
 
 
+class EmailSettings(BaseFileSettings):
+    """邮箱配置项"""
+    model_config = SettingsConfigDict(yaml_file=CHATCHAT_ROOT / "email_settings.yaml")
+
+    SMTP_SERVER: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    EMAIL_USER: str = "your_email@gmail.com"
+    EMAIL_PASSWORD: str = "your_app_password"
+
+
 class SettingsContainer:
     CHATCHAT_ROOT = CHATCHAT_ROOT
 
@@ -973,6 +983,7 @@ class SettingsContainer:
     model_settings: ApiModelSettings = settings_property(ApiModelSettings())
     tool_settings: ToolSettings = settings_property(ToolSettings())
     prompt_settings: PromptSettings = settings_property(PromptSettings())
+    email_settings: EmailSettings = settings_property(EmailSettings())
 
     def createl_all_templates(self):
         self.basic_settings.create_template_file(write_file=True)

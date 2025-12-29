@@ -590,6 +590,18 @@ def set_httpx_config(
         proxy: Union[str, Dict] = None,
         unused_proxies: List[str] = [],
 ):
+
+
+def import_captcha():
+    """
+    动态导入验证码模块，避免PIL依赖问题
+    """
+    try:
+        from .captcha import generate_captcha
+        return generate_captcha
+    except ImportError:
+        def generate_captcha():
+            return "AAAA", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAUCAYAAAB7wJklAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEwSURBVFhH7ZVBDsAgCEXH0v1Pb9d92JXQkFpQ0Jl2896k9h8CgUAgEAj2cLjN23ZVX5cP9t0f8wN7pY8JBB5oLdZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZgDfZ
     """
     设置httpx默认timeout。httpx默认timeout是5秒，在请求LLM回答时不够用。
     将本项目相关服务加入无代理列表，避免fastchat的服务器请求错误。(windows下无效)
