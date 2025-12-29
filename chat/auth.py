@@ -18,22 +18,14 @@ def get_db():
         db.close()
 
 
-async def get_captcha():
+async def get_captcha()->BaseResponse:
     """获取图形验证码"""
     text, image_base64 = generate_captcha()
     # 生成一个唯一的key用于存储验证码
     import uuid
     captcha_key = f"captcha_{uuid.uuid4().hex}"
     captcha_cache.set(captcha_key, text, expire_in_seconds=300)  # 5分钟过期
-    
-    return {
-        "status": "Success",
-        "message": "验证码获取成功",
-        "data": {
-            "captcha_key": captcha_key,
-            "captcha_image": f"data:image/png;base64,{image_base64}"
-        }
-    }
+    return BaseResponse(code=200, msg="成功", data = {"captcha_key": captcha_key, "captcha_image": f"data:image/png;base64,{image_base64}"})
 
 
 async def verify_captcha(captcha_key: str = Body(...), captcha_code: str = Body(...)):

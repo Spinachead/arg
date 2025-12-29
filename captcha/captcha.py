@@ -39,21 +39,22 @@ def create_captcha_image(text):
         font = ImageFont.truetype("arial.ttf", 24)
     except IOError:
         font = ImageFont.load_default()
-        # 计算文本位置，使其居中
-        bbox = draw.textbbox((0, 0), text, font=font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
-        x = (width - text_width) // 2
-        y = (height - text_height) // 2
-        # 绘制文本
-        draw.text((x, y), text, fill=(0, 0, 0), font=font)
+    
+    # 计算文本位置，使其居中
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+    x = (width - text_width) // 2
+    y = (height - text_height) // 2
+    # 绘制文本
+    draw.text((x, y), text, fill=(0, 0, 0), font=font)
 
     # 将图片转换为base64编码
     buffer = BytesIO()
     image.save(buffer, format='PNG')
     img_str = base64.b64encode(buffer.getvalue()).decode()
 
-    return text, img_str
+    return img_str
 
 
 def generate_captcha():
