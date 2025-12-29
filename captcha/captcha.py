@@ -25,7 +25,8 @@ def create_captcha_image(text):
         y1 = random.randint(0, height)
         x2 = random.randint(0, width)
         y2 = random.randint(0, height)
-        draw.line([(x1, y1), (x2, y2)], fill=(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)), width=1)
+        draw.line([(x1, y1), (x2, y2)], fill=(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)),
+                  width=1)
 
     # 生成随机干扰点
     for _ in range(30):
@@ -38,14 +39,14 @@ def create_captcha_image(text):
         font = ImageFont.truetype("arial.ttf", 24)
     except IOError:
         font = ImageFont.load_default()
-
-    # 计算文本位置，使其居中
-    text_width, text_height = draw.textsize(text, font=font)
-    x = (width - text_width) // 2
-    y = (height - text_height) // 2
-
-    # 绘制文本
-    draw.text((x, y), text, fill=(0, 0, 0), font=font)
+        # 计算文本位置，使其居中
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        x = (width - text_width) // 2
+        y = (height - text_height) // 2
+        # 绘制文本
+        draw.text((x, y), text, fill=(0, 0, 0), font=font)
 
     # 将图片转换为base64编码
     buffer = BytesIO()
