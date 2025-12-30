@@ -2,7 +2,7 @@ import os
 import re
 from typing import Any, Coroutine
 
-from fastapi import FastAPI, Request, Body, Query
+from fastapi import FastAPI, Request, Body, Query, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from db.session import SessionLocal
@@ -10,6 +10,9 @@ from db.models.user_model import UserCreate, UserLogin
 from db.repository.user_repository import get_user_by_email, create_user, verify_password, hash_password
 from captcha import generate_verification_code, send_verification_email, generate_captcha, verification_code_cache, captcha_cache
 from utils import BaseResponse
+from .token_manager import TokenManager, TokenData
+import datetime
+from .auth_middleware import get_current_active_user
 
 
 def get_db():
@@ -115,11 +118,26 @@ async def register(
         
         # 注册成功后删除验证码
         verification_code_cache.delete(email)
-        return BaseResponse(code=200, msg="注册成功", data={'user_id': user.id, 'email': user.email})
+        
+        # 生成访问令牌
+        access_token_data = {
+            "user_id": user.id,
+            "email": user.email
+        }
+        access_token = TokenManager.create_access_token(data=access_token_data)
+        refresh_token = TokenManager.create_refresh_token(data=access_token_data)
+        
+        return BaseResponse(code=200, msg="注册成功", 
+                            data={
+                                'user_id': user.id, 
+                                'email': user.email,
+                                'username': user.username,
+                                'access_token': access_token,
+                                'refresh_token': refresh_token,
+                                'token_type': 'bearer'
+                            })
     finally:
         db.close()
-        return BaseResponse(code=200, msg="注册成功", data={'user_id': user.id, 'email': user.email})
-
 
 
 async def login(
@@ -147,9 +165,54 @@ async def login(
         if not verify_password(password, user.hashed_password):
             return BaseResponse(code=400, msg="密码错误", data=None)
 
-        # 登录成功，可以在这里生成token（这里简化处理）
+        # 登录成功，生成token
+        access_token_data = {
+            "user_id": user.id,
+            "email": user.email
+        }
+        access_token = TokenManager.create_access_token(data=access_token_data)
+        refresh_token = TokenManager.create_refresh_token(data=access_token_data)
+        
         return BaseResponse(code=200, msg="登录成功",
-                            data={'user_id': user.id, 'email': user.email, 'username': user.username})
+                            data={
+                                'user_id': user.id, 
+                                'email': user.email, 
+                                'username': user.username,
+                                'access_token': access_token,
+                                'refresh_token': refresh_token,
+                                'token_type': 'bearer'
+                            })
     finally:
         db.close()
-        return BaseResponse(code=200, msg="登录成功",data={'user_id': user.id, 'email': user.email, 'username': user.username})
+
+
+async def refresh_token(
+        refresh_token: str = Body(..., embed=True)
+)-> BaseResponse:
+    """使用刷新令牌获取新的访问令牌"""
+    token_data = TokenManager.verify_refresh_token(refresh_token)
+    
+    if token_data is None:
+        return BaseResponse(code=400, msg="无效的刷新令牌", data=None)
+    
+    # 生成新的访问令牌
+    new_access_token_data = {
+        "user_id": token_data.user_id,
+        "email": token_data.email
+    }
+    new_access_token = TokenManager.create_access_token(data=new_access_token_data)
+    
+    return BaseResponse(code=200, msg="令牌刷新成功",
+                        data={
+                            'access_token': new_access_token,
+                            'token_type': 'bearer'
+                        })
+
+
+async def get_user_info(current_user: TokenData = Depends(get_current_active_user)):
+    """获取当前用户信息 - 需要认证的端点示例"""
+    return BaseResponse(code=200, msg="获取用户信息成功", 
+                        data={
+                            'user_id': current_user.user_id,
+                            'email': current_user.email
+                        })
