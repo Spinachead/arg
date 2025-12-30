@@ -45,7 +45,7 @@ async def verify_captcha(captcha_key: str = Body(...), captcha_code: str = Body(
     return  BaseResponse(code=200, msg="验证码验证成功", data=None)
 
 
-async def send_email_verification(email: str = Body(...))->BaseResponse:
+async def send_email_verification(email: str = Body(..., embed=True))->BaseResponse:
     """发送邮箱验证码"""
     # 验证邮箱格式
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
@@ -118,39 +118,38 @@ async def register(
         return BaseResponse(code=200, msg="注册成功", data={'user_id': user.id, 'email': user.email})
     finally:
         db.close()
+        return BaseResponse(code=200, msg="注册成功", data={'user_id': user.id, 'email': user.email})
 
 
-async def login(req: Request)-> BaseResponse | None:
+
+async def login(
+        email: str = Body(...),
+        password: str = Body(...)
+)-> BaseResponse:
     """用户登录"""
-    try:
-        body = await req.json()
-        email = body.get("email")
-        password = body.get("password")
-        
-        if not email or not password:
-            return BaseResponse(code=400, msg="邮箱和密码不能为空", data=None)
+    if not email or not password:
+        return BaseResponse(code=400, msg="邮箱和密码不能为空", data=None)
 
-        
-        # 验证邮箱格式
-        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        if not re.match(pattern, email):
-            return BaseResponse(code=400, msg="邮箱格式不正确", data=None)
-        
-        db = next(get_db())
-        try:
-            user = get_user_by_email(db, email)
-            if not user:
-                return BaseResponse(code=400, msg="用户不存在", data=None)
-            
-            if not user.is_active:
-                return BaseResponse(code=400, msg="账户已被禁用", data=None)
-            
-            if not verify_password(password, user.hashed_password):
-                return BaseResponse(code=400, msg="密码错误", data=None)
-            
-            # 登录成功，可以在这里生成token（这里简化处理）
-            return BaseResponse(code=200, msg="登录成功", data={'user_id': user.id, 'email': user.email, 'username': user.username})
-        finally:
-            db.close()
-    except Exception as e:
-        return BaseResponse(code=200, msg="fail", data=None)
+    # 验证邮箱格式
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(pattern, email):
+        return BaseResponse(code=400, msg="邮箱格式不正确", data=None)
+
+    db = next(get_db())
+    try:
+        user = get_user_by_email(db, email)
+        if not user:
+            return BaseResponse(code=400, msg="用户不存在", data=None)
+
+        if not user.is_active:
+            return BaseResponse(code=400, msg="账户已被禁用", data=None)
+
+        if not verify_password(password, user.hashed_password):
+            return BaseResponse(code=400, msg="密码错误", data=None)
+
+        # 登录成功，可以在这里生成token（这里简化处理）
+        return BaseResponse(code=200, msg="登录成功",
+                            data={'user_id': user.id, 'email': user.email, 'username': user.username})
+    finally:
+        db.close()
+        return BaseResponse(code=200, msg="登录成功",data={'user_id': user.id, 'email': user.email, 'username': user.username})
