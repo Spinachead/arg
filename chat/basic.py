@@ -6,26 +6,17 @@ from knowledge_base.kb_service.base import KBServiceFactory
 from utils import BaseResponse
 
 
-async def config():
-    return {"status": 'Success', "data": {'apiModel': 'Mock-API', 'socksProxy': 'false', 'httpsProxy': 'false'},
-            "message": "Success"}
+async def config()->BaseResponse:
+    return BaseResponse(code=200, msg="成功", data= {'apiModel': 'Mock-API', 'socksProxy': False, 'httpsProxy': False})
 
-
-async def session(req: Request):
+async def session(req: Request)->BaseResponse:
     try:
         auth_secret_key = os.getenv("AUTH_SECRET_KEY")
         has_auth = auth_secret_key and len(auth_secret_key) > 0
-        # 注意：currentModel 函数在原 JS 代码中未定义，这里保持简单实现
-        return {
-            "status": 'Success',
-            "message": "",
-            "data": {
-                "auth": has_auth,
-                "model": "default"
-            }
-        }
+        return BaseResponse(code=200, msg="成功", data={'auth': has_auth, 'model': 'default'})
+
     except Exception as e:
-        return {"status": 'Fail', "message": str(e), "data": None}
+        return BaseResponse(code=200, msg="失败", data=None)
 
 
 async def verify(req: Request):
@@ -40,9 +31,9 @@ async def verify(req: Request):
         if auth_secret_key != token:
             raise ValueError('密钥无效 | Secret key is invalid')
 
-        return {"status": 'Success', "message": "Verify successfully", "data": None}
+        return BaseResponse(code=200, msg="Verify successfully", data=None)
     except Exception as e:
-        return {"status": 'Fail', "message": str(e), "data": None}
+        return BaseResponse(code=200, msg="fail", data=None)
 
 
 def test_chroma(
