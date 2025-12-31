@@ -2,7 +2,7 @@ import json
 import uuid
 from typing import AsyncIterable, TypedDict, Annotated, List, Dict
 
-from fastapi import Body, UploadFile, File, Form, Depends
+from fastapi import Body, UploadFile, File, Form
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
 from langchain_core.output_parsers import StrOutputParser
@@ -19,9 +19,6 @@ from utils import build_logger, format_reference, get_prompt_template, History
 from langchain_ollama import OllamaLLM, ChatOllama
 import os
 from dotenv import load_dotenv
-from chat.auth_middleware import get_current_active_user
-from chat.token_manager import TokenData
-
 load_dotenv()
 
 logger = build_logger()
@@ -45,7 +42,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                       description="使用的prompt模板名称(在prompt_settings.yaml中配置)"
                   ),
                   model: str = Body("qwen-max", description="LLM 模型名称。"),
-                  current_user: TokenData = Depends(get_current_active_user)
+
                   ):
     async def knowledge_base_chat_iterator() -> AsyncIterable[str]:
         try:
@@ -148,7 +145,6 @@ def search_docs(
         ),
         file_name: str = Body("", description="文件名称，支持 sql 通配符"),
         metadata: dict = Body({}, description="根据 metadata 进行过滤，仅支持一级键"),
-        current_user: TokenData = Depends(get_current_active_user)
 ) -> List[Dict]:
     kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
     data = []
@@ -180,7 +176,36 @@ class ChatProcessRequest(BaseModel):
     temperature: Optional[float] = 0.7
     top_p: Optional[float] = 0.9
 
-async def chat_process(request: ChatProcessRequest, current_user: TokenData = Depends(get_current_active_user)):
+async def chat_process(request: ChatProcessRequest):
+    if not request.prompt:
+        return {"status": "Error", "data": None, "message": "Question input is required"}
+
+    try:
+        # 获取会话ID，用于记忆功能
+        session_id = request.options.get("sessionId", "default_session") if request.options else "default_session"
+        config = {"configurable": {"thread_id": session_id}}
+
+        # 使用带记忆功能的 RAG 链处理请求
+        input_data = {
+            "messages": [HumanMessage(content=request.prompt)]
+        }
+        response = rag_chain.invoke(input_data, config=config)
+
+        return {
+            "status": "Success",
+            "data": {
+                "id": "chat-1",
+                "role": "assistant",
+                "text": response["messages"][-1].content,
+                "dateTime": "1111111"
+            },
+            "message": "Success"
+        }
+    except Exception as e:
+        return {"status": "Error", "data": None, "message": str(e)}
+
+
+async def chat_process(request: ChatProcessRequest):
     if not request.prompt:
         return {"status": "Error", "data": None, "message": "Question input is required"}
 

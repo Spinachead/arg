@@ -8,78 +8,10 @@ from api_server.kb_routes import kb_router
 from settings import Settings
 from starlette.responses import RedirectResponse
 from api_server.basic_routes import basicRouter
-from chat.auth_middleware import get_current_active_user
-from fastapi import Depends, HTTPException, status
-from starlette.requests import Request
-from starlette.responses import JSONResponse
-
-
-class AuthMiddleware:
-    def __init__(self, app):
-        self.app = app
-
-    async def __call__(self, scope, receive, send):
-        if scope["type"] != "http":
-            return await self.app(scope, receive, send)
-
-        request = Request(scope)
-        path = request.url.path
-
-        # 定义不需要认证的路径
-        public_paths = [
-            "/",
-            "/docs",
-            "/redoc",
-            "/openapi.json",
-            # 认证相关路径
-            "/api/get_captcha",
-            "/api/verify_captcha", 
-            "/api/send_email_verification",
-            "/api/register",
-            "/api/login",
-            "/api/refresh_token",
-            "/api/config",
-            "/api/session",
-            "/api/verify",
-            "/api/test_chroma",
-        ]
-
-        # 检查路径是否需要认证
-        requires_auth = not any(path.startswith(p) for p in public_paths)
-
-        if requires_auth:
-            # 如果路径需要认证，验证token
-            auth_header = request.headers.get("Authorization")
-            if not auth_header or not auth_header.startswith("Bearer "):
-                response = JSONResponse(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    content={"code": 401, "msg": "需要认证", "data": None}
-                )
-                await response(scope, receive, send)
-                return
-
-            token = auth_header[7:]  # 移除 "Bearer " 前缀
-            from chat.token_manager import TokenManager
-            token_data = TokenManager.verify_token(token)
-            
-            if token_data is None:
-                response = JSONResponse(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    content={"code": 401, "msg": "无效的认证令牌", "data": None}
-                )
-                await response(scope, receive, send)
-                return
-
-        # 继续处理请求
-        return await self.app(scope, receive, send)
 
 
 def create_app():
     app = FastAPI(title="api server")
-    
-    # 添加认证中间件
-    app.add_middleware(AuthMiddleware)
-    
     # MakeFastAPIOffline(app)
     # Add CORS middleware to allow all origins
     # 在config.py中设置OPEN_DOMAIN=True，允许跨域
