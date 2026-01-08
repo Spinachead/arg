@@ -19,6 +19,7 @@ from utils import build_logger, format_reference, get_prompt_template, History
 from langchain_ollama import OllamaLLM, ChatOllama
 import os
 from dotenv import load_dotenv
+from .rag import setup_rag_tools
 load_dotenv()
 
 logger = build_logger()
@@ -42,7 +43,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                       description="使用的prompt模板名称(在prompt_settings.yaml中配置)"
                   ),
                   model: str = Body("qwen-max", description="LLM 模型名称。"),
-
+                  temperature: float = Body(0.5, description="温度"),
                   ):
     async def knowledge_base_chat_iterator() -> AsyncIterable[str]:
         try:
@@ -97,12 +98,13 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
             model_config = model_info[model]
             llm = get_ChatOpenAI(
                 model_name=model,
-                temperature=0.7,
+                temperature=temperature,
                 timeout=30,
                 openai_api_base=model_config["api_base_url"],
                 openai_api_key=model_config["api_key"],
                 max_tokens=1000,
             )
+            
 
             async for token in llm.astream(
                     chat_prompt.format(
@@ -204,31 +206,74 @@ async def chat_process(request: ChatProcessRequest):
     except Exception as e:
         return {"status": "Error", "data": None, "message": str(e)}
 
+async def agent_chat(query: str = Body(..., description="用户输入", example=["你好"]),
+                  top_k: int = Body(3, description="匹配向量数字"),
+                  score_threshold: float = Body(
+                      0.5,
+                      description="知识库匹配相关度阈值，取值范围在0-1之间，SCORE越小，相关度越高，取到1相当于不筛选，建议设置在0.5左右",
+                      ge=0,
+                      le=2,
+                  ),
+                  kb_name: str = Body("",
+                                      description="mode=local_kb时为知识库名称；temp_kb时为临时知识库ID，search_engine时为搜索引擎名称",
+                                      examples=["samples"]),
+                  prompt_name: str = Body(
+                      "default",
+                      description="使用的prompt模板名称(在prompt_settings.yaml中配置)"
+                  ),
+                  model: str = Body("qwen-max", description="LLM 模型名称。"),
+                  temperature: float = Body(0.5, description="温度"),
+                  ):
+        async def knowledge_base_chat_iterator() -> AsyncIterable[str]:
+            try:
+                from utils import get_ChatOpenAI, get_config_models
+                from langgraph.prebuilt import create_react_agent
+                from langgraph.checkpoint.memory import InMemorySaver
+                from langchain_core.messages import HumanMessage
 
-async def chat_process(request: ChatProcessRequest):
-    if not request.prompt:
-        return {"status": "Error", "data": None, "message": "Question input is required"}
+                model_info = get_config_models(model_name=model, model_type="llm")
+                model_config = model_info[model]
+                llm = get_ChatOpenAI(
+                model_name=model,
+                temperature=temperature,
+                timeout=30,
+                openai_api_base=model_config["api_base_url"],
+                openai_api_key=model_config["api_key"],
+                max_tokens=1000,
+                )
+                rag_tools = await setup_rag_tools()
 
-    try:
-        # 获取会话ID，用于记忆功能
-        session_id = request.options.get("sessionId", "default_session") if request.options else "default_session"
-        config = {"configurable": {"thread_id": session_id}}
+                # 使用 LangGraph 创建异步代理
+                checkpointer = InMemorySaver()
+                agent = create_react_agent(
+                    model=llm,
+                    tools=rag_tools,
+                    checkpointer=checkpointer,
+                )
 
-        # 使用带记忆功能的 RAG 链处理请求
-        input_data = {
-            "messages": [HumanMessage(content=request.prompt)]
-        }
-        response = rag_chain.invoke(input_data, config=config)
+                # 创建配置
+                config = {"configurable": {"thread_id": f"agent_chat_{uuid.uuid4()}"}}
 
-        return {
-            "status": "Success",
-            "data": {
-                "id": "chat-1",
-                "role": "assistant",
-                "text": response["messages"][-1].content,
-                "dateTime": "1111111"
-            },
-            "message": "Success"
-        }
-    except Exception as e:
-        return {"status": "Error", "data": None, "message": str(e)}
+                # 使用异步流式处理
+                async for event in agent.astream(
+                    {"messages": [HumanMessage(content=query)]},
+                    config=config,
+                    stream_mode="messages"
+                ):
+                    # 检查是否是 AI 消息
+                    if hasattr(event, 'content') and event.content:
+                        ret = OpenAIChatOutput(
+                            id=f"chat{uuid.uuid4()}",
+                            object="chat.completion.chunk",
+                            content=event.content,
+                            role="assistant",
+                            model=model,
+                        )
+                        ret_dict = ret.model_dump()
+                        yield json.dumps(ret_dict, ensure_ascii=False)
+
+            except Exception as e:
+                logger.exception(e)
+                yield json.dumps({"error": str(e)})
+                return
+        return EventSourceResponse(knowledge_base_chat_iterator())

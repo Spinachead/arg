@@ -18,8 +18,8 @@ def build_or_update_vectorstore(doc_dir: str, persist_dir: str = "./chroma_db"):
 
     # 3. 初始化嵌入模型
     embedding = OllamaEmbeddings(
-        model_name= get_default_embedding(),
-        model_kwargs={"device": "cpu"}
+        model=get_default_embedding(),
+        base_url="http://localhost:11434"
     )
 
     # 4. 创建或更新向量库
