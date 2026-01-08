@@ -241,7 +241,7 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
                 openai_api_key=model_config["api_key"],
                 max_tokens=1000,
                 )
-                rag_tools = await setup_rag_tools()
+                rag_tools = setup_rag_tools()
 
                 # 使用 LangGraph 创建异步代理
                 checkpointer = InMemorySaver()

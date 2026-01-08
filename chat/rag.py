@@ -8,7 +8,7 @@ from langchain_core.tools import create_retriever_tool
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams
 
-async def setup_rag_tools():
+def setup_rag_tools():
     try:
         # Initialize Embeddings using OpenAI
         embedding_model = OpenAIEmbeddings(model="text-embedding-3-small")
@@ -23,7 +23,7 @@ async def setup_rag_tools():
                 )
             ),
         )
-        docs = await loader.aload()
+        docs = loader.load()
 
         # Split
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
@@ -46,7 +46,7 @@ async def setup_rag_tools():
         )
 
         # Add documents
-        await vectorstore.aadd_documents(splits)
+        vectorstore.add_documents(splits)
 
         retriever = vectorstore.as_retriever()
 
