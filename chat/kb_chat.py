@@ -167,8 +167,6 @@ def search_docs(
 
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, AsyncIterable, Literal, List, TypedDict, Annotated
-from rag_chain import create_rag_graph
-rag_chain = create_rag_graph()
 
 
 class ChatProcessRequest(BaseModel):
