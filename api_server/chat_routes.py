@@ -13,3 +13,5 @@ chat_router.post("/kb_chat", summary="知识库对话", dependencies=[Depends(ge
 chat_router.post("/chat", summary="普通对话")(chat_process)
 
 chat_router.post("/agent_chat", summary="智能体对话")(agent_chat)
+
+chat_router.post("/auto_route", summary="查询路由")(agent_chat)

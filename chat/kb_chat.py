@@ -11,7 +11,7 @@ from langgraph.constants import START, END
 from langgraph.graph import add_messages, StateGraph
 from openai import timeout
 from sse_starlette import EventSourceResponse
-
+from api_schemas import OpenAIChatOutput
 from knowledge_base.kb_service.base import KBServiceFactory
 from knowledge_base.model.kb_document_model import DocumentWithVSId
 from utils import build_logger, format_reference, get_prompt_template, History
@@ -19,6 +19,8 @@ from langchain_ollama import OllamaLLM, ChatOllama
 import os
 from dotenv import load_dotenv
 from .rag import setup_rag_tools
+from utils import get_ChatOpenAI, get_config_models
+
 load_dotenv()
 
 logger = build_logger()
@@ -164,7 +166,7 @@ def search_docs(
     return [x.dict() for x in data]
 
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, AsyncIterable, Literal, List, TypedDict, Annotated
 
 
@@ -191,6 +193,22 @@ async def chat_process(request: ChatProcessRequest):
     except Exception as e:
         return {"status": "Error", "data": None, "message": str(e)}
 
+# 定义结构化输出模型（Pydantic）
+class QueryWithKB(BaseModel):
+    """查询变体及其对应的知识库"""
+    query: str = Field(description="重写后的查询文本")
+    kb_name: str = Field(description="最适合该查询的知识库名称")
+
+class MultiQueryResult(BaseModel):
+    """多个查询变体的结果"""
+    queries: List[QueryWithKB] = Field(description="查询变体列表，包含查询文本和对应的知识库名称")
+
+class RouteQuery(BaseModel):
+    """路由用户查询到最合适的知识库名称。"""
+    datasource: Literal["direct_answer", "company_docs", "law_faq"] = Field(
+        description="选择路径: direct_answer(直接回答), company_docs(公司文档), product_faq(法律FAQ)"
+    )
+    
 async def agent_chat(query: str = Body(..., description="用户输入", example=["你好"]),
                   top_k: int = Body(3, description="匹配向量数字"),
                   score_threshold: float = Body(
@@ -215,54 +233,80 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
                 context: str
                 sources: str
                 question: str
-            async def generate_queries(original_query: str) -> List[str]:
-                """生成多个查询变体"""
+
+            async def generate_queries(original_query: str) -> List[Dict[str, str]]:
+                """生成多个查询变体及其对应的知识库名称"""
                 from utils import get_ChatOpenAI, get_config_models
+                from db.repository.knowledge_base_repository import list_kbs_from_db
+                
+                # 获取所有可用的知识库列表
+                available_kbs = list_kbs_from_db()
+                kb_info_str = "\n".join([f"- {kb.kb_name}: {kb.kb_info or '无描述'}" for kb in available_kbs])
                 
                 # 获取模型配置
                 model_info = get_config_models(model_name=model, model_type="llm")
                 model_config = model_info[model]
                 llm = get_ChatOpenAI(
                     model_name=model,
-                    temperature=0.7,
-                    timeout=30,
                     openai_api_base=model_config["api_base_url"],
                     openai_api_key=model_config["api_key"],
-                    max_tokens=500,
                 )
                 
-                # 生成查询变体的提示
+                # 使用结构化输出
+                structured_llm = llm.with_structured_output(MultiQueryResult)
+                
+                # 生成查询变体和知识库匹配的提示
                 query_gen_prompt = ChatPromptTemplate.from_messages([
-                    ("system", "你是一个专业的查询生成器。请根据用户的原始查询，生成3个不同角度或表述的查询变体，用于从知识库中检索相关信息。每个查询变体占一行，不要有任何前缀或编号。"),
+                    ("system", """你是一个专业的查询分析和改写助手。根据用户的原始查询，你需要：
+                    1. 生成3个不同角度或表述的查询变体，用于从知识库中检索相关信息
+                    2. 为每个查询变体选择最合适的知识库
+
+                    可用的知识库列表：{kb_list}
+
+                    请返回JSON格式，包含queries数组，每个元素有query（查询文本）和kb_name（知识库名称）两个字段。"""),
                     ("human", "原始查询: {query}")
                 ])
                 
-                # 调用模型生成查询变体
-                response = await llm.ainvoke(query_gen_prompt.format(query=original_query))
-                
-                # 解析生成的查询变体
-                queries = response.content.strip().split("\n")
-                queries = [q.strip() for q in queries if q.strip()]
-                
-                # 确保包含原始查询
-                if original_query not in queries:
-                    queries.insert(0, original_query)
-                
-                return queries
+                # 调用模型生成查询变体和知识库匹配
+                try:
+                    result = await structured_llm.ainvoke(
+                        query_gen_prompt.format(query=original_query, kb_list=kb_info_str)
+                    )
+                    
+                    # 返回查询变体列表，每个元素包含query和kb_name
+                    query_kb_pairs = [{"query": q.query, "kb_name": q.kb_name} for q in result.queries]
+                    
+                    # 如果没有生成足够的查询变体，添加原始查询
+                    if len(query_kb_pairs) < 3:
+                        query_kb_pairs.insert(0, {"query": original_query, "kb_name": kb_name})
+                    
+                    return query_kb_pairs
+                except Exception as e:
+                    logger.warning(f"结构化输出失败，使用备用方案: {e}")
+                    # 备用方案：返回原始查询
+                    return [{"query": original_query, "kb_name": kb_name}]
             
             async def multi_query_retrieve(state: KBChatState) -> KBChatState:
                 """使用多个查询变体检索文档并合并结果"""
                 # 生成多个查询变体
-                queries = await generate_queries(query)
+                query_kb_pairs = await generate_queries(query)
                 
                 all_docs = []
                 doc_id_set = set()
                 
                 # 对每个查询变体执行搜索
-                for q in queries:
+                for pair in query_kb_pairs:
+                    q = pair["query"]
+                    target_kb = pair["kb_name"]
+                    
+                    # 如果知识库名称有效，使用指定的知识库，否则使用默认知识库
+                    kb_to_use = target_kb if target_kb else kb_name
+                    
+                    logger.info(f"查询: '{q}' -> 知识库: {kb_to_use}")
+                    
                     docs = search_docs(
                         query=q,
-                        knowledge_base_name=kb_name,
+                        knowledge_base_name=kb_to_use,
                         top_k=top_k,
                         score_threshold=score_threshold,
                         file_name="",
@@ -321,7 +365,6 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
                 History(role="user", content=prompt_template).to_msg_template(False)
             ])
             
-            from utils import get_ChatOpenAI, get_config_models
             model_info = get_config_models(model_name=model, model_type="llm")
             model_config = model_info[model]
             llm = get_ChatOpenAI(
@@ -355,3 +398,52 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
             yield json.dumps({"error": str(e)})
             return
     return EventSourceResponse(knowledge_base_chat_iterator())
+
+
+async def auto_route(query: str = Body(..., description="用户输入", example=["你好"])):
+    try:
+        # 获取模型配置
+        model_info = get_config_models(model_name=model, model_type="llm")
+        model_config = model_info[model]
+        llm = get_ChatOpenAI(
+                model_name=model,
+                temperature=0.7,
+                timeout=30,
+                openai_api_base=model_config["api_base_url"],
+                openai_api_key=model_config["api_key"],
+                max_tokens=500,
+            )
+        # 初始化LLM（用structured output）
+        structured_llm = llm.with_structured_output(RouteQuery)
+        classify_prompt = ChatPromptTemplate.from_template(
+            """分析以下查询，选择最合适的路径：
+            - 如果是简单常识或不需要外部知识，直接用'direct_answer'。
+            - 如果涉及公司内部文档，用'company_docs'。
+            - 如果是产品FAQ，用'product_faq'。
+            查询: {query}
+            输出JSON格式。"""
+        )
+        # 分类链
+        classifier_chain = classify_prompt | structured_llm | JsonOutputParser()
+        # 定义不同路径的链（假设你已有RAG链）
+        from langchain_core.runnables import RunnableBranch, RunnablePassthrough
+        direct_answer_chain = ChatPromptTemplate.from_template("直接回答: {query}") | llm
+        company_rag_chain = RunnablePassthrough.assign(docs=company_retriever) | rag_prompt | llm  # 你的RAG链
+        product_rag_chain = RunnablePassthrough.assign(docs=product_retriever) | rag_prompt | llm
+        # 路由分支
+        router = RunnableBranch(
+            (lambda x: x["datasource"] == "direct_answer", direct_answer_chain),
+            (lambda x: x["datasource"] == "company_docs", company_rag_chain),
+            (lambda x: x["datasource"] == "product_faq", product_rag_chain),
+            direct_answer_chain  # 默认路径
+        )
+        # 完整链：分类 + 路由
+        full_chain = (
+            {"query": RunnablePassthrough(), "datasource": classifier_chain}
+            | router
+        )
+        # 使用
+        result = full_chain.invoke({"query": "公司假期政策是什么？"})  # 会路由到company_docs
+    except Exception as e:
+        logger.exception(e)
+        return {"error": str(e)}
