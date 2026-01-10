@@ -10,6 +10,6 @@ chat_router = APIRouter(prefix="/api", tags=["ChatChat 对话"])
 
 chat_router.post("/kb_chat", summary="知识库对话", dependencies=[Depends(get_current_user)])(kb_chat)
 
-chat_router.post("/chat", summary="普通对话", dependencies=[Depends(get_current_user)])(chat_process)
+chat_router.post("/chat", summary="普通对话")(chat_process)
 
 chat_router.post("/agent_chat", summary="智能体对话")(agent_chat)
