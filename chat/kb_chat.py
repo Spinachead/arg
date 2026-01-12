@@ -45,6 +45,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                   ),
                   model: str = Body("qwen-max", description="LLM 模型名称。"),
                   temperature: float = Body(0.5, description="温度"),
+                  conversation_id: str = Body(None, description="对话ID，用于关联消息"),
                   ):
     async def knowledge_base_chat_iterator() -> AsyncIterable[str]:
         try:
@@ -106,7 +107,20 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 max_tokens=1000,
             )
             
-
+            # 用于收集完整的回答
+            full_response = ""
+            message_id = f"msg_{uuid.uuid4().hex}"
+                        
+            # 尝试获取 LangSmith trace_id
+            trace_id = None
+            try:
+                from langsmith.run_helpers import get_current_run_tree
+                run_tree = get_current_run_tree()
+                if run_tree is not None:
+                    trace_id = str(run_tree.trace_id)
+            except Exception as e:
+                logger.warning(f"无法获取 LangSmith trace_id: {e}")
+            
             async for token in llm.astream(
                     chat_prompt.format(
                         context=final_state["context"],
@@ -115,7 +129,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                     )
             ):
                 ret = OpenAIChatOutput(
-                    id=f"chat{uuid.uuid4()}",
+                    id=message_id,
                     object="chat.completion.chunk",
                     content=token.content,  # 单个 token
                     role="assistant",
@@ -123,7 +137,35 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 )
                 ret_dict = ret.model_dump()
                 ret_dict["sources"] = final_state.get("sources", [])
+                            
+                # 收集完整回答
+                full_response += token.content
+                            
                 yield json.dumps(ret_dict, ensure_ascii=False)
+                        
+            # 流式输出结杞后，保存到数据库
+            try:
+                from db.repository.message_repository import add_message_to_db
+                            
+                # 如果没有传入 conversation_id，生成一个
+                conv_id = conversation_id or f"conv_{uuid.uuid4().hex}"
+                            
+                add_message_to_db(
+                    message_id=message_id,
+                    conversation_id=conv_id,
+                    chat_type="kb_chat",
+                    query=query,
+                    response=full_response,
+                    trace_id=trace_id,
+                    meta_data={
+                        "kb_name": kb_name,
+                        "model": model,
+                        "sources": final_state.get("sources", []),
+                    },
+                )
+                logger.info(f"消息已保存到数据库: message_id={message_id}, trace_id={trace_id}")
+            except Exception as e:
+                logger.error(f"保存消息到数据库失败: {e}")
         except Exception as e:
             logger.exception(e)
             yield json.dumps({"error": str(e)})
@@ -208,6 +250,8 @@ class RouteQuery(BaseModel):
     datasource: Literal["direct_answer", "company_docs", "law_faq"] = Field(
         description="选择路径: direct_answer(直接回答), company_docs(公司文档), product_faq(法律FAQ)"
     )
+
+from langsmith import traceable, get_current_run_tree
     
 async def agent_chat(query: str = Body(..., description="用户输入", example=["你好"]),
                   top_k: int = Body(3, description="匹配向量数字"),
@@ -226,7 +270,9 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
                   ),
                   model: str = Body("qwen-max", description="LLM 模型名称。"),
                   temperature: float = Body(0.5, description="温度"),
+                  conversation_id: str = Body(None, description="对话ID，用于关联消息"),
                   ):
+    @traceable(name="AgentChatIteration")
     async def knowledge_base_chat_iterator() -> AsyncIterable[str]:
         try:
             class KBChatState(TypedDict):
@@ -376,6 +422,17 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
                 max_tokens=1000,
             )
             
+            # 用于收集完整的回答
+            full_response = ""
+            message_id = f"msg_{uuid.uuid4().hex}"
+            trace_id = None
+            try:
+                run_tree = get_current_run_tree()
+                if run_tree is not None:
+                    trace_id = str(run_tree.trace_id)
+            except Exception as e:
+                logger.warning(f"无法获取 LangSmith trace_id: {e}")
+                        
             async for token in llm.astream(
                     chat_prompt.format(
                         context=final_state["context"],
@@ -384,7 +441,7 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
                     )
             ):
                 ret = OpenAIChatOutput(
-                    id=f"chat{uuid.uuid4()}",
+                    id=message_id,
                     object="chat.completion.chunk",
                     content=token.content,  # 单个 token
                     role="assistant",
@@ -392,7 +449,35 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
                 )
                 ret_dict = ret.model_dump()
                 ret_dict["sources"] = final_state.get("sources", [])
+                            
+                # 收集完整回答
+                full_response += token.content
+                            
                 yield json.dumps(ret_dict, ensure_ascii=False)
+                        
+            # 流式输出结杞后，保存到数据库
+            try:
+                from db.repository.message_repository import add_message_to_db
+                            
+                # 如果没有传入 conversation_id，生成一个
+                conv_id = conversation_id or f"conv_{uuid.uuid4().hex}"
+                            
+                add_message_to_db(
+                    message_id=message_id,
+                    conversation_id=conv_id,
+                    chat_type="agent_kb_chat",
+                    query=query,
+                    response=full_response,
+                    trace_id=trace_id,
+                    meta_data={
+                        "kb_name": kb_name,
+                        "model": model,
+                        "sources": final_state.get("sources", []),
+                    },
+                )
+                logger.info(f"消息已保存到数据库: message_id={message_id}, trace_id={trace_id}")
+            except Exception as e:
+                logger.error(f"保存消息到数据库失败: {e}")
         except Exception as e:
             logger.exception(e)
             yield json.dumps({"error": str(e)})

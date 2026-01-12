@@ -16,6 +16,8 @@ class MessageModel(Base):
     response = Column(String(4096), comment="模型回答")
     # 记录知识库id等，以便后续扩展
     meta_data = Column(JSON, default={})
+    # LangSmith trace id：langsmith.trace.get_current_run_tree().id
+    trace_id = Column(String(255), default=None, index=True, comment="LangSmith Trace Run ID")
     # 满分100 越高表示评价越好
     feedback_score = Column(Integer, default=-1, comment="用户评分")
     feedback_reason = Column(String(255), default="", comment="用户评分理由")
