@@ -14,12 +14,13 @@ from sse_starlette import EventSourceResponse
 from api_schemas import OpenAIChatOutput
 from knowledge_base.kb_service.base import KBServiceFactory
 from knowledge_base.model.kb_document_model import DocumentWithVSId
-from utils import build_logger, format_reference, get_prompt_template, History
+from utils import BaseResponse, build_logger, format_reference, get_prompt_template, History
 from langchain_ollama import OllamaLLM, ChatOllama
 import os
 from dotenv import load_dotenv
 from .rag import setup_rag_tools
 from utils import get_ChatOpenAI, get_config_models
+from langsmith import traceable, get_current_run_tree
 
 load_dotenv()
 
@@ -198,13 +199,11 @@ def search_docs(
             docs = kb.search_docs(query, top_k, score_threshold)
             # data = [DocumentWithVSId(**x[0].dict(), score=x[1], id=x[0].metadata.get("id")) for x in docs]
             data = [DocumentWithVSId(**{"id": x.metadata.get("id"), **x.dict()}) for x in docs]
-            logger.info(f"search_docs:{docs}")
         elif file_name or metadata:
             data = kb.list_docs(file_name=file_name, metadata=metadata)
             for d in data:
                 if "vector" in d.metadata:
                     del d.metadata["vector"]
-            logger.info(f"search_docs_data:{data}")
     return [x.dict() for x in data]
 
 
@@ -251,8 +250,6 @@ class RouteQuery(BaseModel):
         description="选择路径: direct_answer(直接回答), company_docs(公司文档), product_faq(法律FAQ)"
     )
 
-from langsmith import traceable, get_current_run_tree
-    
 async def agent_chat(query: str = Body(..., description="用户输入", example=["你好"]),
                   top_k: int = Body(3, description="匹配向量数字"),
                   score_threshold: float = Body(
@@ -348,7 +345,7 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
                     # 如果知识库名称有效，使用指定的知识库，否则使用默认知识库
                     kb_to_use = target_kb if target_kb else kb_name
                     
-                    logger.info(f"查询: '{q}' -> 知识库: {kb_to_use}")
+                    # logger.info(f"查询: '{q}' -> 知识库: {kb_to_use}")
                     
                     docs = search_docs(
                         query=q,
@@ -406,10 +403,14 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
             kb_app = workflow.compile()
             final_state = await kb_app.ainvoke({"context": "", "sources": "", "question": query})
             
-            prompt_template = get_prompt_template("rag", prompt_name)
-            chat_prompt = ChatPromptTemplate.from_messages([
-                History(role="user", content=prompt_template).to_msg_template(False)
-            ])
+            # prompt_template = get_prompt_template("rag", prompt_name)
+            from langsmith import Client
+            client = Client()
+            chat_prompt = client.pull_prompt("arg_default:9e93ae37")
+            # logger.info(f"Using prompt template: {prompt_template}")
+            # chat_prompt = ChatPromptTemplate.from_messages([
+            #     History(role="user", content=prompt_template).to_msg_template(False)
+            # ])
             
             model_info = get_config_models(model_name=model, model_type="llm")
             model_config = model_info[model]
@@ -426,20 +427,17 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
             full_response = ""
             message_id = f"msg_{uuid.uuid4().hex}"
             trace_id = None
-            try:
-                run_tree = get_current_run_tree()
-                if run_tree is not None:
-                    trace_id = str(run_tree.trace_id)
-            except Exception as e:
-                logger.warning(f"无法获取 LangSmith trace_id: {e}")
+            run_tree = get_current_run_tree()
+            if run_tree is not None:
+                trace_id = str(run_tree.trace_id)
                         
-            async for token in llm.astream(
-                    chat_prompt.format(
-                        context=final_state["context"],
-                        sources=final_state["sources"] if final_state["sources"] else "未知来源",
-                        question=final_state["question"],
-                    )
-            ):
+            messages = chat_prompt.format_messages(
+                context=final_state["context"],
+                sources=final_state["sources"] if final_state["sources"] else "未知来源",
+                question=final_state["question"],
+            )
+
+            async for token in llm.astream(messages):
                 ret = OpenAIChatOutput(
                     id=message_id,
                     object="chat.completion.chunk",
@@ -483,6 +481,53 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
             yield json.dumps({"error": str(e)})
             return
     return EventSourceResponse(knowledge_base_chat_iterator())
+
+
+# 对回复打分
+async def score_reply(conversation_id: str = Body(None, description="对话ID，用于关联消息"),
+                    score: int = Body(1, description="评分，范围0-100"),
+                    message_id: str = Body(None, description="消息ID，用于关联消息"),
+                    reason: str = Body("", description="评分理由"))->BaseResponse:
+    """
+    对指定对话的最新回复进行打分
+    :param conversation_id: 对话ID
+    :param score: 评分，0-100之间，越高表示越满意
+    :param reason: 评分理由（可选）
+    :return: 操作结果
+    """
+    try:
+        from db.repository.message_repository import update_message_feedback, get_message_by_id
+        
+        if not conversation_id:
+            return {"code": 400, "msg": "对话ID不能为空"}
+        
+        # 验证评分范围
+        if score < 0 or score > 100:
+            return {"code": 400, "msg": "评分必须在0-100之间"}
+        
+        # 获取该对话的最新消息
+        message = get_message_by_id(message_id=message_id)
+        
+        if not message:
+            return {"code": 404, "msg": "未找到该对话的消息记录"}
+        
+        
+        # 更新消息评分
+        success = update_message_feedback(
+            message_id=message_id,
+            feedback_score=score,
+            feedback_reason=reason
+        )
+        
+        if success:
+            logger.info(f"消息评分更新成功: conversation_id={conversation_id}, message_id={message_id}, score={score}")
+            return BaseResponse(code=200, msg="评分成功", data={"message_id": message_id, "conversation_id": conversation_id, "score": score, "reason": reason})    
+        else:
+            return BaseResponse(code=500, msg="评分失败，消息不存在")
+    except Exception as e:
+        logger.exception(e)
+        return BaseResponse(code=500, msg=f"评分失败: {str(e)}")
+
 
 
 async def auto_route(query: str = Body(..., description="用户输入", example=["你好"])):
