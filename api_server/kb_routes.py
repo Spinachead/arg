@@ -34,7 +34,7 @@ kb_router.post(
     "/upload_docs",
     response_model=BaseResponse,
     summary="上传文件到知识库，并/或进行向量化",
-    dependencies=[Depends(get_current_user)],
+    # dependencies=[Depends(get_current_user)],
 )(upload_docs)
 
 
