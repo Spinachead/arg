@@ -100,7 +100,7 @@ class ChromaKBService(KBService):
     def do_search(
         self, query: str, top_k: int, score_threshold: float = Settings.kb_settings.SCORE_THRESHOLD
     ) -> List[Tuple[Document, float]]:
-        retriever = get_Retriever("vectorstore").from_vectorstore(
+        retriever = get_Retriever("ensemble").from_vectorstore(
             self.chroma,
             top_k=top_k,
             score_threshold=score_threshold,

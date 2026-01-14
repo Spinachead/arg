@@ -74,7 +74,7 @@ class FaissKBService(KBService):
                 top_k=top_k,
                 score_threshold=score_threshold,
             )
-            logger.info(f"这是retriever：{retriever}")
+            # logger.info(f"这是retriever：{retriever}")
             if retriever is None:
                 logger.warning("Failed to create ensemble retriever, returning empty results")
                 return []
