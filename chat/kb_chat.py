@@ -2,7 +2,7 @@ import json
 import uuid
 from typing import AsyncIterable, TypedDict, Annotated, List, Dict
 
-from fastapi import Body, UploadFile, File, Form
+from fastapi import Body, UploadFile, File, Form, Depends
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
 from langchain_core.output_parsers import StrOutputParser
@@ -19,6 +19,7 @@ from langchain_ollama import OllamaLLM, ChatOllama
 import os
 from dotenv import load_dotenv
 from .rag import setup_rag_tools
+from .auth_middleware import get_current_user
 from utils import get_ChatOpenAI, get_config_models
 from langsmith import traceable, get_current_run_tree
 
@@ -268,10 +269,25 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
                   model: str = Body("qwen-max", description="LLM 模型名称。"),
                   temperature: float = Body(0.5, description="温度"),
                   conversation_id: str = Body(None, description="对话ID，用于关联消息"),
+                #   current_user: dict = Depends(get_current_user),
                   ):
     @traceable(name="AgentChatIteration")
     async def knowledge_base_chat_iterator() -> AsyncIterable[str]:
         try:
+            # 获取用户长期记忆和偏好
+            user_profile = {}
+            try:
+                from db.repository.user_memory_repository import get_user_profile_from_memories
+                # user_id = current_user.user_id if hasattr(current_user, 'user_id') else None
+                # todo: 这里要通过current_user获取到userId
+                user_id = 1
+                if user_id:
+                    user_profile = get_user_profile_from_memories(user_id=user_id)
+                    logger.info(f"已加载用户 {user_id} 的长期记忆: {user_profile}")
+            except Exception as e:
+                logger.warning(f"获取用户记忆失败: {e}")
+                user_profile = {"preferred_kbs": [], "preferred_domains": [], "tone": "标准", "recent_topics": []}
+            
             class KBChatState(TypedDict):
                 context: str
                 sources: str
@@ -304,6 +320,11 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
                     1. 生成3个不同角度或表述的查询变体，用于从知识库中检索相关信息
                     2. 为每个查询变体选择最合适的知识库
 
+                    用户的长期偏好信息：
+                    {user_profile}
+                    
+                    在选择知识库时，请优先考虑用户常用或偏好的知识库（preferred_kbs）和领域（preferred_domains）。
+
                     可用的知识库列表：{kb_list}
 
                     请返回JSON格式，包含queries数组，每个元素有query（查询文本）和kb_name（知识库名称）两个字段。"""),
@@ -313,7 +334,11 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
                 # 调用模型生成查询变体和知识库匹配
                 try:
                     result = await structured_llm.ainvoke(
-                        query_gen_prompt.format(query=original_query, kb_list=kb_info_str)
+                        query_gen_prompt.format(
+                            query=original_query, 
+                            kb_list=kb_info_str,
+                            user_profile=json.dumps(user_profile, ensure_ascii=False)
+                        )
                     )
                     
                     # 返回查询变体列表，每个元素包含query和kb_name
@@ -435,6 +460,7 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
                 context=final_state["context"],
                 sources=final_state["sources"] if final_state["sources"] else "未知来源",
                 question=final_state["question"],
+                user_profile=json.dumps(user_profile, ensure_ascii=False),
             )
 
             async for token in llm.astream(messages):
@@ -471,6 +497,7 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
                         "kb_name": kb_name,
                         "model": model,
                         "sources": final_state.get("sources", []),
+                        "user_profile": user_profile,  # 保存用户画像
                     },
                 )
                 logger.info(f"消息已保存到数据库: message_id={message_id}, trace_id={trace_id}")

@@ -9,6 +9,7 @@ from db.base import Base, engine
 from db.models.conversation_model import ConversationModel
 from db.models.message_model import MessageModel
 from db.models.user_model import UserModel
+from db.models.user_memory_model import UserMemoryModel
 from db.repository.knowledge_file_repository import (
     add_file_to_db,
 )

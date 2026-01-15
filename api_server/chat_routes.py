@@ -14,6 +14,4 @@ chat_router.post("/chat", summary="普通对话")(chat_process)
 
 chat_router.post("/agent_chat", summary="智能体对话")(agent_chat)
 
-chat_router.post("/auto_route", summary="查询路由")(agent_chat)
-
 chat_router.post("/score_reply", summary="对回复打分")(score_reply)
