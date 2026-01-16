@@ -151,7 +151,17 @@ def get_user_profile_from_memories(
     :param user_id: 用户ID
     :return: 用户画像字典
     """
-    memories = list_user_memories(user_id=user_id, limit=10)
+    # memories = list_user_memories(user_id=user_id, limit=10)
+    memories = (
+        session.query(UserMemoryModel)
+        .filter(UserMemoryModel.user_id == user_id)
+        .order_by(
+            desc(UserMemoryModel.importance),
+            desc(UserMemoryModel.last_used_time)
+        )
+        .limit(10)
+        .all()
+    )
     
     # 初始化用户画像
     profile = {

@@ -280,3 +280,28 @@ def update_docs(
         kb.save_vector_store()
 
     return BaseResponse(code=200, msg="成功", data={"failed_files": failed_files})
+
+def create_memory()->BaseResponse:
+    try:
+        from db.repository.user_memory_repository import (
+            create_memory_from_conversation,
+        )
+        memory_id_2 = create_memory_from_conversation(
+            user_id=1,
+            conversation_summary="询问劳动法相关内容",
+            kb_name="company_docs",
+            domains=["product", "api"],
+            importance=4
+        )
+        return BaseResponse(code=200, msg="成功")
+    except Exception as e:
+        return BaseResponse(code=500, msg=str(e))
+
+
+def get_user_profile()->BaseResponse:
+    try:
+        from db.repository.user_memory_repository import get_user_profile_from_memories
+        profile = get_user_profile_from_memories(user_id=1)
+        return BaseResponse(code=200, msg="成功", data=profile)
+    except Exception as e:
+        return BaseResponse(code=500, msg=str(e))
