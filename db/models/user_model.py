@@ -20,6 +20,7 @@ class UserModel(Base, BaseBaseModel):
     hashed_password = Column(String(255), comment="哈希密码")
     is_active = Column(Boolean, default=True, comment="是否激活")
     is_superuser = Column(Boolean, default=False, comment="是否为超级用户")
+    avatar = Column(String(300), default="https://jiaoguanyi008.oss-cn-shenzhen.aliyuncs.com/photo/2023-12/170332299000086696.jpg", comment="用户头像")
 
     def __repr__(self):
         return f"<User(id='{self.id}', username='{self.username}', email='{self.email}', is_active='{self.is_active}')>"
@@ -30,6 +31,7 @@ class UserSchema(BaseModel):
     id: int
     username: str
     email: str
+    avatar: str
     is_active: bool
     is_superuser: bool
     create_time: Optional[datetime]

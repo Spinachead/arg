@@ -120,7 +120,7 @@ class ChromaKBService(KBService):
         for _id, text, embedding, metadata in zip(ids, texts, embeddings, metadatas):
             # 对 metadata 进行清洗，确保所有值都是 ChromaDB 支持的类型
             sanitized_metadata = sanitize_metadata(metadata)
-            logger.info(f"这是metadata: {sanitized_metadata}")
+            # logger.info(f"这是metadata: {sanitized_metadata}")
             self.chroma._collection.add(
                 ids=_id, embeddings=embedding, metadatas=sanitized_metadata, documents=text
             )

@@ -11,7 +11,7 @@ from langgraph.constants import START, END
 from langgraph.graph import add_messages, StateGraph
 from openai import timeout
 from sse_starlette import EventSourceResponse
-from api_schemas import OpenAIChatOutput
+from api_schemas import OpenAIChatOutput, ChatOptions
 from knowledge_base.kb_service.base import KBServiceFactory
 from knowledge_base.model.kb_document_model import DocumentWithVSId
 from utils import BaseResponse, build_logger, format_reference, get_prompt_template, History
@@ -48,6 +48,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                   model: str = Body("qwen-max", description="LLM 模型名称。"),
                   temperature: float = Body(0.5, description="温度"),
                   conversation_id: str = Body(None, description="对话ID，用于关联消息"),
+                  options: ChatOptions = Body(None, description="配置选项"),
                   ):
     async def knowledge_base_chat_iterator() -> AsyncIterable[str]:
         try:
@@ -150,7 +151,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", example=["�
                 from db.repository.message_repository import add_message_to_db
                             
                 # 如果没有传入 conversation_id，生成一个
-                conv_id = conversation_id or f"conv_{uuid.uuid4().hex}"
+                conv_id = (options.conversationId if options else None) or conversation_id or f"conv_{uuid.uuid4().hex}"
                             
                 add_message_to_db(
                     message_id=message_id,
@@ -269,7 +270,7 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
                   model: str = Body("qwen-max", description="LLM 模型名称。"),
                   temperature: float = Body(0.5, description="温度"),
                   conversation_id: str = Body(None, description="对话ID，用于关联消息"),
-                #   current_user: dict = Depends(get_current_user),
+                  options: ChatOptions = Body(None, description="配置选项")
                   ):
     @traceable(name="AgentChatIteration")
     async def knowledge_base_chat_iterator() -> AsyncIterable[str]:
@@ -451,11 +452,12 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
             # 用于收集完整的回答
             full_response = ""
             message_id = f"msg_{uuid.uuid4().hex}"
+            conv_id = (options.conversationId if options else None) or conversation_id or f"conv_{uuid.uuid4().hex}"
             trace_id = None
             run_tree = get_current_run_tree()
             if run_tree is not None:
                 trace_id = str(run_tree.trace_id)
-                        
+            
             messages = chat_prompt.format_messages(
                 context=final_state["context"],
                 sources=final_state["sources"] if final_state["sources"] else "未知来源",
@@ -470,9 +472,12 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
                     content=token.content,  # 单个 token
                     role="assistant",
                     model=model,
+                    message_id=message_id,
                 )
                 ret_dict = ret.model_dump()
                 ret_dict["sources"] = final_state.get("sources", [])
+                ret_dict["conversationId"] = conv_id
+
                             
                 # 收集完整回答
                 full_response += token.content
@@ -482,9 +487,6 @@ async def agent_chat(query: str = Body(..., description="用户输入", example=
             # 流式输出结杞后，保存到数据库
             try:
                 from db.repository.message_repository import add_message_to_db
-                            
-                # 如果没有传入 conversation_id，生成一个
-                conv_id = conversation_id or f"conv_{uuid.uuid4().hex}"
                             
                 add_message_to_db(
                     message_id=message_id,

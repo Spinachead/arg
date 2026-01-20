@@ -113,6 +113,11 @@ class OpenAIAudioSpeechInput(OpenAIBaseInput):
 #     purpose: Literal["fine-tune", "assistants"] = "assistants"
 
 
+class ChatOptions(BaseModel):
+    conversationId: Optional[str] = Field(None, description="会话ID")
+    parentMessageId: Optional[str] = Field(None, description="父消息ID")
+
+
 class OpenAIBaseOutput(BaseModel):
     id: Optional[str] = None
     content: Optional[str] = None
