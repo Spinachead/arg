@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from fastapi.params import Depends
 
 from chat.auth_middleware import get_current_user
-from chat.kb_chat import kb_chat, chat_process, agent_chat, score_reply
+from chat.kb_chat import kb_chat, chat_process, agent_chat, score_reply, graph_chat
 from utils import build_logger
 logger = build_logger()
 
@@ -15,3 +15,7 @@ chat_router.post("/chat", summary="普通对话")(chat_process)
 chat_router.post("/agent_chat", summary="智能体对话")(agent_chat)
 
 chat_router.post("/score_reply", summary="对回复打分")(score_reply)
+
+#graph_chat
+
+chat_router.post("/graph_chat", summary="图谱对话")(graph_chat)

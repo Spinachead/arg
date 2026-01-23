@@ -270,3 +270,42 @@ class MCPProfileStatusResponse(BaseModel):
     """MCP 通用配置状态响应体"""
     success: bool
     message: str
+
+
+# --- 知识库查询相关模型 ---
+
+class QueryWithKB(BaseModel):
+    """查询变体及其对应的知识库"""
+    query: str = Field(description="重写后的查询文本")
+    kb_name: str = Field(description="最适合该查询的知识库名称")
+
+class MultiQueryResult(BaseModel):
+    """多个查询变体的结果"""
+    queries: List[QueryWithKB] = Field(description="查询变体列表，包含查询文本和对应的知识库名称")
+
+class RouteQuery(BaseModel):
+    """路由用户查询到最合适的知识库名称。"""
+    datasource: Literal["direct_answer", "company_docs", "law_faq"] = Field(
+        description="选择路径: direct_answer(直接回答), company_docs(公司文档), product_faq(法律FAQ)"
+    )
+
+class GraphChatRequest(BaseModel):
+    query: str = Field(..., description="用户输入", example="你好")
+    top_k: int = Field(3, description="匹配向量数字")
+    score_threshold: float = Field(
+        0.5,
+        description="知识库匹配相关度阈值，取值范围在0-1之间，SCORE越小，相关度越高，取到1相当于不筛选，建议设置在0.5左右",
+        ge=0,
+        le=2,
+    )
+    kb_name: str = Field("",
+                        description="mode=local_kb时为知识库名称；temp_kb时为临时知识库ID，search_engine时为搜索引擎名称",
+                        examples=["samples"])
+    prompt_name: str = Field(
+        "default",
+        description="使用的prompt模板名称(在prompt_settings.yaml中配置)"
+    )
+    model: str = Field("qwen-max", description="LLM 模型名称。")
+    temperature: float = Field(0.5, description="温度")
+    conversation_id: Optional[str] = Field(None, description="对话ID，用于关联消息")
+    options: Optional[ChatOptions] = Field(None, description="配置选项")
