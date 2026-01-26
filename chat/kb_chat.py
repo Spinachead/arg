@@ -533,10 +533,18 @@ async def graph_chat(request: GraphChatRequest = Body(..., description="Graph Ch
                 "query_kb_pairs": [],
                 "context": "",
                 "sources": [],
+                "answer": "",  # 新增：接收LLM的最终回答
             }
-            messages = graph_app.invoke(initial_state, {"configurable": {"thread_id": "1"}})
-            for message in messages:
-                message.pretty_print()
+            result = graph_app.invoke(initial_state, {"configurable": {"thread_id": "1"}})
+            # result是GraphChatState字典，包含answer、context、sources等字段
+            logger.info(f"Graph执行完成，answer长度={len(result.get('answer', ''))}")
+            
+            # 构造返回数据
+            response_data = {
+                "answer": result.get("answer", ""),
+                "docs": result.get("sources", [])
+            }
+            yield json.dumps(response_data, ensure_ascii=False)
           
         except Exception as e:
             logger.exception(e)

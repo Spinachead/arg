@@ -29,6 +29,7 @@ class GraphChatState(TypedDict):
     query_kb_pairs: List[Dict[str, str]]
     context: str
     sources: List[str]
+    answer: str  # 新增：存储LLM的最终回答
 
 
  # 获取模型配置
@@ -209,13 +210,19 @@ def llm_call_node(state: GraphChatState) -> Dict[str, Any]:
         History(role="user", content=prompt_template).to_msg_template(False)
     ])
 
-    return llm_with_tools.invoke(
+    response = llm_with_tools.invoke(
         chat_prompt.format(
                 context=state["context"],
                 sources=state["sources"] if state["sources"] else "未知来源",
                 question=state["query"],
         )
     )
+    
+    # 提取LLM回复的文本内容
+    answer = response.content if hasattr(response, 'content') else str(response)
+    
+    # 返回状态更新（必须是GraphChatState的字段）
+    return {"answer": answer}
    
 
 
