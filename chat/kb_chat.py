@@ -543,8 +543,6 @@ async def graph_chat(request: GraphChatRequest = Body(..., description="Graph Ch
                 config={"configurable": {"thread_id": "1"}}
             ):
                 kind = event["event"]
-                print(event)
-                
                 # 1. 处理流式输出的 token
                 if kind == "on_chat_model_stream":
                     content = event["data"]["chunk"].content

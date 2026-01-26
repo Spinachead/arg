@@ -66,15 +66,32 @@ tools = [load_user_profile_tool]
 llm_with_tools = llm.bind_tools(tools)
 
 
-def generate_queries_node(state: GraphChatState) -> Dict[str, Any]:
+from langchain_core.runnables import RunnableConfig
+
+async def generate_queries_node(state: GraphChatState, config: RunnableConfig) -> Dict[str, Any]:
     """生成多个查询变体及其对应的知识库名称"""
     query = state["query"]
     kb_name = state["kb_name"]
+    model_name = state.get("model", "qwen-max")
     
     available_kbs = list_kbs_from_db()
     kb_info_str = "\n".join([f"- {kb.kb_name}: {kb.kb_info or '无描述'}" for kb in available_kbs])
     
-    structured_llm = llm.with_structured_output(MultiQueryResult)
+    # 获取模型配置并初始化
+    model_info = get_config_models(model_name=model_name, model_type="llm")
+    if model_name not in model_info:
+        model_name = "qwen-max"
+        model_info = get_config_models(model_name=model_name, model_type="llm")
+    
+    model_conf = model_info[model_name]
+    llm_instance = get_ChatOpenAI(
+        model_name=model_name,
+        openai_api_base=model_conf["api_base_url"],
+        openai_api_key=model_conf["api_key"],
+        streaming=True
+    )
+    
+    structured_llm = llm_instance.with_structured_output(MultiQueryResult)
     
     query_gen_prompt = ChatPromptTemplate.from_messages([
         ("system", """你是一个专业的查询分析和改写助手。根据用户的原始查询，你需要：
@@ -88,11 +105,13 @@ def generate_queries_node(state: GraphChatState) -> Dict[str, Any]:
     ])
     
     try:
-        result = structured_llm.invoke(
+        # 传递 config 以便 astream_events 追踪内部调用
+        result = await structured_llm.ainvoke(
             query_gen_prompt.format(
                 query=query, 
                 kb_list=kb_info_str,
-            )
+            ),
+            config
         )
         query_kb_pairs = [{"query": q.query, "kb_name": q.kb_name} for q in result.queries]
         if len(query_kb_pairs) < 3:
@@ -102,7 +121,7 @@ def generate_queries_node(state: GraphChatState) -> Dict[str, Any]:
         logger.warning(f"结构化输出失败，使用备用方案: {e}")
         return {"query_kb_pairs": [{"query": query, "kb_name": kb_name}]}
 
-def retrieve_documents_node(state: GraphChatState) -> Dict[str, Any]:
+async def retrieve_documents_node(state: GraphChatState, config: RunnableConfig) -> Dict[str, Any]:
     """使用多个查询变体检索文档并合并结果"""
     query_kb_pairs = state.get("query_kb_pairs", [])
     top_k = state.get("top_k", 3)
@@ -151,21 +170,41 @@ def retrieve_documents_node(state: GraphChatState) -> Dict[str, Any]:
         "sources": source_documents,
     }
 
-def llm_call_node(state: GraphChatState) -> Dict[str, Any]:
+async def llm_call_node(state: GraphChatState, config: RunnableConfig) -> Dict[str, Any]:
     """ 调用LLM生成最终回复 """
+    # 1. 获取模型配置
+    model_name = state.get("model", "qwen-max")
+    temperature = state.get("temperature", 0.5)
+    
+    model_info = get_config_models(model_name=model_name, model_type="llm")
+    if model_name not in model_info:
+        model_name = "qwen-max"
+        model_info = get_config_models(model_name=model_name, model_type="llm")
+    
+    model_conf = model_info[model_name]
+    
+    # 2. 初始化支持流式的 LLM
+    llm_instance = get_ChatOpenAI(
+        model_name=model_name,
+        temperature=temperature,
+        openai_api_base=model_conf["api_base_url"],
+        openai_api_key=model_conf["api_key"],
+        streaming=True
+    )
+    
     prompt_template = get_prompt_template("rag", "default")
     from langchain_core.prompts import ChatPromptTemplate
     chat_prompt = ChatPromptTemplate.from_messages([
         History(role="user", content=prompt_template).to_msg_template(False)
     ])
 
-    response = llm_with_tools.invoke(
-        chat_prompt.format(
-                context=state["context"],
-                sources=state["sources"] if state["sources"] else "未知来源",
-                question=state["query"],
-        )
-    )
+    # 3. 使用 ainvoke 并传递 config，确保 astream_events 能捕捉到内部事件
+    chain = chat_prompt | llm_instance
+    response = await chain.ainvoke({
+        "context": state["context"],
+        "sources": state["sources"] if state["sources"] else "未知来源",
+        "question": state["query"],
+    }, config)
 
     return {"messages": [response]}
 
