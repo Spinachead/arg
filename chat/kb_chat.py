@@ -517,11 +517,10 @@ async def graph_chat(request: GraphChatRequest = Body(..., description="Graph Ch
     async def graph_chat_iterator() -> AsyncIterable[str]:
         try:
             from chat.graph_chat import create_graph_chat_app
-            
             # 创建graph应用
             graph_app = create_graph_chat_app()
             
-            # 运行graph获取检索结果
+            # 运行graph获取检索结果（user_profile将由LLM通过tool自主获取）
             initial_state = {
                 "query": request.query,
                 "kb_name": request.kb_name,
@@ -530,94 +529,15 @@ async def graph_chat(request: GraphChatRequest = Body(..., description="Graph Ch
                 "model": request.model,
                 "temperature": request.temperature,
                 "user_id": 1,  # TODO: 从current_user获取
-                "user_profile": {},
+                "user_profile": {},  # 空字典，将由LLM决定是否通过tool加载
                 "query_kb_pairs": [],
                 "context": "",
                 "sources": [],
             }
-            
-            final_state = await graph_app.ainvoke(initial_state)
-            
-            # 如果没有检索到内容，直接返回
-            if not final_state["context"] or final_state["context"].strip() == "":
-                yield json.dumps({
-                    "error": "未检索到相关内容",
-                    "sources": []
-                }, ensure_ascii=False)
-                return
-            
-            # 使用LangSmith的prompt
-            from langsmith import Client
-            client = Client()
-            chat_prompt = client.pull_prompt("arg_default:9e93ae37")
-            
-            # 获取模型配置
-            model_info = get_config_models(model_name=request.model, model_type="llm")
-            model_config = model_info[request.model]
-            llm = get_ChatOpenAI(
-                model_name=request.model,
-                temperature=request.temperature,
-                timeout=30,
-                openai_api_base=model_config["api_base_url"],
-                openai_api_key=model_config["api_key"],
-                max_tokens=1000,
-            )
-            
-            # 收集完整回答
-            full_response = ""
-            message_id = f"msg_{uuid.uuid4().hex}"
-            conv_id = (request.options.conversationId if request.options else None) or request.conversation_id or f"conv_{uuid.uuid4().hex}"
-            trace_id = None
-            run_tree = get_current_run_tree()
-            if run_tree is not None:
-                trace_id = str(run_tree.trace_id)
-            
-            # 格式化prompt消息
-            messages = chat_prompt.format_messages(
-                context=final_state["context"],
-                sources=final_state["sources"] if final_state["sources"] else "未知来源",
-                question=request.query,
-                user_profile=json.dumps(final_state.get("user_profile", {}), ensure_ascii=False),
-            )
-            
-            # 流式生成回复
-            async for token in llm.astream(messages):
-                ret = OpenAIChatOutput(
-                    id=message_id,
-                    object="chat.completion.chunk",
-                    content=token.content,
-                    role="assistant",
-                    model=request.model,
-                    message_id=message_id,
-                )
-                ret_dict = ret.model_dump()
-                ret_dict["sources"] = final_state.get("sources", [])
-                ret_dict["conversationId"] = conv_id
-                
-                full_response += token.content
-                yield json.dumps(ret_dict, ensure_ascii=False)
-            
-            # 保存到数据库
-            try:
-                from db.repository.message_repository import add_message_to_db
-                add_message_to_db(
-                    message_id=message_id,
-                    conversation_id=conv_id,
-                    chat_type="graph_chat",
-                    query=request.query,
-                    response=full_response,
-                    trace_id=trace_id,
-                    meta_data={
-                        "kb_name": request.kb_name,
-                        "model": request.model,
-                        "sources": final_state.get("sources", []),
-                        "user_profile": final_state.get("user_profile", {}),
-                        "query_kb_pairs": final_state.get("query_kb_pairs", []),
-                    },
-                )
-                logger.info(f"消息已保存到数据库: message_id={message_id}, trace_id={trace_id}")
-            except Exception as e:
-                logger.error(f"保存消息到数据库失败: {e}")
+            messages = graph_app.invoke(initial_state, {"configurable": {"thread_id": "1"}})
+            for message in messages:
+                message.pretty_print()
+          
         except Exception as e:
             logger.exception(e)
             yield json.dumps({"error": str(e)})
