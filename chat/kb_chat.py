@@ -517,10 +517,8 @@ async def graph_chat(request: GraphChatRequest = Body(..., description="Graph Ch
     async def graph_chat_iterator() -> AsyncIterable[str]:
         try:
             from chat.graph_chat import create_graph_chat_app
-            # 创建graph应用
             graph_app = create_graph_chat_app()
             
-            # 运行graph获取检索结果（user_profile将由LLM通过tool自主获取）
             initial_state = {
                 "query": request.query,
                 "kb_name": request.kb_name,
@@ -528,24 +526,74 @@ async def graph_chat(request: GraphChatRequest = Body(..., description="Graph Ch
                 "score_threshold": request.score_threshold,
                 "model": request.model,
                 "temperature": request.temperature,
-                "user_id": 1,  # TODO: 从current_user获取
-                "user_profile": {},  # 空字典，将由LLM决定是否通过tool加载
+                "user_id": 1,  
                 "query_kb_pairs": [],
                 "context": "",
                 "sources": [],
-                "answer": "",  # 新增：接收LLM的最终回答
             }
-            result = graph_app.invoke(initial_state, {"configurable": {"thread_id": "1"}})
-            # result是GraphChatState字典，包含answer、context、sources等字段
-            logger.info(f"Graph执行完成，answer长度={len(result.get('answer', ''))}")
-            
-            # 构造返回数据
-            response_data = {
-                "answer": result.get("answer", ""),
-                "docs": result.get("sources", [])
-            }
-            yield json.dumps(response_data, ensure_ascii=False)
-          
+
+            message_id = f"msg_{uuid.uuid4().hex}"
+            full_response = ""
+            final_sources = []
+
+            # 使用 v2 版本的 astream_events
+            async for event in graph_app.astream_events(
+                initial_state, 
+                version="v2", 
+                config={"configurable": {"thread_id": "1"}}
+            ):
+                kind = event["event"]
+                print(event)
+                
+                # 1. 处理流式输出的 token
+                if kind == "on_chat_model_stream":
+                    content = event["data"]["chunk"].content
+                    print(f"this is content {content}")
+                    if content:
+                        full_response += content
+                        ret = OpenAIChatOutput(
+                            id=message_id,
+                            object="chat.completion.chunk",
+                            content=content,
+                            role="assistant",
+                            model=request.model,
+                        )
+                        ret_dict = ret.model_dump()
+                        # 在流式过程中，如果已经拿到了 sources，可以带上
+                        ret_dict["sources"] = final_sources
+                        yield json.dumps(ret_dict, ensure_ascii=False)
+
+                # 2. 处理中间状态（如检索到的 sources）
+                # 当 retrieve 节点结束时，我们可以从输出中拿到 sources
+                elif kind == "on_chain_end":
+                    # 如果是整个 graph 结束，或者特定 retrieve 逻辑结束
+                    if "sources" in event["data"].get("output", {}):
+                        final_sources = event["data"]["output"]["sources"]
+
+            # 3. 最后存库逻辑（参考之前实现的存库流程）
+            try:
+                from db.repository.message_repository import add_message_to_db
+                # 获取 trace_id
+                trace_id = None
+                run_tree = get_current_run_tree()
+                if run_tree:
+                    trace_id = str(run_tree.trace_id)
+
+                add_message_to_db(
+                    message_id=message_id,
+                    conversation_id=f"conv_{uuid.uuid4().hex}", # 或者从 request 获取
+                    chat_type="graph_chat",
+                    query=request.query,
+                    response=full_response,
+                    trace_id=trace_id,
+                    meta_data={
+                        "kb_name": request.kb_name,
+                        "model": request.model,
+                        "sources": final_sources,
+                    },
+                )
+            except Exception as e:
+                logger.error(f"GraphChat 存库失败: {e}")
         except Exception as e:
             logger.exception(e)
             yield json.dumps({"error": str(e)})
