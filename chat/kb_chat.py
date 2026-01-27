@@ -1,7 +1,6 @@
 import json
 import uuid
 from typing import AsyncIterable, TypedDict, Annotated, List, Dict
-
 from fastapi import Body, UploadFile, File, Form, Depends
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
@@ -22,7 +21,6 @@ from .rag import setup_rag_tools
 from .auth_middleware import get_current_user
 from utils import get_ChatOpenAI, get_config_models
 from langsmith import traceable, get_current_run_tree
-
 load_dotenv()
 
 logger = build_logger()
@@ -536,17 +534,14 @@ async def graph_chat(request: GraphChatRequest = Body(..., description="Graph Ch
             full_response = ""
             final_sources = []
 
-            # 使用 v2 版本的 astream_events
             async for event in graph_app.astream_events(
                 initial_state, 
                 version="v2", 
                 config={"configurable": {"thread_id": "1"}}
             ):
                 kind = event["event"]
-                # 1. 处理流式输出的 token
                 if kind == "on_chat_model_stream":
                     content = event["data"]["chunk"].content
-                    print(f"this is content {content}")
                     if content:
                         full_response += content
                         ret = OpenAIChatOutput(
@@ -557,7 +552,6 @@ async def graph_chat(request: GraphChatRequest = Body(..., description="Graph Ch
                             model=request.model,
                         )
                         ret_dict = ret.model_dump()
-                        # 在流式过程中，如果已经拿到了 sources，可以带上
                         ret_dict["sources"] = final_sources
                         yield json.dumps(ret_dict, ensure_ascii=False)
 
@@ -596,7 +590,6 @@ async def graph_chat(request: GraphChatRequest = Body(..., description="Graph Ch
             logger.exception(e)
             yield json.dumps({"error": str(e)})
             return
-    
     return EventSourceResponse(graph_chat_iterator())
                 
 

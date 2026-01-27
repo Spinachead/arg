@@ -2,12 +2,13 @@ import json
 import os
 from typing import TypedDict, List, Dict, Any, Annotated
 from dotenv import load_dotenv
+from langchain_community.chat_models import LlamaEdgeChatService
 from langchain_core.messages import AnyMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import StateGraph, START, END, add_messages
 from pydantic import BaseModel, Field
 from langchain_core.tools import tool
-
+from langgraph.prebuilt import ToolNode, tools_condition
 from db.repository.user_memory_repository import get_user_profile_from_memories
 from db.repository.knowledge_base_repository import list_kbs_from_db
 from knowledge_base.kb_doc_api import search_docs
@@ -31,16 +32,6 @@ class GraphChatState(TypedDict):
     sources: List[str]
     messages: Annotated[list[AnyMessage], add_messages]
 
- # 获取模型配置
-model_info = get_config_models(model_name="qwen-max", model_type="llm")
-model_config = model_info["qwen-max"]
-llm = get_ChatOpenAI(
-    model_name="qwen-max",
-    openai_api_base=model_config["api_base_url"],
-    openai_api_key=model_config["api_key"],
-)
-
-
 @tool
 def load_user_profile_tool(user_id: int) -> Dict[str, Any]:
     """
@@ -62,10 +53,6 @@ def load_user_profile_tool(user_id: int) -> Dict[str, Any]:
     return user_profile
 
 
-tools = [load_user_profile_tool]
-llm_with_tools = llm.bind_tools(tools)
-
-
 from langchain_core.runnables import RunnableConfig
 
 async def generate_queries_node(state: GraphChatState, config: RunnableConfig) -> Dict[str, Any]:
@@ -77,21 +64,20 @@ async def generate_queries_node(state: GraphChatState, config: RunnableConfig) -
     available_kbs = list_kbs_from_db()
     kb_info_str = "\n".join([f"- {kb.kb_name}: {kb.kb_info or '无描述'}" for kb in available_kbs])
     
-    # 获取模型配置并初始化
     model_info = get_config_models(model_name=model_name, model_type="llm")
     if model_name not in model_info:
         model_name = "qwen-max"
         model_info = get_config_models(model_name=model_name, model_type="llm")
     
     model_conf = model_info[model_name]
-    llm_instance = get_ChatOpenAI(
+    llm = get_ChatOpenAI(
         model_name=model_name,
         openai_api_base=model_conf["api_base_url"],
         openai_api_key=model_conf["api_key"],
         streaming=True
     )
     
-    structured_llm = llm_instance.with_structured_output(MultiQueryResult)
+    structured_llm = llm.with_structured_output(MultiQueryResult)
     
     query_gen_prompt = ChatPromptTemplate.from_messages([
         ("system", """你是一个专业的查询分析和改写助手。根据用户的原始查询，你需要：
@@ -105,13 +91,12 @@ async def generate_queries_node(state: GraphChatState, config: RunnableConfig) -
     ])
     
     try:
-        # 传递 config 以便 astream_events 追踪内部调用
         result = await structured_llm.ainvoke(
             query_gen_prompt.format(
                 query=query, 
                 kb_list=kb_info_str,
             ),
-            config
+            config,
         )
         query_kb_pairs = [{"query": q.query, "kb_name": q.kb_name} for q in result.queries]
         if len(query_kb_pairs) < 3:
@@ -172,34 +157,35 @@ async def retrieve_documents_node(state: GraphChatState, config: RunnableConfig)
 
 async def llm_call_node(state: GraphChatState, config: RunnableConfig) -> Dict[str, Any]:
     """ 调用LLM生成最终回复 """
-    # 1. 获取模型配置
     model_name = state.get("model", "qwen-max")
     temperature = state.get("temperature", 0.5)
-    
     model_info = get_config_models(model_name=model_name, model_type="llm")
     if model_name not in model_info:
         model_name = "qwen-max"
         model_info = get_config_models(model_name=model_name, model_type="llm")
-    
     model_conf = model_info[model_name]
-    
-    # 2. 初始化支持流式的 LLM
-    llm_instance = get_ChatOpenAI(
+    llm = get_ChatOpenAI(
         model_name=model_name,
         temperature=temperature,
         openai_api_base=model_conf["api_base_url"],
         openai_api_key=model_conf["api_key"],
         streaming=True
     )
+    llm_with_tools = llm.bind_tools([load_user_profile_tool])
     
     prompt_template = get_prompt_template("rag", "default")
+    system_prompt = f"""{prompt_template}
+    [环境上下文]
+    - 当前用户 ID: {state.get("user_id", "")}
+    - 请根据工具的描述，在必要时调用它们以获取准确信息。
+    """
     from langchain_core.prompts import ChatPromptTemplate
     chat_prompt = ChatPromptTemplate.from_messages([
+        ("system", system_prompt),
         History(role="user", content=prompt_template).to_msg_template(False)
     ])
 
-    # 3. 使用 ainvoke 并传递 config，确保 astream_events 能捕捉到内部事件
-    chain = chat_prompt | llm_instance
+    chain = chat_prompt | llm_with_tools
     response = await chain.ainvoke({
         "context": state["context"],
         "sources": state["sources"] if state["sources"] else "未知来源",
@@ -213,11 +199,16 @@ def create_graph_chat_app():
     workflow.add_node("generate_queries", generate_queries_node)
     workflow.add_node("retrieve", retrieve_documents_node)
     workflow.add_node("llm_call", llm_call_node)
+    workflow.add_node("tools", ToolNode([load_user_profile_tool]))
     
     workflow.add_edge(START, "generate_queries")
     workflow.add_edge("generate_queries", "retrieve")
     workflow.add_edge("retrieve", "llm_call")
-    workflow.add_edge("llm_call", END)
+    workflow.add_conditional_edges(
+        "llm_call",
+        tools_condition,
+    )
+    workflow.add_edge("tools", "llm_call")
     checkpointer = MemorySaver()
     
     return workflow.compile(checkpointer=checkpointer)
