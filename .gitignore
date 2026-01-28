@@ -6,3 +6,4 @@ __pycache__/
 /log
 /data
 /chroma_db
+.chainlit/translations
