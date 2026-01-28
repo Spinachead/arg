@@ -1,7 +1,7 @@
 {
   "embedding_model": "text-embedding-3-small",
   "inference_model_params": {
-    "model": "openai/deepseek-chat",
+    "model": "deepseek-chat",
     "temperature": 0.0,
     "streaming": true,
     "openai_api_base": "https://api.deepseek.com/v1",

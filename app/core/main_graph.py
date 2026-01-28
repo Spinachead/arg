@@ -9,5 +9,7 @@ from core.state_graph.nodes.main_graph.test import testRes
 def build_main_graph():
     builder = StateGraph(AgentState, input=InputState)
     builder.add_node("test", testRes)
+    builder.add_edge(START, "test")
+    builder.add_edge("test", END)
     
     return builder.compile()
