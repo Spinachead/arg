@@ -4,7 +4,6 @@ from langchain.embeddings.base import Embeddings
 
 from langchain_core.documents import Document
 
-# 延迟导入 KBService 以避免循环导入
 from knowledge_base.kb_service.base import SupportedVSType
 from utils import get_default_embedding
 

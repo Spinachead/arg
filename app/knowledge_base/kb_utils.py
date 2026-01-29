@@ -15,8 +15,7 @@ from langchain_core.documents import Document
 from langchain_text_splitters import MarkdownHeaderTextSplitter, CharacterTextSplitter, TextSplitter
 
 from settings import Settings
-from utils import run_in_thread_pool, api_address
-from utils import build_logger
+from utils import run_in_thread_pool, api_address, build_logger
 logger = build_logger()
 
 text_splitter_dict: t.Dict[str, t.Dict[str, t.Any]] = {

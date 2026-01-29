@@ -9,7 +9,7 @@ from langchain_core.documents import Document
 
 from file_rag.utils import get_Retriever
 from knowledge_base.kb_service.base import KBService, SupportedVSType
-from knowledge_base.utils import get_vs_path, get_kb_path, KnowledgeFile
+from knowledge_base.kb_utils import get_vs_path, get_kb_path, KnowledgeFile
 from settings import Settings
 from utils import get_Embeddings, build_logger,sanitize_metadata
 

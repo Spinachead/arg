@@ -7,7 +7,7 @@ from langchain_core.documents import Document
 from file_rag.utils import get_Retriever
 from knowledge_base.kb_cache.faiss_cache import ThreadSafeFaiss, kb_faiss_pool
 from knowledge_base.kb_service.base import KBService, SupportedVSType
-from knowledge_base.utils import get_vs_path, get_kb_path, KnowledgeFile
+from knowledge_base.kb_utils import get_vs_path, get_kb_path, KnowledgeFile
 from utils import build_logger
 logger = build_logger()
 
@@ -74,7 +74,7 @@ class FaissKBService(KBService):
                 top_k=top_k,
                 score_threshold=score_threshold,
             )
-            # logger.info(f"这是retriever：{retriever}")
+            logger.info(f"这是retriever：{retriever}")
             if retriever is None:
                 logger.warning("Failed to create ensemble retriever, returning empty results")
                 return []

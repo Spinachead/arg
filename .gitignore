@@ -1,9 +1,12 @@
 /.idea
 /.vscode
 /.vagrant
+/.files
+/.qoder
 .env
 __pycache__/
 /log
 /data
 /chroma_db
 .chainlit/translations
+app/data

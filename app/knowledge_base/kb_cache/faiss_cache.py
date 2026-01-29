@@ -4,7 +4,7 @@ from langchain_community.docstore import InMemoryDocstore
 from langchain_core.documents import Document
 
 from knowledge_base.kb_cache.base import *
-from knowledge_base.utils import get_vs_path
+from knowledge_base.kb_utils import get_vs_path
 from utils import get_Embeddings, get_default_embedding
 from utils import build_logger
 logger = build_logger()

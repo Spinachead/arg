@@ -27,7 +27,7 @@ from knowledge_base.kb_service.base import (
     KBServiceFactory,
     SupportedVSType,
 )
-from knowledge_base.utils import (
+from knowledge_base.kb_utils import (
     KnowledgeFile,
     files2docs_in_thread,
     get_file_path,

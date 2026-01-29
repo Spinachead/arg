@@ -2,22 +2,16 @@ import json
 import os
 import urllib
 from typing import List, Dict
-
 from fastapi import Body, UploadFile, File, Form
 from langchain_core.documents import Document
-
 from db.repository.knowledge_base_repository import list_kbs_from_db
 from db.repository.knowledge_file_repository import get_file_detail
 from knowledge_base.kb_service.base import KBServiceFactory, get_kb_file_details
 from knowledge_base.model.kb_document_model import DocumentWithVSId
-from knowledge_base.utils import get_file_path, KnowledgeFile, files2docs_in_thread
+from knowledge_base.kb_utils import get_file_path, KnowledgeFile, files2docs_in_thread
 from settings import Settings
 from utils import build_logger, BaseResponse, get_default_embedding, ListResponse, run_in_thread_pool
-
 logger = build_logger()
-
-
-
 
 def search_docs(
         query: str = Body("", description="用户输入", examples=["你好"]),

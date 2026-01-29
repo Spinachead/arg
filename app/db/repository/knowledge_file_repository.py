@@ -3,7 +3,7 @@ from typing import Dict, List
 from db.models.knowledge_base_model import KnowledgeBaseModel
 from db.models.knowledge_file_model import FileDocModel, KnowledgeFileModel
 from db.session import with_session
-from knowledge_base.utils import KnowledgeFile
+from knowledge_base.kb_utils import KnowledgeFile
 
 
 @with_session

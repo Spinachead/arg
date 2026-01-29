@@ -3,17 +3,14 @@ import os
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
-
 from langchain_core.documents import Document
-
 from db.models.knowledge_base_model import KnowledgeBaseSchema
 from db.repository.knowledge_base_repository import add_kb_to_db, list_kbs_from_db, kb_exists, load_kb_from_db, \
     delete_kb_from_db
 from db.repository.knowledge_file_repository import add_file_to_db, delete_file_from_db, file_exists_in_db, \
     list_files_from_db, count_files_from_db, list_docs_from_db, get_file_detail, delete_files_from_db
-# DefaultKBService will be imported locally when needed to avoid circular imports
 from knowledge_base.model.kb_document_model import DocumentWithVSId
-from knowledge_base.utils import KnowledgeFile, list_kbs_from_folder, list_files_from_folder, get_kb_path, get_doc_path
+from knowledge_base.kb_utils import KnowledgeFile, list_kbs_from_folder, list_files_from_folder, get_kb_path, get_doc_path
 import typing as t
 
 from utils import get_default_embedding,build_logger

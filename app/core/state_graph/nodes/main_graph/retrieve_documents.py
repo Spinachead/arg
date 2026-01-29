@@ -14,12 +14,13 @@ async def retrieve_documents(state: AgentState, *, config: RunnableConfig) -> Di
         q = pair["query"]
         target_kb = pair["kb_name"]
         kb_to_use = target_kb if target_kb else "low"
+        print(f"正在检索知识库: {kb_to_use}, 查询词: {q}")
         
         docs = search_docs(
             query=q,
             knowledge_base_name=kb_to_use,
-            top_k=2,
-            score_threshold=0.5,
+            top_k=5,
+            score_threshold=2.0,
             file_name="",
             metadata={}
         )
