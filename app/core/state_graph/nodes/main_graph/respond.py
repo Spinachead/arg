@@ -5,6 +5,7 @@ from langchain_core.messages import BaseMessage
 from config import config as app_config
 from utils import get_prompt_template, History
 from typing import Dict, Any
+from langchain_core.prompts import ChatPromptTemplate
 
 
 async def respond(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
@@ -16,7 +17,6 @@ async def respond(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
     - 当前用户 ID: {state.user_id}
     - 请根据工具的描述，在必要时调用它们以获取准确信息。
     """
-    from langchain_core.prompts import ChatPromptTemplate
     chat_prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt),
         History(role="user", content=prompt_template).to_msg_template(False)

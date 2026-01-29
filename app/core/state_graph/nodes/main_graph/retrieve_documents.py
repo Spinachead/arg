@@ -7,7 +7,6 @@ from typing import Dict, Any
 async def retrieve_documents(state: AgentState, *, config: RunnableConfig) -> Dict[str, Any]:
     """使用多个查询变体检索文档并合并结果"""
     query_kb_pairs = state.query_kb_pairs
-    original_query = state.messages[-1].content
     all_docs = []
     doc_id_set = set()
     
@@ -30,9 +29,10 @@ async def retrieve_documents(state: AgentState, *, config: RunnableConfig) -> Di
                 doc_id_set.add(doc_id)
                 all_docs.append(doc)
     
-    
+    print(f"检索到的文档内容：{all_docs}")
     source_documents = format_reference("low", all_docs, "")
     context = "\n\n".join([doc.get("page_content", "") for doc in all_docs])
+    print(f"这是检索到的文档：\n{context}")
     return {
         "context": context,
         "sources": source_documents,

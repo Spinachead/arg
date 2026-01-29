@@ -3,6 +3,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.runnables import Runnable
 from core.state_graph.states.main_graph.router import Router
 from core.state_graph.states.main_graph.input_state import InputState
+from langsmith import traceable, get_current_run_tree
 
 
 @cl.step(type="llm", name="Classify Request", show_input=False)
@@ -12,7 +13,7 @@ async def classification_step(classification: Router):
         f"Classified as **{classification.type}** with the logic: _{classification.logic}_"
     )
 
-
+@traceable(name="on_message")
 async def execute(message: cl.Message):
     graph: Runnable = cl.user_session.get("graph")
     state: InputState = cl.user_session.get("state")
@@ -33,7 +34,6 @@ async def execute(message: cl.Message):
                         await classification_step(router)
                         continue
                 
-                # Fallback: get from input (DeepSeek compatibility)
                 input_data = event["data"].get("input")
                 if input_data is not None and hasattr(input_data, "router"):
                     router = input_data.router
@@ -53,4 +53,3 @@ async def execute(message: cl.Message):
     await ui_message.update()
 
     state.messages += [AIMessage(content=ui_message.content)]
-
