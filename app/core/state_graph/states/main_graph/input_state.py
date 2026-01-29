@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Annotated
 from langchain_core.messages import AnyMessage
 from langgraph.graph import add_messages
@@ -13,4 +13,4 @@ class InputState:
         messages (list[AnyMessage]): The list of messages associated with the state, 
             processed using the add_messages function.
     """
-    messages: Annotated[list[AnyMessage], add_messages]
+    messages: Annotated[list[AnyMessage], add_messages] = field(default_factory=list)

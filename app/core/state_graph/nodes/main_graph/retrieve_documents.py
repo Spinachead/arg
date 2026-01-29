@@ -1,0 +1,40 @@
+from core.state_graph.states.main_graph.agent_state import AgentState
+from knowledge_base.kb_doc_api import search_docs
+from utils import format_reference
+from langchain_core.runnables import RunnableConfig
+from typing import Dict, Any
+
+async def retrieve_documents(state: AgentState, *, config: RunnableConfig) -> Dict[str, Any]:
+    """使用多个查询变体检索文档并合并结果"""
+    query_kb_pairs = state.query_kb_pairs
+    original_query = state.messages[-1].content
+    all_docs = []
+    doc_id_set = set()
+    
+    for pair in query_kb_pairs:
+        q = pair["query"]
+        target_kb = pair["kb_name"]
+        kb_to_use = target_kb if target_kb else "low"
+        
+        docs = search_docs(
+            query=q,
+            knowledge_base_name=kb_to_use,
+            top_k=2,
+            score_threshold=0.5,
+            file_name="",
+            metadata={}
+        )
+        for doc in docs:
+            doc_id = doc.get("id") or doc.get("metadata", {}).get("id")
+            if doc_id and doc_id not in doc_id_set:
+                doc_id_set.add(doc_id)
+                all_docs.append(doc)
+    
+    
+    source_documents = format_reference("low", all_docs, "")
+    context = "\n\n".join([doc.get("page_content", "") for doc in all_docs])
+    return {
+        "context": context,
+        "sources": source_documents,
+    }
+

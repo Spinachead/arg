@@ -21,7 +21,6 @@ async def execute(message: cl.Message):
     ui_message = cl.Message(content="")
     await ui_message.send()
     async for event in graph.astream_events(state, version="v2"):
-        print(event)
         if event["event"] == "on_chain_end" and event["name"] == "test":
             # Try to get router from event input (contains updated state)
             # For DeepSeek and other models, output might be None, but input contains the updated state
