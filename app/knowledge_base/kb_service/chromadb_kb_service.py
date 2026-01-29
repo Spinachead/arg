@@ -7,7 +7,7 @@ from chromadb.api.types import GetResult, QueryResult
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 
-from file_rag.utils import get_Retriever
+from file_rag.fr_utils import get_Retriever
 from knowledge_base.kb_service.base import KBService, SupportedVSType
 from knowledge_base.kb_utils import get_vs_path, get_kb_path, KnowledgeFile
 from settings import Settings
@@ -105,6 +105,7 @@ class ChromaKBService(KBService):
             top_k=top_k,
             score_threshold=score_threshold,
         )
+        # print(f"这是chromadb retriever：{retriever}")
         docs = retriever.get_relevant_documents(query)
         return docs
 

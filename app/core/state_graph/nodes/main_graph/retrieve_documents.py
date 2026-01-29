@@ -24,6 +24,7 @@ async def retrieve_documents(state: AgentState, *, config: RunnableConfig) -> Di
             file_name="",
             metadata={}
         )
+        print(f"检索到的文档：{docs}")
         for doc in docs:
             doc_id = doc.get("id") or doc.get("metadata", {}).get("id")
             if doc_id and doc_id not in doc_id_set:
