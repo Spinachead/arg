@@ -105,7 +105,6 @@ class EnsembleRetrieverService(BaseRetrieverService):
             return []
         try:
             docs = self.retriever.invoke(query)
-            print(f"这是获取到的docs：{docs}和query：{query}")
             return docs[: self.top_k]
         except Exception as e:
             logger.exception(f"Error getting relevant documents: {e}")

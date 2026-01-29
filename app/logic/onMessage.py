@@ -44,6 +44,11 @@ async def execute(message: cl.Message):
             classification = event["data"]["output"]["router"]
             await classification_step(classification)
         
+        if event["event"] == "on_chat_model_stream":
+            content = event["data"]["chunk"].content
+            if content:
+                await ui_message.stream_token(content)
+
         if event["event"] == "on_chain_end":
             output = event['data'].get('output')
             if isinstance(output, dict) and "messages" in output:

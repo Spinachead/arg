@@ -14,7 +14,6 @@ async def retrieve_documents(state: AgentState, *, config: RunnableConfig) -> Di
         q = pair["query"]
         target_kb = pair["kb_name"]
         kb_to_use = target_kb if target_kb else "low"
-        print(f"正在检索知识库: {kb_to_use}, 查询词: {q}")
         
         docs = search_docs(
             query=q,
@@ -24,9 +23,7 @@ async def retrieve_documents(state: AgentState, *, config: RunnableConfig) -> Di
             file_name="",
             metadata={}
         )
-        print(f"检索到的文档：{docs}")
         for doc in docs:
-            # 优先从顶级 id 获取，其次从 metadata 获取，最后使用内容哈希防止过滤掉无 ID 的文档
             doc_id = doc.get("id") or doc.get("metadata", {}).get("id")
             if not doc_id:
                 import hashlib
@@ -37,10 +34,8 @@ async def retrieve_documents(state: AgentState, *, config: RunnableConfig) -> Di
                 doc_id_set.add(doc_id)
                 all_docs.append(doc)
     
-    print(f"检索到的文档内容：{all_docs}")
     source_documents = format_reference("low", all_docs, "")
     context = "\n\n".join([doc.get("page_content", "") for doc in all_docs])
-    print(f"这是检索到的文档：\n{context}")
     return {
         "context": context,
         "sources": source_documents,
