@@ -38,9 +38,17 @@ class EnsembleRetrieverService(BaseRetrieverService):
                 try:
                     raw = vectorstore._collection.get(include=["documents", "metadatas"])
                     if raw and raw.get("documents"):
+                        ids = raw.get("ids", [None] * len(raw["documents"]))
+                        metadatas = raw.get("metadatas", [{}] * len(raw["documents"]))
+                        for i, meta in enumerate(metadatas):
+                            if meta is None:
+                                metadatas[i] = {}
+                            if ids[i]:
+                                metadatas[i]["id"] = ids[i]
+                        
                         docs = [
-                            Document(page_content=doc, metadata=meta or {})
-                            for doc, meta in zip(raw["documents"], raw.get("metadatas", [{}] * len(raw["documents"])))
+                            Document(page_content=doc, metadata=meta)
+                            for doc, meta in zip(raw["documents"], metadatas)
                         ]
                         logger.info(f"Found {len(docs)} documents in Chroma vectorstore")
                     else:

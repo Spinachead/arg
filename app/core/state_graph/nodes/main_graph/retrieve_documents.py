@@ -26,8 +26,14 @@ async def retrieve_documents(state: AgentState, *, config: RunnableConfig) -> Di
         )
         print(f"检索到的文档：{docs}")
         for doc in docs:
+            # 优先从顶级 id 获取，其次从 metadata 获取，最后使用内容哈希防止过滤掉无 ID 的文档
             doc_id = doc.get("id") or doc.get("metadata", {}).get("id")
-            if doc_id and doc_id not in doc_id_set:
+            if not doc_id:
+                import hashlib
+                content = doc.get("page_content", "")
+                doc_id = hashlib.md5(content.encode()).hexdigest()
+
+            if doc_id not in doc_id_set:
                 doc_id_set.add(doc_id)
                 all_docs.append(doc)
     
