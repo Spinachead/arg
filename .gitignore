@@ -10,3 +10,4 @@ __pycache__/
 /chroma_db
 .chainlit/translations
 app/data
+app/.chainlit/translations

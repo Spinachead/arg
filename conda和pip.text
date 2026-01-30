@@ -16,3 +16,7 @@ conda list | findstr numpy 搜索特定包
 conda remove numpy 卸载包
 
 
+热部署chainlit的方法
+conda activate torch_env
+cd /d E:\pythonPro\arg\app
+python -m chainlit run app.py -w
