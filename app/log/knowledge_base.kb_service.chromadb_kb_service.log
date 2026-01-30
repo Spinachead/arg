@@ -1,6 +1,0 @@
-2026-01-30 15:10:20.473 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:37 - Detected Chroma vectorstore
-2026-01-30 15:10:20.872 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:53 - Found 395 documents in Chroma vectorstore
-2026-01-30 15:10:28.638 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:37 - Detected Chroma vectorstore
-2026-01-30 15:10:28.645 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:53 - Found 395 documents in Chroma vectorstore
-2026-01-30 15:10:32.964 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:37 - Detected Chroma vectorstore
-2026-01-30 15:10:32.973 | INFO     | file_rag.retrievers.ensemble:from_vectorstore:53 - Found 395 documents in Chroma vectorstore
