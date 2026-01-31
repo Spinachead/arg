@@ -7,26 +7,26 @@ from core.state_graph.states.main_graph.input_state import InputState
 from langsmith import traceable, get_current_run_tree
 from db.repository.message_repository import add_message_to_db
 
-@cl.step(type="llm", name="查询变体", show_input=False)
-async def generate_queries_step(plan: dict):
+@cl.step(type="llm", name="查询优化", show_input=False)
+async def generate_queries_step(data: dict):
     current_step = cl.context.current_step
-    steps = plan.get("steps") or plan.get("query_kb_pairs") or []
-    for i, step in enumerate(steps):
-        question = step.get("question") or step.get("query")
-        stype = step.get("type") or step.get("kb_name")
+    pairs = data.get("query_kb_pairs") or data.get("steps") or []
+    for i, pair in enumerate(pairs):
+        query = pair.get("query") or pair.get("question")
+        kb_name = pair.get("kb_name") or pair.get("type")
         await current_step.stream_token(
-            f"{i+1}. **{stype}**: {question}\n"
+            f"{i+1}. **{kb_name}**: {query}\n"
         )
 
 
-@cl.step(type="llm", name="Classify Request", show_input=False)
-async def classification_step(classification: Router):
-    current_step = cl.context.current_step
-    await current_step.stream_token(
-        f"Classified as **{classification.type}** with the logic: _{classification.logic}_"
-    )
+@cl.step(type="retrieval", name="知识检索", show_input=False)
+async def retrieve_documents_step(data: dict):
+    sources = data.get("sources", [])
+    count = len(sources) if isinstance(sources, list) else 0
+    cl.context.current_step.output = f"检索完成：共找到 {count} 份相关内容"
+   
 
-@traceable(name="on_message")
+# @traceable(name="on_message")
 async def execute(message: cl.Message):
     graph: Runnable = cl.user_session.get("graph")
     state: InputState = cl.user_session.get("state")
@@ -40,34 +40,10 @@ async def execute(message: cl.Message):
         if event_event == "on_chain_end":
             if event_name == "generate_queries":
                 steps = event.get("data").get("output")
-                print(f"这是steps:{steps}")
                 await generate_queries_step(steps)
-            
-        if event["event"] == "on_chain_end" and event["name"] == "test":
-          
-            if event.get("data") is not None and isinstance(event["data"], dict):
-                # First try to get from output (ChatGPT compatibility)
-                output = event["data"].get("output")
-                if output is not None and isinstance(output, dict):
-                    router = output.get("router")
-                    if router is not None:
-                        await classification_step(router)
-                        continue
-                
-                input_data = event["data"].get("input")
-                if input_data is not None and hasattr(input_data, "router"):
-                    router = input_data.router
-                    if router is not None:
-                        await classification_step(router)
-
-        if event["name"] == "analyze_and_route_query": 
-            classification = event["data"]["output"]["router"]
-            await classification_step(classification)
-        
-        if event["event"] == "on_chat_model_stream":
-            content = event["data"]["chunk"].content
-            if content:
-                await ui_message.stream_token(content)
+            if event_name == "retrieve_documents":
+                steps = event.get("data").get("output")
+                await retrieve_documents_step(steps)
 
         if event["event"] == "on_chain_end":
             output = event['data'].get('output')
@@ -78,19 +54,3 @@ async def execute(message: cl.Message):
     await ui_message.update()
 
     state.messages += [AIMessage(content=ui_message.content)]
-
-    # 将消息存入数据库以实现历史记录持久化
-    try:
-        user = cl.user_session.get("user")
-        conversation_id = user.identifier if user else cl.user_session.get("id")
-        add_message_to_db(
-            message_id=str(uuid.uuid4()),
-            conversation_id=conversation_id,
-
-            chat_type="graph_chat",  # 或者根据实际情况设置
-            query=question,
-            response=ui_message.content,
-            meta_data={}
-        )
-    except Exception as e:
-        print(f"Error saving message to DB: {e}")
