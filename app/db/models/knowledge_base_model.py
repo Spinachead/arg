@@ -3,6 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, Integer, String, func
+from sqlalchemy.dialects.postgresql import UUID
 
 from db.base import Base
 
@@ -13,7 +14,7 @@ class KnowledgeBaseModel(Base):
     """
 
     __tablename__ = "knowledge_base"
-    id = Column(String(36), primary_key=True, comment="知识库ID")
+    id = Column(UUID(as_uuid=False), primary_key=True, comment="知识库ID")
     kbName = Column(String(50), name="kbName", comment="知识库名称")
     kbInfo = Column(String(200), name="kbInfo", comment="知识库简介(用于Agent)")
     vsType = Column(String(50), name="vsType", comment="向量库类型")

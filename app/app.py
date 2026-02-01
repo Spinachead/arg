@@ -1,12 +1,16 @@
 import chainlit as cl
 import os
 from dotenv import load_dotenv
+from db.session import init_db
 from logic.onMessage import execute as onMessage
 from logic.onChatStart import execute as onChatStart
 from logic.authCallback import execute as authCallback
 from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
 
 load_dotenv()
+
+# 在启动时初始化数据库表
+init_db()
 
 @cl.on_chat_start
 async def start():

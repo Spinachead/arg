@@ -3,8 +3,15 @@ from functools import wraps
 
 from sqlalchemy.orm import Session
 
-from db.base import SessionLocal
+from db.base import SessionLocal, engine, Base, import_models
 
+def init_db():
+    """
+    初始化数据库，创建所有缺失的表
+    """
+    import_models()
+    Base.metadata.create_all(bind=engine)
+    print("Database tables initialized successfully.")
 
 @contextmanager
 def session_scope() -> Session:

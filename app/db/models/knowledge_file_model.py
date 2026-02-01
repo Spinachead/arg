@@ -1,4 +1,5 @@
 from sqlalchemy import JSON, Boolean, Column, DateTime, Float, Integer, String, func
+from sqlalchemy.dialects.postgresql import UUID
 
 from db.base import Base
 
@@ -9,7 +10,7 @@ class KnowledgeFileModel(Base):
     """
 
     __tablename__ = "knowledge_file"
-    id = Column(String(36), primary_key=True, comment="知识文件ID")
+    id = Column(UUID(as_uuid=False), primary_key=True, comment="知识文件ID")
     fileName = Column(String(255), name="fileName", comment="文件名")
     fileExt = Column(String(10), name="fileExt", comment="文件扩展名")
     kbName = Column(String(50), name="kbName", comment="所属知识库名称")
@@ -32,11 +33,11 @@ class FileDocModel(Base):
     """
 
     __tablename__ = "file_doc"
-    id = Column(String(36), primary_key=True, comment="ID")
+    id = Column(UUID(as_uuid=False), primary_key=True, comment="ID")
     kbName = Column(String(50), name="kbName", comment="知识库名称")
     fileName = Column(String(255), name="fileName", comment="文件名称")
     docId = Column(String(50), name="docId", comment="向量库文档ID")
-    metadata = Column(JSON, name="metadata", default={})
+    metadata_ = Column(JSON, name="metadata", default={})
 
     def __repr__(self):
-        return f"<FileDoc(id='{self.id}', kbName='{self.kbName}', fileName='{self.fileName}', docId='{self.docId}', metadata='{self.metadata}')>"
+        return f"<FileDoc(id='{self.id}', kbName='{self.kbName}', fileName='{self.fileName}', docId='{self.docId}', metadata='{self.metadata_}')>"

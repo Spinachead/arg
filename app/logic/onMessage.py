@@ -5,7 +5,6 @@ from langchain_core.runnables import Runnable
 from core.state_graph.states.main_graph.router import Router
 from core.state_graph.states.main_graph.input_state import InputState
 from langsmith import traceable, get_current_run_tree
-from db.repository.message_repository import add_message_to_db
 
 @cl.step(type="llm", name="查询优化", show_input=False)
 async def generate_queries_step(data: dict):

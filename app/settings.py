@@ -94,9 +94,9 @@ class BasicSettings(BaseFileSettings):
 
     DB_ROOT_PATH: str = str(CHATCHAT_ROOT / "data/knowledge_base/info.db")
     """数据库默认存储路径。如果使用sqlite，可以直接修改DB_ROOT_PATH；如果使用其它数据库，请直接修改SQLALCHEMY_DATABASE_URI。"""
-
-    SQLALCHEMY_DATABASE_URI: str = "sqlite:///" + str(CHATCHAT_ROOT / "data/knowledge_base/info.db")
-    """知识库信息数据库连接URI"""
+    
+    SQLALCHEMY_DATABASE_URI: str = os.getenv("DATABASE_URL") or "postgresql://postgres:postgres@127.0.0.1:5432/langchain_chatchat"
+    """知识库信息数据库连接URI。默认优先从环境变量 DATABASE_URL 获取。"""
 
     OPEN_CROSS_DOMAIN: bool = True
     """API 是否开启跨域"""

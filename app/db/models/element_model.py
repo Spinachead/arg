@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, JSON, Integer, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
 from db.base import Base
 
 class ElementModel(Base):
@@ -7,8 +8,8 @@ class ElementModel(Base):
     """
     __tablename__ = "elements"
 
-    id = Column(String(36), primary_key=True, comment="元素ID")
-    threadId = Column(String(36), ForeignKey("threads.id", ondelete="CASCADE"), name="threadId", comment="线程ID")
+    id = Column(UUID(as_uuid=False), primary_key=True, comment="元素ID")
+    threadId = Column(UUID(as_uuid=False), ForeignKey("threads.id", ondelete="CASCADE"), name="threadId", comment="线程ID")
     type = Column(String(50), comment="元素类型")
     url = Column(String(1024), comment="URL")
     chainlitKey = Column(String(255), name="chainlitKey", comment="Chainlit Key")
@@ -18,7 +19,7 @@ class ElementModel(Base):
     size = Column(String(50), comment="大小")
     page = Column(Integer, comment="页码")
     language = Column(String(50), comment="语言")
-    forId = Column(String(36), name="forId", comment="关联ID")
+    forId = Column(UUID(as_uuid=False), name="forId", comment="关联ID")
     mime = Column(String(100), comment="MIME类型")
     props = Column(JSON, comment="属性")
 
