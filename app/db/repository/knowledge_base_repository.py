@@ -1,5 +1,6 @@
 from db.models.knowledge_base_model import KnowledgeBaseModel, KnowledgeBaseSchema
 from db.session import with_session
+import uuid
 
 
 @with_session
@@ -7,18 +8,19 @@ def add_kb_to_db(session, kb_name, kb_info, vs_type, embed_model):
     # 创建知识库实例
     kb = (
         session.query(KnowledgeBaseModel)
-        .filter(KnowledgeBaseModel.kb_name.ilike(kb_name))
+        .filter(KnowledgeBaseModel.kbName.ilike(kb_name))
         .first()
     )
     if not kb:
         kb = KnowledgeBaseModel(
-            kb_name=kb_name, kb_info=kb_info, vs_type=vs_type, embed_model=embed_model
+            id=str(uuid.uuid4()),
+            kbName=kb_name, kbInfo=kb_info, vsType=vs_type, embedModel=embed_model
         )
         session.add(kb)
-    else:  # update kb with new vs_type and embed_model
-        kb.kb_info = kb_info
-        kb.vs_type = vs_type
-        kb.embed_model = embed_model
+    else:  # update kb with new vsType and embedModel
+        kb.kbInfo = kb_info
+        kb.vsType = vs_type
+        kb.embedModel = embed_model
     return True
 
 
@@ -26,7 +28,7 @@ def add_kb_to_db(session, kb_name, kb_info, vs_type, embed_model):
 def list_kbs_from_db(session, min_file_count: int = -1):
     kbs = (
         session.query(KnowledgeBaseModel)
-        .filter(KnowledgeBaseModel.file_count > min_file_count)
+        .filter(KnowledgeBaseModel.fileCount > min_file_count)
         .all()
     )
     kbs = [KnowledgeBaseSchema.model_validate(kb) for kb in kbs]
@@ -37,7 +39,7 @@ def list_kbs_from_db(session, min_file_count: int = -1):
 def kb_exists(session, kb_name):
     kb = (
         session.query(KnowledgeBaseModel)
-        .filter(KnowledgeBaseModel.kb_name.ilike(kb_name))
+        .filter(KnowledgeBaseModel.kbName.ilike(kb_name))
         .first()
     )
     status = True if kb else False
@@ -48,11 +50,11 @@ def kb_exists(session, kb_name):
 def load_kb_from_db(session, kb_name):
     kb = (
         session.query(KnowledgeBaseModel)
-        .filter(KnowledgeBaseModel.kb_name.ilike(kb_name))
+        .filter(KnowledgeBaseModel.kbName.ilike(kb_name))
         .first()
     )
     if kb:
-        kb_name, vs_type, embed_model = kb.kb_name, kb.vs_type, kb.embed_model
+        kb_name, vs_type, embed_model = kb.kbName, kb.vsType, kb.embedModel
     else:
         kb_name, vs_type, embed_model = None, None, None
     return kb_name, vs_type, embed_model
@@ -62,7 +64,7 @@ def load_kb_from_db(session, kb_name):
 def delete_kb_from_db(session, kb_name):
     kb = (
         session.query(KnowledgeBaseModel)
-        .filter(KnowledgeBaseModel.kb_name.ilike(kb_name))
+        .filter(KnowledgeBaseModel.kbName.ilike(kb_name))
         .first()
     )
     if kb:
@@ -74,17 +76,17 @@ def delete_kb_from_db(session, kb_name):
 def get_kb_detail(session, kb_name: str) -> dict:
     kb: KnowledgeBaseModel = (
         session.query(KnowledgeBaseModel)
-        .filter(KnowledgeBaseModel.kb_name.ilike(kb_name))
+        .filter(KnowledgeBaseModel.kbName.ilike(kb_name))
         .first()
     )
     if kb:
         return {
-            "kb_name": kb.kb_name,
-            "kb_info": kb.kb_info,
-            "vs_type": kb.vs_type,
-            "embed_model": kb.embed_model,
-            "file_count": kb.file_count,
-            "create_time": kb.create_time,
+            "kbName": kb.kbName,
+            "kbInfo": kb.kbInfo,
+            "vsType": kb.vsType,
+            "embedModel": kb.embedModel,
+            "fileCount": kb.fileCount,
+            "createdAt": kb.createdAt,
         }
     else:
         return {}

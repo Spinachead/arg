@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS feedbacks (
     FOREIGN KEY ("threadId") REFERENCES threads("id") ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS message (
+CREATE TABLE IF NOT EXISTS messages (
     "id" UUID PRIMARY KEY,
     "threadId" UUID,
     "chatType" TEXT,

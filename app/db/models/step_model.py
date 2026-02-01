@@ -1,5 +1,5 @@
-from sqlalchemy import Column, String, JSON, Boolean, Integer, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, Boolean, Integer, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from db.base import Base
 
 class StepModel(Base):
@@ -16,15 +16,15 @@ class StepModel(Base):
     streaming = Column(Boolean, nullable=False, default=False, comment="是否流式输出")
     waitForAnswer = Column(Boolean, name="waitForAnswer", comment="是否等待回答")
     isError = Column(Boolean, name="isError", comment="是否出错")
-    metadata_ = Column(JSON, name="metadata", comment="元数据")
-    tags = Column(JSON, comment="标签")
+    metadata_ = Column(JSONB, name="metadata", comment="元数据")
+    tags = Column(JSONB, comment="标签")
     input = Column(String, comment="输入内容")
     output = Column(String, comment="输出内容")
     createdAt = Column(String(50), name="createdAt", comment="创建时间")
     command = Column(String(255), comment="命令")
     start = Column(String(50), comment="开始时间")
     end = Column(String(50), comment="结束时间")
-    generation = Column(JSON, comment="生成信息")
+    generation = Column(JSONB, comment="生成信息")
     showInput = Column(String(255), name="showInput", comment="是否显示输入")
     language = Column(String(50), comment="语言")
     indent = Column(Integer, comment="缩进")

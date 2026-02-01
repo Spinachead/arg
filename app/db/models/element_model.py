@@ -1,5 +1,5 @@
-from sqlalchemy import Column, String, JSON, Integer, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, Integer, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from db.base import Base
 
 class ElementModel(Base):
@@ -21,7 +21,7 @@ class ElementModel(Base):
     language = Column(String(50), comment="语言")
     forId = Column(UUID(as_uuid=False), name="forId", comment="关联ID")
     mime = Column(String(100), comment="MIME类型")
-    props = Column(JSON, comment="属性")
+    props = Column(JSONB, comment="属性")
 
     def __repr__(self):
         return f"<Element(id='{self.id}', name='{self.name}', type='{self.type}', threadId='{self.threadId}')>"

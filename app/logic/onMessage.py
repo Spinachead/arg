@@ -5,6 +5,7 @@ from langchain_core.runnables import Runnable
 from core.state_graph.states.main_graph.router import Router
 from core.state_graph.states.main_graph.input_state import InputState
 from langsmith import traceable, get_current_run_tree
+from db.repository.message_repository import add_message_to_db
 
 @cl.step(type="llm", name="查询优化", show_input=False)
 async def generate_queries_step(data: dict):
@@ -26,7 +27,7 @@ async def retrieve_documents_step(data: dict):
    
 
 # @traceable(name="on_message")
-async def execute1(message: cl.Message):
+async def execute(message: cl.Message):
     graph: Runnable = cl.user_session.get("graph")
     state: InputState = cl.user_session.get("state")
     question = message.content
@@ -49,11 +50,43 @@ async def execute1(message: cl.Message):
             content = event["data"]["chunk"].content
             if content:
                 await ui_message.stream_token(content)
+    
     await ui_message.update()
     # 最后同步状态
     state.messages += [AIMessage(content=ui_message.content)]
 
-async def execute(message: cl.Message):
+    # 获取 LangSmith Trace ID (如果有)
+    trace_id = None
+    try:
+        run_tree = get_current_run_tree()
+        if run_tree:
+            trace_id = str(run_tree.id)
+    except Exception:
+        pass
+
+
+    # 保存对话到数据库
+    user = cl.user_session.get("user")
+    user_id = getattr(user, "id", None)
+    add_message_to_db(
+        thread_id=message.thread_id,
+        query=question,
+        response=ui_message.content,
+        message_id=ui_message.id,
+        trace_id=trace_id,
+        chat_type="graph_chat",  # 或者根据实际逻辑调整
+        metadata={"user_id": user_id}
+    )
+
+
+async def execute1(message: cl.Message):
+    user = cl.user_session.get("user")
+    if user:
+        user_id = getattr(user, "id", None)
+        print(f"user_id: {user_id}")
+    else:
+        print("user is None")
+
     actions = [
         cl.Action(
             name="action_button",
