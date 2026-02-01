@@ -27,7 +27,7 @@ async def retrieve_documents_step(data: dict):
    
 
 # @traceable(name="on_message")
-async def execute(message: cl.Message):
+async def execute1(message: cl.Message):
     graph: Runnable = cl.user_session.get("graph")
     state: InputState = cl.user_session.get("state")
     question = message.content
@@ -53,3 +53,17 @@ async def execute(message: cl.Message):
     await ui_message.update()
     # 最后同步状态
     state.messages += [AIMessage(content=ui_message.content)]
+
+async def execute(message: cl.Message):
+    actions = [
+        cl.Action(
+            name="action_button",
+            icon="mouse-pointer-click",
+            payload={"value": "example_value"},
+            label="Click me!"
+        )
+    ]
+    ui_message = cl.Message(content="", actions=actions)
+    await ui_message.send()
+    ui_message.content = "Hello, how can I help you?"
+    await ui_message.update()

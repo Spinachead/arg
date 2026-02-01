@@ -28,11 +28,10 @@ def get_data_layer():
     return SQLAlchemyDataLayer(conninfo=os.getenv("DATABASE_URL"))
 
 
+
 @cl.action_callback("action_button")
-async def on_action(action):
-    await cl.Message(content=f"Executed {action.name}").send()
-    # Optionally remove the action button from the chatbot user interface
-    await action.remove()
+async def on_action(action: cl.Action):
+    print(action.payload)
 
 if __name__ == "__main__":
     from chainlit.cli import run_chainlit

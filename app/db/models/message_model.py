@@ -9,19 +9,16 @@ class MessageModel(Base):
     """
 
     __tablename__ = "message"
-    id = Column(String(32), primary_key=True, comment="聊天记录ID")
-    conversation_id = Column(String(32), default=None, index=True, comment="对话框ID")
-    chat_type = Column(String(50), comment="聊天类型")
+    id = Column(String(36), primary_key=True, comment="聊天记录ID")
+    threadId = Column(String(36), name="threadId", index=True, comment="对话框ID")
+    chatType = Column(String(50), name="chatType", comment="聊天类型")
     query = Column(String(4096), comment="用户问题")
     response = Column(String(4096), comment="模型回答")
     # 记录知识库id等，以便后续扩展
-    meta_data = Column(JSON, default={})
+    metadata = Column(JSON, name="metadata", default={})
     # LangSmith trace id：langsmith.trace.get_current_run_tree().id
-    trace_id = Column(String(255), default=None, index=True, comment="LangSmith Trace Run ID")
-    # 满分100 越高表示评价越好
-    feedback_score = Column(Integer, default=-1, comment="用户评分")
-    feedback_reason = Column(String(255), default="", comment="用户评分理由")
-    create_time = Column(DateTime, default=func.now(), comment="创建时间")
+    traceId = Column(String(255), name="traceId", index=True, comment="LangSmith Trace Run ID")
+    createdAt = Column(String(50), name="createdAt", default=func.now(), comment="创建时间")
 
     def __repr__(self):
-        return f"<message(id='{self.id}', conversation_id='{self.conversation_id}', chat_type='{self.chat_type}', query='{self.query}', response='{self.response}',meta_data='{self.meta_data}',feedback_score='{self.feedback_score}',feedback_reason='{self.feedback_reason}', create_time='{self.create_time}')>"
+        return f"<message(id='{self.id}', threadId='{self.threadId}', chatType='{self.chatType}', query='{self.query}', response='{self.response}', metadata='{self.metadata}', createdAt='{self.createdAt}')>"
