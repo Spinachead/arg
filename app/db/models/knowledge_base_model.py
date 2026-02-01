@@ -13,27 +13,27 @@ class KnowledgeBaseModel(Base):
     """
 
     __tablename__ = "knowledge_base"
-    id = Column(Integer, primary_key=True, autoincrement=True, comment="知识库ID")
-    kb_name = Column(String(50), comment="知识库名称")
-    kb_info = Column(String(200), comment="知识库简介(用于Agent)")
-    vs_type = Column(String(50), comment="向量库类型")
-    embed_model = Column(String(50), comment="嵌入模型名称")
-    file_count = Column(Integer, default=0, comment="文件数量")
-    create_time = Column(DateTime, default=func.now(), comment="创建时间")
+    id = Column(String(36), primary_key=True, comment="知识库ID")
+    kbName = Column(String(50), name="kbName", comment="知识库名称")
+    kbInfo = Column(String(200), name="kbInfo", comment="知识库简介(用于Agent)")
+    vsType = Column(String(50), name="vsType", comment="向量库类型")
+    embedModel = Column(String(50), name="embedModel", comment="嵌入模型名称")
+    fileCount = Column(Integer, name="fileCount", default=0, comment="文件数量")
+    createdAt = Column(String(50), name="createdAt", default=func.now(), comment="创建时间")
 
     def __repr__(self):
-        return f"<KnowledgeBase(id='{self.id}', kb_name='{self.kb_name}',kb_intro='{self.kb_info} vs_type='{self.vs_type}', embed_model='{self.embed_model}', file_count='{self.file_count}', create_time='{self.create_time}')>"
+        return f"<KnowledgeBase(id='{self.id}', kbName='{self.kbName}', kbInfo='{self.kbInfo}', vsType='{self.vsType}', embedModel='{self.embedModel}', fileCount='{self.fileCount}', createdAt='{self.createdAt}')>"
 
 
 # 创建一个对应的 Pydantic 模型
 class KnowledgeBaseSchema(BaseModel):
-    id: int
-    kb_name: str
-    kb_info: Optional[str]
-    vs_type: Optional[str]
-    embed_model: Optional[str]
-    file_count: Optional[int]
-    create_time: Optional[datetime]
+    id: str
+    kbName: str
+    kbInfo: Optional[str]
+    vsType: Optional[str]
+    embedModel: Optional[str]
+    fileCount: Optional[int]
+    createdAt: Optional[str]
 
     class Config:
         from_attributes = True  # 确保可以从 ORM 实例进行验证

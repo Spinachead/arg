@@ -79,3 +79,49 @@ CREATE TABLE IF NOT EXISTS message (
     "createdAt" TEXT,
     FOREIGN KEY ("threadId") REFERENCES threads("id") ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS knowledge_base (
+    "id" UUID PRIMARY KEY,
+    "kbName" TEXT,
+    "kbInfo" TEXT,
+    "vsType" TEXT,
+    "embedModel" TEXT,
+    "fileCount" INT DEFAULT 0,
+    "createdAt" TEXT
+);
+
+CREATE TABLE IF NOT EXISTS knowledge_file (
+    "id" UUID PRIMARY KEY,
+    "fileName" TEXT,
+    "fileExt" TEXT,
+    "kbName" TEXT,
+    "documentLoaderName" TEXT,
+    "textSplitterName" TEXT,
+    "fileVersion" INT DEFAULT 1,
+    "fileMtime" FLOAT DEFAULT 0.0,
+    "fileSize" INT DEFAULT 0,
+    "customDocs" BOOLEAN DEFAULT FALSE,
+    "docsCount" INT DEFAULT 0,
+    "createdAt" TEXT
+);
+
+CREATE TABLE IF NOT EXISTS file_doc (
+    "id" UUID PRIMARY KEY,
+    "kbName" TEXT,
+    "fileName" TEXT,
+    "docId" TEXT,
+    "metadata" JSONB
+);
+
+CREATE TABLE IF NOT EXISTS user_memory (
+    "id" UUID PRIMARY KEY,
+    "userId" UUID,
+    "memoryText" TEXT,
+    "importance" INT DEFAULT 1,
+    "lastUsedTime" TEXT,
+    "createdAt" TEXT,
+    "metadata" JSONB,
+    "threadId" UUID,
+    FOREIGN KEY ("userId") REFERENCES users("id") ON DELETE CASCADE,
+    FOREIGN KEY ("threadId") REFERENCES threads("id") ON DELETE SET NULL
+);
