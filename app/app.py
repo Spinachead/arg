@@ -6,6 +6,7 @@ from logic.onMessage import execute as onMessage
 from logic.onChatStart import execute as onChatStart
 from logic.authCallback import execute as authCallback
 from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
+from chainlit.types import ThreadDict
 
 load_dotenv()
 
@@ -16,7 +17,6 @@ init_db()
 async def start():
     await onChatStart()
 
-
 @cl.on_message
 async def main(message: cl.Message):
     await onMessage(message)
@@ -25,17 +25,18 @@ async def main(message: cl.Message):
 async def auth_callback(username: str, password: str):
     return await authCallback(username, password)
 
-
-
 @cl.data_layer
 def get_data_layer():
     return SQLAlchemyDataLayer(conninfo=os.getenv("DATABASE_URL"))
 
-
-
 @cl.action_callback("action_button")
 async def on_action(action: cl.Action):
     print(action.payload)
+
+@cl.on_chat_resume
+async def on_resume(thread: ThreadDict):
+    # print(f"Thread: {thread}")
+    pass
 
 if __name__ == "__main__":
     from chainlit.cli import run_chainlit
