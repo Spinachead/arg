@@ -33,7 +33,6 @@ async def execute(message: cl.Message):
     question = message.content
     state.messages += [HumanMessage(content=question)]
     
-    # 1. 这里不要提前 send()，只创建对象
     ui_message = cl.Message(content="")
     
     async for event in graph.astream_events(state, version="v2"):
@@ -44,26 +43,13 @@ async def execute(message: cl.Message):
             if event["name"] == "retrieve_documents":
                 await retrieve_documents_step(event.get("data").get("output"))
 
-        # 2. 只有当模型真正开始产生回复内容时，再发送回复框
         if event["event"] == "on_chat_model_stream":
-            # 如果是第一次收到流式 token，先发送消息框
-            if not ui_message.id: 
+            if not ui_message.id:
                 await ui_message.send()
             
             content = event["data"]["chunk"].content
             if content:
                 await ui_message.stream_token(content)
-
-        if event["event"] == "on_chain_end" and event["name"] == "respond": 
-            output = event['data'].get('output')
-            if isinstance(output, dict) and "messages" in output:
-                last_message = output["messages"][-1]
-                if isinstance(last_message, AIMessage):
-                    ui_message.content = last_message.content
-                    if not ui_message.id:
-                        await ui_message.send()
-                    else:
-                        await ui_message.update()
-
+    await ui_message.update()
     # 最后同步状态
     state.messages += [AIMessage(content=ui_message.content)]
