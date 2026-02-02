@@ -171,7 +171,6 @@ class KBSettings(BaseFileSettings):
     这样可以避免 PDF 中一些小图片的干扰，提高非扫描版 PDF 处理速度
     """
 
-    KB_INFO: t.Dict[str, str] = {"samples": "关于本项目issue的解答"}  # TODO: 都存在数据库了，这个配置项还有必要吗？
     """每个知识库的初始化介绍，用于在初始化知识库时显示和Agent调用，没写则没有介绍，不会被Agent调用。"""
 
     kbs_config: t.Dict[str, t.Dict] = {

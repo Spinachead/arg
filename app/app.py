@@ -1,17 +1,22 @@
 import chainlit as cl
 import os
+import io
 from dotenv import load_dotenv
+from settings import Settings
 from db.session import init_db
 from logic.onMessage import execute as onMessage
 from logic.onChatStart import execute as onChatStart
 from logic.authCallback import execute as authCallback
 from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
 from chainlit.types import ThreadDict
+from logic.action import upload_document
+from knowledge_base.kb_api import init_default_kb
 
 load_dotenv()
 
 # 在启动时初始化数据库表
 init_db()
+init_default_kb()
 
 @cl.on_chat_start
 async def start():
@@ -41,21 +46,10 @@ async def on_resume(thread: ThreadDict):
 
 @cl.action_callback("upload_document")
 async def on_action(action: cl.Action):
-    files = None
-    while files == None:
-        files = await cl.AskFileMessage(
-            content="Please upload a text file to begin!", accept=["text/plain"]
-        ).send()
+    await upload_document()
 
-    text_file = files[0]
 
-    with open(text_file.path, "r", encoding="utf-8") as f:
-        text = f.read()
 
-    # Let the user know that the system is ready
-    await cl.Message(
-        content=f"`{text_file.name}` uploaded, it contains {len(text)} characters!"
-    ).send()
 
 if __name__ == "__main__":
     from chainlit.cli import run_chainlit

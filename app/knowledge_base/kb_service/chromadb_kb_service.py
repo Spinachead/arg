@@ -105,7 +105,7 @@ class ChromaKBService(KBService):
             top_k=top_k,
             score_threshold=score_threshold,
         )
-        # print(f"这是chromadb retriever：{retriever}")
+        print(f"这是chromadb retriever：{retriever}")
         docs = retriever.get_relevant_documents(query)
         return docs
 

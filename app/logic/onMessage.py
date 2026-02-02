@@ -27,7 +27,7 @@ async def retrieve_documents_step(data: dict):
    
 
 # @traceable(name="on_message")
-async def execute(message: cl.Message):
+async def execute1(message: cl.Message):
     graph: Runnable = cl.user_session.get("graph")
     state: InputState = cl.user_session.get("state")
     
@@ -92,7 +92,7 @@ async def execute(message: cl.Message):
     )
 
 
-async def execute1(message: cl.Message):
+async def execute(message: cl.Message):
     user = cl.user_session.get("user")
     if user:
         user_id = getattr(user, "id", None)
@@ -100,15 +100,14 @@ async def execute1(message: cl.Message):
     else:
         print("user is None")
 
-    actions = [
-        cl.Action(
-            name="action_button",
-            icon="mouse-pointer-click",
-            payload={"value": "example_value"},
-            label="Click me!"
-        )
-    ]
-    ui_message = cl.Message(content="", actions=actions)
+    upload_action = cl.Action(
+        name="upload_document",     
+        label="上传文档",
+        value="any_value",
+        icon="upload",
+        payload={"value": "example_value"}
+    )
+    ui_message = cl.Message(content="", actions=[upload_action])
     await ui_message.send()
     ui_message.content = "Hello, how can I help you?"
     await ui_message.update()

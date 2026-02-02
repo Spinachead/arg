@@ -92,3 +92,23 @@ def list_files(
         return ListResponse(code=200, msg=msg, data=[])
 
 
+def init_default_kb():
+    knowledge_base_name = Settings.kb_settings.DEFAULT_KNOWLEDGE_BASE
+    vector_store_type = Settings.kb_settings.DEFAULT_VS_TYPE
+    embed_model = get_default_embedding()
+
+    kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
+    if kb is None:
+        logger.info(f"正在初始化默认知识库: {knowledge_base_name}")
+        kb = KBServiceFactory.get_service(
+            knowledge_base_name, vector_store_type, embed_model
+        )
+        try:
+            kb.create_kb()
+            logger.info(f"成功创建默认知识库: {knowledge_base_name}")
+        except Exception as e:
+            logger.error(f"创建默认知识库 {knowledge_base_name} 出错：{e}")
+    else:
+        logger.info(f"默认知识库 {knowledge_base_name} 已存在，跳过创建。")
+
+
