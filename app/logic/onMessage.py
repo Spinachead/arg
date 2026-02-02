@@ -30,10 +30,28 @@ async def retrieve_documents_step(data: dict):
 async def execute(message: cl.Message):
     graph: Runnable = cl.user_session.get("graph")
     state: InputState = cl.user_session.get("state")
+    
+    # 安全检查：如果 state 或 graph 为 None（通常发生在服务器重启后的会话恢复），则重新初始化
+    if state is None or graph is None:
+        from logic.onChatStart import execute as init_session
+        await init_session()
+        graph = cl.user_session.get("graph")
+        state = cl.user_session.get("state")
     question = message.content
     state.messages += [HumanMessage(content=question)]
+    upload_action = cl.Action(
+        name="upload_document",     
+        label="上传文档",
+        value="any_value",
+        icon="upload",
+        payload={"value": "example_value"}
+    )
+
+    # actions = [
+    #     cl.Action(name="action_button", payload={"value": "example_value"}, label="Click me!")
+    # ]
     
-    ui_message = cl.Message(content="")
+    ui_message = cl.Message(content="", actions=[upload_action])
     
     async for event in graph.astream_events(state, version="v2"):
         
@@ -63,7 +81,6 @@ async def execute(message: cl.Message):
             trace_id = str(run_tree.id)
     except Exception:
         pass
-
 
     # 保存对话到数据库
     user = cl.user_session.get("user")

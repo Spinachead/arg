@@ -27,7 +27,9 @@ async def auth_callback(username: str, password: str):
 
 @cl.data_layer
 def get_data_layer():
-    return SQLAlchemyDataLayer(conninfo=os.getenv("DATABASE_URL"))
+    return SQLAlchemyDataLayer(
+        conninfo=os.getenv("DATABASE_URL"),
+    )
 
 @cl.action_callback("action_button")
 async def on_action(action: cl.Action):
@@ -35,8 +37,25 @@ async def on_action(action: cl.Action):
 
 @cl.on_chat_resume
 async def on_resume(thread: ThreadDict):
-    # print(f"Thread: {thread}")
-    pass
+    await onChatStart()
+
+@cl.action_callback("upload_document")
+async def on_action(action: cl.Action):
+    files = None
+    while files == None:
+        files = await cl.AskFileMessage(
+            content="Please upload a text file to begin!", accept=["text/plain"]
+        ).send()
+
+    text_file = files[0]
+
+    with open(text_file.path, "r", encoding="utf-8") as f:
+        text = f.read()
+
+    # Let the user know that the system is ready
+    await cl.Message(
+        content=f"`{text_file.name}` uploaded, it contains {len(text)} characters!"
+    ).send()
 
 if __name__ == "__main__":
     from chainlit.cli import run_chainlit

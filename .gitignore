@@ -12,3 +12,4 @@ __pycache__/
 app/data
 app/.chainlit/translations
 app/log/
+app/.files

@@ -32,9 +32,9 @@ async def generate_queries(state:AgentState, *, config: RunnableConfig) -> Dict[
 
     query = state.messages[-1].content
     available_kbs = list_kbs_from_db()
-    kb_info_str = "\n".join([f"- {kb.kb_name}: {kb.kb_info or '无描述'}" for kb in available_kbs])
+    kb_info_str = "\n".join([f"- {kb.kbName}: {kb.kbInfo or '无描述'}" for kb in available_kbs])
 
-    kb_name = available_kbs[0].kb_name if available_kbs else "low"
+    kb_name = available_kbs[0].kbName if available_kbs else "low"
     try:
         result = await structured_llm.ainvoke(
             query_gen_prompt.format(
