@@ -46,10 +46,6 @@ async def execute(message: cl.Message):
         icon="upload",
         payload={"value": "example_value"}
     )
-
-    # actions = [
-    #     cl.Action(name="action_button", payload={"value": "example_value"}, label="Click me!")
-    # ]
     
     ui_message = cl.Message(content="", actions=[upload_action])
     
