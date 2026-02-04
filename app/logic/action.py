@@ -31,56 +31,54 @@ async def upload_document():
     if not files:
         return
 
-    msg = cl.Message(content=f"正在处理 {len(files)} 个文件...")
-    await msg.send()
-
     kb_name = Settings.kb_settings.DEFAULT_KNOWLEDGE_BASE
     file_names = []
 
-    try:
-        # 1. 保存文件到知识库目录
-        for file in files:
-            file_path = get_file_path(kb_name, file.name)
-            if not file_path:
-                continue
+    async with cl.Step(name="文档上传与向量化") as step:
+        try:
+            step.output = f"正在保存 {len(files)} 个文件..."
+            # 1. 保存文件到知识库目录
+            for file in files:
+                file_path = get_file_path(kb_name, file.name)
+                if not file_path:
+                    continue
 
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-            # 优雅地保存文件内容
-            content = getattr(file, "content", None)
-            if content is None:
-                content = Path(file.path).read_bytes()
+                # 优雅地保存文件内容
+                content = getattr(file, "content", None)
+                if content is None:
+                    content = Path(file.path).read_bytes()
 
-            Path(file_path).write_bytes(content)
-            file_names.append(file.name)
-        print("执行到这里了")
+                Path(file_path).write_bytes(content)
+                file_names.append(file.name)
 
-        # 2. 调用公用向量化逻辑
-        res = await cl.make_async(update_kb_docs)(
-            knowledge_base_name=kb_name,
-            file_names=file_names,
-            override_custom_docs=True,
-            chunk_size=Settings.kb_settings.CHUNK_SIZE,
-            chunk_overlap=Settings.kb_settings.OVERLAP_SIZE,
-            zh_title_enhance=Settings.kb_settings.ZH_TITLE_ENHANCE,
-        )
-        print(f"这是res: {res}")
+            step.output = f"文件已保存，正在进行向量化处理..."
+            # 2. 调用公用向量化逻辑
+            res = await cl.make_async(update_kb_docs)(
+                knowledge_base_name=kb_name,
+                file_names=file_names,
+                override_custom_docs=True,
+                chunk_size=Settings.kb_settings.CHUNK_SIZE,
+                chunk_overlap=Settings.kb_settings.OVERLAP_SIZE,
+                zh_title_enhance=Settings.kb_settings.ZH_TITLE_ENHANCE,
+            )
 
-        if res.code == 200:
-            failed = res.data.get("failed_files", {})
-            if not failed:
-                msg.content = f"成功：{len(files)} 个文件已上传并向量化到知识库 '{kb_name}'。"
+            if res.code == 200:
+                failed = res.data.get("failed_files", {})
+                if not failed:
+                    step.output = f"✅ 成功：{len(files)} 个文件已上传并向量化到知识库 '{kb_name}'。"
+                else:
+                    step.output = f"⚠️ 处理完成，但部分文件失败: {', '.join(failed.keys())}"
             else:
-                msg.content = f"处理完成，但部分文件失败: {', '.join(failed.keys())}"
-        else:
-            msg.content = f"上传失败: {res.msg}"
+                step.output = f"❌ 上传失败: {res.msg}"
 
-    except Exception as e:
-        error_detail = traceback.format_exc()
-        print(error_detail)  # 打印到控制台以便调试
-        msg.content = f"处理过程中发生错误: {str(e)}\n\n详细错误:\n```\n{error_detail}\n```"
-
-    await msg.update()
+        except Exception as e:
+            error_detail = traceback.format_exc()
+            print(error_detail)
+            step.output = f"❌ 处理过程中发生错误: {str(e)}"
+            # 发送一个独立的错误消息以便用户查看详情
+            await cl.Message(content=f"详细错误堆栈:\n```\n{error_detail}\n```").send()
 
 def update_kb_docs(
         knowledge_base_name: str,
@@ -93,7 +91,7 @@ def update_kb_docs(
         not_refresh_vs_cache: bool = False,
 ) -> BaseResponse:
     """
-    更新知识库文档 (本地逻辑版，移除 FastAPI 依赖)
+    更新知识库文档
     """
     kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
     if kb is None:

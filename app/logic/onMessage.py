@@ -13,9 +13,8 @@ async def generate_queries_step(data: dict):
     pairs = data.get("query_kb_pairs") or data.get("steps") or []
     for i, pair in enumerate(pairs):
         query = pair.get("query") or pair.get("question")
-        kb_name = pair.get("kb_name") or pair.get("type")
         await current_step.stream_token(
-            f"{i+1}. **{kb_name}**: {query}\n"
+            f"{i+1}. {query}\n"
         )
 
 
