@@ -22,34 +22,25 @@ async def generate_queries(state:AgentState, *, config: RunnableConfig) -> Dict[
     query_gen_prompt = ChatPromptTemplate.from_messages([
         ("system", """你是一个专业的查询分析和改写助手。根据用户的原始查询，你需要：
         1. 生成3个不同角度或表述的查询变体，用于从知识库中检索相关信息
-        2. 为每个查询变体选择最合适的知识库
-
-        可用的知识库列表：{kb_list}
-
-        请返回JSON格式，包含queries数组，每个元素有query（查询文本）和kb_name（知识库名称）两个字段。"""),
+        """),
         ("human", "原始查询: {query}")
     ])
 
     query = state.messages[-1].content
-    available_kbs = list_kbs_from_db()
-    kb_info_str = "\n".join([f"- {kb.kbName}: {kb.kbInfo or '无描述'}" for kb in available_kbs])
-
-    kb_name = available_kbs[0].kbName if available_kbs else "low"
     try:
         result = await structured_llm.ainvoke(
             query_gen_prompt.format(
                 query=query, 
-                kb_list=kb_info_str,
             ),
             config,
         )
-        query_kb_pairs = [{"query": q.query, "kb_name": q.kb_name} for q in result.queries]
+        query_kb_pairs = [{"query": q.query} for q in result.queries]
         if len(query_kb_pairs) < 3:
-            query_kb_pairs.insert(0, {"query": query, "kb_name": kb_name})
+            query_kb_pairs.insert(0, {"query": query})
         return {"query_kb_pairs": query_kb_pairs, "query": query}
     except Exception as e:
         logger.warning(f"结构化输出失败，使用备用方案: {e}")
-        return {"query_kb_pairs": [{"query": query, "kb_name": kb_name}], "query": query}
+        return {"query_kb_pairs": [{"query": query}], "query": query}
 
 
 

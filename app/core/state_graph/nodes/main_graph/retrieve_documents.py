@@ -1,3 +1,4 @@
+from app.settings import Settings
 from core.state_graph.states.main_graph.agent_state import AgentState
 from knowledge_base.kb_doc_api import search_docs
 from utils import format_reference
@@ -9,15 +10,13 @@ async def retrieve_documents(state: AgentState, *, config: RunnableConfig) -> Di
     query_kb_pairs = state.query_kb_pairs
     all_docs = []
     doc_id_set = set()
+    kb_name = Settings.kb_settings.DEFAULT_KNOWLEDGE_BASE
     
     for pair in query_kb_pairs:
         q = pair["query"]
-        target_kb = pair["kb_name"]
-        kb_to_use = target_kb if target_kb else "low"
-        
         docs = search_docs(
             query=q,
-            knowledge_base_name=kb_to_use,
+            knowledge_base_name=kb_name,
             top_k=5,
             score_threshold=2.0,
             file_name="",
@@ -34,7 +33,7 @@ async def retrieve_documents(state: AgentState, *, config: RunnableConfig) -> Di
                 doc_id_set.add(doc_id)
                 all_docs.append(doc)
     
-    source_documents = format_reference("low", all_docs, "")
+    source_documents = format_reference(kb_name, all_docs, "")
     context = "\n\n".join([doc.get("page_content", "") for doc in all_docs])
     return {
         "context": context,

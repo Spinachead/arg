@@ -27,16 +27,20 @@ async def retrieve_documents_step(data: dict):
    
 
 # @traceable(name="on_message")
-async def execute1(message: cl.Message):
+async def execute(message: cl.Message):
     graph: Runnable = cl.user_session.get("graph")
     state: InputState = cl.user_session.get("state")
     
-    # 安全检查：如果 state 或 graph 为 None（通常发生在服务器重启后的会话恢复），则重新初始化
-    if state is None or graph is None:
-        from logic.onChatStart import execute as init_session
-        await init_session()
-        graph = cl.user_session.get("graph")
-        state = cl.user_session.get("state")
+    # # 安全检查：如果 state 或 graph 为 None（通常发生在服务器重启后的会话恢复），则重新初始化
+    # if state is None or graph is None:
+    #     from core.main_graph import build_main_graph
+    #     from core.state_graph.states.main_graph.input_state import InputState
+        
+    #     graph = build_main_graph()
+    #     state = InputState(messages=[])
+        
+    #     cl.user_session.set("graph", graph)
+    #     cl.user_session.set("state", state)
     question = message.content
     state.messages += [HumanMessage(content=question)]
     upload_action = cl.Action(
@@ -92,7 +96,7 @@ async def execute1(message: cl.Message):
     )
 
 
-async def execute(message: cl.Message):
+async def execute1(message: cl.Message):
     user = cl.user_session.get("user")
     if user:
         user_id = getattr(user, "id", None)
