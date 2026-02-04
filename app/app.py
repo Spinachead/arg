@@ -48,7 +48,19 @@ async def on_resume(thread: ThreadDict):
 async def on_action(action: cl.Action):
     await upload_document()
 
+from mcp import ClientSession
 
+@cl.on_mcp_connect
+async def on_mcp_connect(connection, session: ClientSession):
+    """Called when an MCP connection is established"""
+    # Your connection initialization code here
+    # This handler is required for MCP to work
+    
+@cl.on_mcp_disconnect
+async def on_mcp_disconnect(name: str, session: ClientSession):
+    """Called when an MCP connection is terminated"""
+    # Your cleanup code here
+    # This handler is optional
 
 
 if __name__ == "__main__":
