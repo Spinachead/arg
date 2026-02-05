@@ -1,100 +1,90 @@
+# app.py
 import json
-
 from mcp import ClientSession
 import anthropic
-
 import chainlit as cl
-
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
 
 anthropic_client = anthropic.AsyncAnthropic()
-SYSTEM = "You are a helpful assistant. You are a member of a team that uses Linear to manage their projects. Once you've diplayed a ticket, do not mention it again in your response - JUST SAY `here is the ticket information!`"
-regular_tools = [{
-    "name": "show_linear_ticket",
-    "description": "Displays a Linear ticket in the UI with its details. Use this tool after retrieving ticket information to show a visual representation of the ticket. The tool will create a card showing the ticket title, status, assignee, deadline, and tags. This provides a cleaner presentation than text-only responses.",
-    "input_schema": {
-        "type": "object",
-        "properties": {"title": {"type": "string"}, "status": {"type": "string"}, "assignee": {"type": "string"}, "deadline": {"type": "string"}, "tags": {"type": "array", "items": {"type": "string"}}},
-        "required": ["title", "status", "assignee", "deadline", "tags"]
-    }
-}]
 
-async def show_linear_ticket(title, status, assignee, deadline, tags):
-    props = {
-        "title": title,
-        "status": status,
-        "assignee": assignee,
-        "deadline": deadline,
-        "tags": tags
-    }
-    print("props", props)
-    ticket_element = cl.CustomElement(name="LinearTicket", props=props)
-    await cl.Message(content="", elements=[ticket_element], author="show_linear_ticket").send()
-    return "the ticket was displayed to the user: " + str(props)
+# System prompt: 告诉 Claude 我们有 memory 工具可用
+SYSTEM = """
+You are a helpful assistant with access to a memory system.
+Users can:
+- Save notes (e.g., "记住我喜欢咖啡")
+- Recall notes (e.g., "我之前说过什么？")
+- List all saved keys (e.g., "我记了哪些东西？")
 
+Always use the provided tools to interact with memory.
+After displaying memory content, do not repeat it — just say "here is the memory information!".
+"""
+
+# Regular tools for UI display (optional)
+regular_tools = []
 
 def flatten(xss):
     return [x for xs in xss for x in xs]
 
 @cl.on_mcp_connect
 async def on_mcp(connection, session: ClientSession):
+    """当用户在 UI 中连接 MCP 时触发"""
     result = await session.list_tools()
-    tools = [{
-        "name": t.name,
-        "description": t.description,
-        "input_schema": t.inputSchema,
-        } for t in result.tools]
-    
+    tools = [
+        {
+            "name": t.name,
+            "description": t.description,
+            "input_schema": t.inputSchema,
+        }
+        for t in result.tools
+    ]
     mcp_tools = cl.user_session.get("mcp_tools", {})
     mcp_tools[connection.name] = tools
     cl.user_session.set("mcp_tools", mcp_tools)
 
-
-@cl.step(type="tool") 
+@cl.step(type="tool")
 async def call_tool(tool_use):
+    """通用工具调用处理器"""
     tool_name = tool_use.name
     tool_input = tool_use.input
-    
     current_step = cl.context.current_step
     current_step.name = tool_name
-    
-    # Identify which mcp is used
+
+    # 找到对应的 MCP 连接
     mcp_tools = cl.user_session.get("mcp_tools", {})
     mcp_name = None
-
     for connection_name, tools in mcp_tools.items():
         if any(tool.get("name") == tool_name for tool in tools):
             mcp_name = connection_name
             break
-    
+
     if not mcp_name:
-        current_step.output = json.dumps({"error": f"Tool {tool_name} not found in any MCP connection"})
+        current_step.output = json.dumps({"error": f"Tool {tool_name} not found"})
         return current_step.output
-    
+
     mcp_session, _ = cl.context.session.mcp_sessions.get(mcp_name)
-    
     if not mcp_session:
-        current_step.output = json.dumps({"error": f"MCP {mcp_name} not found in any MCP connection"})
+        current_step.output = json.dumps({"error": f"MCP {mcp_name} not connected"})
         return current_step.output
-    
+
     try:
-        current_step.output = await mcp_session.call_tool(tool_name, tool_input)
+        # 调用远程 MCP 工具
+        result = await mcp_session.call_tool(tool_name, tool_input)
+        current_step.output = str(result)
+        return current_step.output
     except Exception as e:
         current_step.output = json.dumps({"error": str(e)})
-    
-    return current_step.output
+        return current_step.output
 
 async def call_claude(chat_messages):
+    """调用 Claude 并支持工具调用"""
     msg = cl.Message(content="")
     mcp_tools = cl.user_session.get("mcp_tools", {})
-    regular_tools = cl.user_session.get("regular_tools", [])
-    # Flatten the tools from all MCP connections
-    tools = flatten([tools for _, tools in mcp_tools.items()]) + regular_tools
-    print([tool.get("name") for tool in tools])
+    tools = flatten([tools for _, tools in mcp_tools.items()])
+
     async with anthropic_client.messages.stream(
         system=SYSTEM,
         max_tokens=1024,
@@ -104,31 +94,33 @@ async def call_claude(chat_messages):
     ) as stream:
         async for text in stream.text_stream:
             await msg.stream_token(text)
-    
-    await msg.send()
-    response = await stream.get_final_message()
-
-    return response
+        await msg.send()
+        response = await stream.get_final_message()
+        return response
 
 @cl.on_chat_start
 async def start_chat():
     cl.user_session.set("chat_messages", [])
-    cl.user_session.set("regular_tools", regular_tools)
-
+    await cl.Message(
+        content="🧠 Memory MCP 已就绪！你可以：\n"
+                "- 说「记住我喜欢喝茶」\n"
+                "- 问「我之前说了什么？」\n"
+                "- 问「我记了哪些东西？」"
+    ).send()
 
 @cl.on_message
-async def on_message(msg: cl.Message):   
+async def on_message(msg: cl.Message):
     chat_messages = cl.user_session.get("chat_messages")
     chat_messages.append({"role": "user", "content": msg.content})
+
     response = await call_claude(chat_messages)
-    
+
+    # 处理工具调用循环
     while response.stop_reason == "tool_use":
         tool_use = next(block for block in response.content if block.type == "tool_use")
-        if tool_use.name == "show_linear_ticket":
-            tool_result = await show_linear_ticket(**tool_use.input)
-        else:
-            tool_result = await call_tool(tool_use)
+        tool_result = await call_tool(tool_use)
 
+        # 将工具结果反馈给模型
         messages = [
             {"role": "assistant", "content": response.content},
             {
@@ -142,14 +134,13 @@ async def on_message(msg: cl.Message):
                 ],
             },
         ]
-
         chat_messages.extend(messages)
         response = await call_claude(chat_messages)
 
+    # 获取最终回复
     final_response = next(
         (block.text for block in response.content if hasattr(block, "text")),
         None,
     )
-
-    chat_messages = cl.user_session.get("chat_messages")
-    chat_messages.append({"role": "assistant", "content": final_response})
+    if final_response:
+        chat_messages.append({"role": "assistant", "content": final_response})

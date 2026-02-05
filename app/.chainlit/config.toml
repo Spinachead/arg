@@ -75,7 +75,7 @@ reaction_on_message_received = false
 
 [features.mcp]
     # Enable Model Context Protocol (MCP) features
-    enabled = false
+    enabled = true
 
 [features.mcp.sse]
     enabled = true

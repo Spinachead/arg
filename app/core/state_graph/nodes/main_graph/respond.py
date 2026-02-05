@@ -6,11 +6,23 @@ from config import config as app_config
 from utils import get_prompt_template, History
 from typing import Dict, Any
 from langchain_core.prompts import ChatPromptTemplate
+import chainlit as cl
 
 
 async def respond(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
-    """ 调用LLM生成最终回复 """
+    """ 调用LLM生成最终回复,支持 MCP 工具调用 """
     model = init_chat_model(name="respond", **app_config["inference_model_params"])
+    
+    # 获取 MCP 工具
+    mcp_tools_dict = cl.user_session.get("mcp_tools", {})
+    mcp_tools = []
+    for connection_name, tools in mcp_tools_dict.items():
+        mcp_tools.extend(tools)
+    
+    # 绑定工具
+    if mcp_tools:
+        model = model.bind_tools(mcp_tools)
+    
     prompt_template = get_prompt_template("rag", "default")
     system_prompt = f"""{prompt_template}
     [环境上下文]

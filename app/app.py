@@ -55,6 +55,16 @@ async def on_mcp_connect(connection, session: ClientSession):
     """Called when an MCP connection is established"""
     # Your connection initialization code here
     # This handler is required for MCP to work
+    result = await session.list_tools()
+    tools = [{
+        "name": t.name,
+        "description": t.description,
+        "input_schema": t.inputSchema,
+        } for t in result.tools]
+    
+    mcp_tools = cl.user_session.get("mcp_tools", {})
+    mcp_tools[connection.name] = tools
+    cl.user_session.set("mcp_tools", mcp_tools)
     
 @cl.on_mcp_disconnect
 async def on_mcp_disconnect(name: str, session: ClientSession):
