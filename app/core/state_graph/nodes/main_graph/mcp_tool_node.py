@@ -25,8 +25,8 @@ async def mcp_tool_node(state: AgentState, config: RunnableConfig) -> Dict[str, 
         tool_input = tool_call.get('args', {})
         tool_call_id = tool_call.get('id')
         
-        # 创建 Chainlit step 显示工具调用
-        async with cl.Step(type="tool", name=tool_name) as step:
+        # 创建 Chainlit step 显示工具调用 - 修复 name 字段
+        async with cl.Step(type="tool", name=f"🔧 {tool_name}") as step:
             step.input = json.dumps(tool_input, ensure_ascii=False, indent=2)
             
             # 找到对应的 MCP 连接
@@ -37,18 +37,20 @@ async def mcp_tool_node(state: AgentState, config: RunnableConfig) -> Dict[str, 
                     break
             
             if not mcp_name:
-                result = json.dumps({"error": f"Tool {tool_name} not found"})
+                result = json.dumps({"error": f"Tool {tool_name} not found"}, ensure_ascii=False)
             else:
                 mcp_session, _ = cl.context.session.mcp_sessions.get(mcp_name)
                 if not mcp_session:
-                    result = json.dumps({"error": f"MCP {mcp_name} not connected"})
+                    result = json.dumps({"error": f"MCP {mcp_name} not connected"}, ensure_ascii=False)
                 else:
                     try:
                         # 调用远程 MCP 工具
                         mcp_result = await mcp_session.call_tool(tool_name, tool_input)
                         result = str(mcp_result)
+                        print(f"[mcp_tool_node] 工具 {tool_name} 执行成功")
                     except Exception as e:
-                        result = json.dumps({"error": str(e)})
+                        result = json.dumps({"error": str(e)}, ensure_ascii=False)
+                        print(f"[mcp_tool_node] 工具 {tool_name} 执行失败: {e}")
             
             step.output = result
         
@@ -60,4 +62,5 @@ async def mcp_tool_node(state: AgentState, config: RunnableConfig) -> Dict[str, 
         )
         tool_messages.append(tool_message)
     
+    print(f"[mcp_tool_node] 返回 {len(tool_messages)} 条工具消息")
     return {"messages": tool_messages}
