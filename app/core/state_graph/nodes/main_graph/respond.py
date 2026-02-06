@@ -7,6 +7,7 @@ from utils import get_prompt_template, History
 from typing import Dict, Any
 from langchain_core.prompts import ChatPromptTemplate
 import chainlit as cl
+from core.state_graph.nodes.main_graph.tools import GENERAL_TOOLS
 
 
 async def respond(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
@@ -26,21 +27,21 @@ async def respond(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
         content = last_message.content
         safe_content = str(content).replace("{", "{{").replace("}", "}}")
         tool_result_context = f"\n[最新工具执行结果]\n这是你刚才调用工具返回的实时信息，请优先参考此内容：\n{safe_content}\n"
-        print(f"this is tool_result_context: {tool_result_context}")
     
-    # 获取 MCP 工具并绑定到模型（工具执行后不再绑定）
+    # 获取工具并绑定到模型（工具执行后不再绑定）
     if not is_after_tool:
+        # 1. 获取 MCP 工具
         mcp_tools_dict = cl.user_session.get("mcp_tools", {})
         mcp_tools = []
         for tools in mcp_tools_dict.values():
             mcp_tools.extend(tools)
         
-        if mcp_tools:
-            model = model.bind_tools(mcp_tools)
+        # 2. 合并所有工具并绑定
+        all_tools = mcp_tools + GENERAL_TOOLS
+        if all_tools:
+            model = model.bind_tools(all_tools)
     
-    # 构建提示词
-    prompt_template = get_prompt_template("rag", "default")
-       # 1. 构造系统提示词（只放人设、工具指南和环境上下文）
+    # 1. 构造系统提示词（只放人设、工具指南和环境上下文）
     system_prompt = f"""你是一个强大且专业的智能助手。请基于提供的[已知信息]和[最新工具执行结果]来准确、简洁地回答用户问题。
 
 [环境上下文]
