@@ -46,7 +46,23 @@ async def mcp_tool_node(state: AgentState, config: RunnableConfig) -> Dict[str, 
                     try:
                         # 调用远程 MCP 工具
                         mcp_result = await mcp_session.call_tool(tool_name, tool_input)
-                        result = str(mcp_result)
+                        
+                        # 尝试从 MCP 结果中提取文本内容，避免出现 TextContent(type='text', ...) 这种原始结构字符串
+                        if hasattr(mcp_result, "content") and isinstance(mcp_result.content, list):
+                            texts = []
+                            for content_item in mcp_result.content:
+                                if hasattr(content_item, "text"):
+                                    texts.append(content_item.text)
+                                elif isinstance(content_item, dict) and "text" in content_item:
+                                    texts.append(content_item["text"])
+                            
+                            if texts:
+                                result = "\n".join(texts)
+                            else:
+                                result = str(mcp_result)
+                        else:
+                            result = str(mcp_result)
+                            
                         print(f"[mcp_tool_node] 工具 {tool_name} 执行成功")
                     except Exception as e:
                         result = json.dumps({"error": str(e)}, ensure_ascii=False)

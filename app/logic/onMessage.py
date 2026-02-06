@@ -50,8 +50,10 @@ async def execute(message: cl.Message):
         payload={"value": "example_value"}
     )
     
-    ui_message = cl.Message(content="", actions=[upload_action])
-    
+    # 用于追踪当前正在流式输出的消息气泡
+    active_ui_message = None
+    last_run_id = None
+
     async for event in graph.astream_events(state, version="v2"):
         
         if event["event"] == "on_chain_end":
@@ -61,16 +63,32 @@ async def execute(message: cl.Message):
                 await retrieve_documents_step(event.get("data").get("output"))
 
         if event["event"] == "on_chat_model_stream":
-            if not ui_message.id:
-                await ui_message.send()
+            run_id = event["run_id"]
             
+            # 如果 run_id 变化，说明是新的一轮模型调用（例如工具执行后的第二次回复）
+            if run_id != last_run_id:
+                if active_ui_message:
+                    await active_ui_message.update()
+                # 创建新的消息气泡，确保它出现在工具执行 Step 的下方
+                active_ui_message = cl.Message(content="")
+                last_run_id = run_id
+
             content = event["data"]["chunk"].content
             if content:
-                await ui_message.stream_token(content)
+                if not active_ui_message.id:
+                    await active_ui_message.send()
+                await active_ui_message.stream_token(content)
     
-    await ui_message.update()
+    # 确保最后有一个消息，并带上操作按钮
+    if active_ui_message:
+        active_ui_message.actions = [upload_action]
+        await active_ui_message.update()
+    else:
+        active_ui_message = cl.Message(content="已完成处理", actions=[upload_action])
+        await active_ui_message.send()
+
     # 最后同步状态
-    state.messages += [AIMessage(content=ui_message.content)]
+    state.messages += [AIMessage(content=active_ui_message.content)]
 
     # 获取 LangSmith Trace ID (如果有)
     trace_id = None
@@ -87,8 +105,8 @@ async def execute(message: cl.Message):
     add_message_to_db(
         thread_id=message.thread_id,
         query=question,
-        response=ui_message.content,
-        message_id=ui_message.id,
+        response=active_ui_message.content,
+        message_id=active_ui_message.id,
         trace_id=trace_id,
         chat_type="graph_chat",  # 或者根据实际逻辑调整
         metadata={"user_id": user_id}

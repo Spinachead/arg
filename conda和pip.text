@@ -20,3 +20,8 @@ conda remove numpy 卸载包
 conda activate torch_env
 cd /d E:\pythonPro\arg\app
 python -m chainlit run app.py -w
+
+
+我是用的mcp
+npx -y @modelcontextprotocol/server-filesystem
+npx -y @modelcontextprotocol/server-filesystem E:/pythonPro/mcp_server E:/pythonPro/arg
