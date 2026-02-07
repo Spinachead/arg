@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: arg_app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app/data:/app/app/data
+      - ./app/log:/app/app/log
+      - ./app/.env:/app/app/.env
+    environment:
+      - CHATCHAT_ROOT=/app
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/langchain_chatchat
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - arg_network
+
+  db:
+    image: postgres:15-alpine
+    container_name: arg_postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=langchain_chatchat
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./app/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - arg_network
+
+volumes:
+  postgres_data:
+
+networks:
+  arg_network:
+    driver: bridge
