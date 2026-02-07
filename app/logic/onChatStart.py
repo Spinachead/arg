@@ -5,8 +5,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 from chainlit.input_widget import Select, Switch, Slider, TextInput
 from db.session import session_scope
 from db.repository.user_repository import get_user_settings
-import json
-import os
+from settings import Settings
 
 
 async def execute():
@@ -28,18 +27,12 @@ async def execute():
                 # 保存到 session 中
                 cl.user_session.set("model_settings", saved_settings)
     
-    # 读取默认配置
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    config_path = os.path.join(project_root, "config.json")
-    with open(config_path, "r") as f:
-        default_config = json.load(f)
-    
     # 准备设置项，如果有保存的设置则使用，否则使用默认值
-    model_name = saved_settings.get("model", default_config["inference_model_params"]["model"])
+    model_name = saved_settings.get("model", Settings.app_settings.inference_model)
     api_key = saved_settings.get("api_key", "")
-    api_base = saved_settings.get("api_base", default_config["inference_model_params"]["openai_api_base"])
-    temperature = saved_settings.get("temperature", default_config["inference_model_params"]["temperature"])
-    streaming = saved_settings.get("streaming", default_config["inference_model_params"]["streaming"])
+    api_base = saved_settings.get("api_base", Settings.app_settings.openai_api_base)
+    temperature = saved_settings.get("temperature", Settings.app_settings.temperature)
+    streaming = saved_settings.get("streaming", Settings.app_settings.streaming)
     
     # 发送 ChatSettings 到前端
     settings = await cl.ChatSettings(

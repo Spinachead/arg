@@ -1,5 +1,5 @@
 from core.state_graph.states.main_graph.agent_state import AgentState
-from config import config as app_config
+from settings import Settings
 from core.state_graph.states.main_graph.multi_query_result import MultiQueryResult
 from langchain_core.prompts import ChatPromptTemplate
 from utils import History, build_logger
@@ -16,7 +16,14 @@ async def generate_queries(state:AgentState, *, config: RunnableConfig) -> Dict[
     生成多个查询变体以及其对应的知识库名称
 
     """
-    model = init_chat_model(name="generate_queries", **app_config["inference_model_params"])
+    model = init_chat_model(
+        name="generate_queries",
+        model=Settings.app_settings.inference_model,
+        temperature=Settings.app_settings.temperature,
+        streaming=Settings.app_settings.streaming,
+        openai_api_base=Settings.app_settings.openai_api_base,
+        openai_api_key=Settings.app_settings.openai_api_key,
+    )
     structured_llm = model.with_structured_output(MultiQueryResult)
 
     query_gen_prompt = ChatPromptTemplate.from_messages([

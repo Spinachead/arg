@@ -1,0 +1,9 @@
+{
+  "embedding_model": "text-embedding-3-small",
+  "inference_model": "deepseek-chat",
+  "temperature": 0.0,
+  "streaming": true,
+  "openai_api_base": "https://api.deepseek.com/v1",
+  "openai_api_key": "",
+  "max_query_length": 2000
+}

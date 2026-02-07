@@ -2,7 +2,7 @@ from core.state_graph.states.main_graph.agent_state import AgentState
 from langchain.chat_models import init_chat_model
 from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import ToolMessage
-from config import config as app_config
+from settings import Settings
 from utils import get_prompt_template, History
 from typing import Dict, Any
 from langchain_core.prompts import ChatPromptTemplate
@@ -17,7 +17,13 @@ async def respond(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
     user_settings = cl.user_session.get("model_settings", {})
     
     # 准备模型参数，优先使用用户设置，否则使用默认配置
-    model_params = app_config["inference_model_params"].copy()
+    model_params = {
+        "model": Settings.app_settings.inference_model,
+        "temperature": Settings.app_settings.temperature,
+        "streaming": Settings.app_settings.streaming,
+        "openai_api_base": Settings.app_settings.openai_api_base,
+        "openai_api_key": Settings.app_settings.openai_api_key,
+    }
     
     if user_settings:
         # 更新模型参数
