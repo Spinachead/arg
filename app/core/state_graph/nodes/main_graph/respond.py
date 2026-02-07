@@ -13,8 +13,27 @@ from core.state_graph.nodes.main_graph.tools import GENERAL_TOOLS
 async def respond(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
     """调用 LLM 生成回复，支持 MCP 工具调用"""
     
+    # 获取用户自定义的模型配置
+    user_settings = cl.user_session.get("model_settings", {})
+    
+    # 准备模型参数，优先使用用户设置，否则使用默认配置
+    model_params = app_config["inference_model_params"].copy()
+    
+    if user_settings:
+        # 更新模型参数
+        if "model" in user_settings and user_settings["model"]:
+            model_params["model"] = user_settings["model"]
+        if "temperature" in user_settings:
+            model_params["temperature"] = user_settings["temperature"]
+        if "streaming" in user_settings:
+            model_params["streaming"] = user_settings["streaming"]
+        if "api_base" in user_settings and user_settings["api_base"]:
+            model_params["openai_api_base"] = user_settings["api_base"]
+        if "api_key" in user_settings and user_settings["api_key"]:
+            model_params["openai_api_key"] = user_settings["api_key"]
+    
     # 初始化模型
-    model = init_chat_model(name="respond", **app_config["inference_model_params"])
+    model = init_chat_model(name="respond", **model_params)
     
     # 检查上一条消息是否是工具执行结果（防止无限循环）
     last_message = state.messages[-1] if state.messages else None

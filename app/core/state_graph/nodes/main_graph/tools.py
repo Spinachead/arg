@@ -22,6 +22,7 @@ def get_sn_table_count() -> int:
         return f"Error querying sn table: {str(e)}"
 
 
+
 # 在这里集中管理所有普通工具
 # 添加新工具时，只需：
 # 1. 在上面定义工具函数（使用 @tool 装饰器）

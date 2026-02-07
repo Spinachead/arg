@@ -11,6 +11,8 @@ from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
 from chainlit.types import ThreadDict
 from logic.action import upload_document
 from knowledge_base.kb_api import init_default_kb
+from chainlit.input_widget import Select, Switch, Slider,TextInput
+
 
 load_dotenv()
 
@@ -20,7 +22,10 @@ init_default_kb()
 
 @cl.on_chat_start
 async def start():
+    # 初始化对话状态和图
     await onChatStart()
+    
+    # 注意: ChatSettings 会在 onChatStart 中发送,以便加载用户之前保存的设置
 
 @cl.on_message
 async def main(message: cl.Message):
@@ -72,6 +77,30 @@ async def on_mcp_disconnect(name: str, session: ClientSession):
     # Your cleanup code here
     # This handler is optional
 
+@cl.on_settings_update
+async def setup_agent(settings):
+    """当用户更新设置时保存到数据库"""
+    print("on_settings_update", settings)
+    
+    from db.session import session_scope
+    from db.repository.user_repository import save_user_settings
+    
+    # 获取当前用户
+    user = cl.user_session.get("user")
+    if not user:
+        print("用户未登录，无法保存设置")
+        return
+    
+    # 保存设置到数据库
+    with session_scope() as session:
+        success = save_user_settings(session, user.identifier, settings)
+        if success:
+            print(f"用户 {user.identifier} 的设置已保存")
+            
+            # 同时保存到 session 中，供当前会话使用
+            cl.user_session.set("model_settings", settings)
+        else:
+            print(f"保存用户设置失败")
 
 if __name__ == "__main__":
     from chainlit.cli import run_chainlit
