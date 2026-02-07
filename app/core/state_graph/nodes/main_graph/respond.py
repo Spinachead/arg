@@ -61,18 +61,20 @@ async def respond(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
             model = model.bind_tools(all_tools)
     
     # 1. 构造系统提示词（只放人设、工具指南和环境上下文）
-    system_prompt = f"""你是一个强大且专业的智能助手。请基于提供的[已知信息]和[最新工具执行结果]来准确、简洁地回答用户问题。
+    system_prompt = f"""你是一个强大且专业的智能助手。请结合对话历史、已知信息和工具执行结果来准确、简洁地回答用户问题。
 
 [环境上下文]
 - 当前用户 ID: {state.user_id}
 
-[工具使用指南]
-1. 当用户要求"记住"、"保存"某些信息时，调用相关的存储工具。
-2. 当用户询问"之前说过什么"、"我记了什么"时，调用相关的查询工具。
-3. 当需要访问外部数据时，优先考虑使用可用的工具。
-4. 如果工具已经返回了结果，请务必将其视为最可信的实时数据来源。
+[回答原则]
+1. 优先参考对话历史：如果用户问题涉及之前的对话内容，请基于对话历史回答
+2. 结合已知信息：如果检索到的文档中有相关内容，也请一并参考
+3. 使用工具：当需要访问外部数据时，优先考虑使用可用的工具
 
-请根据提供的背景信息（包括工具结果和检索到的文档）做出综合回答。
+[工具使用指南]
+1. 当用户要求“记住”、“保存”某些信息时，调用相关的存储工具。
+2. 当用户询问“之前说过什么”、“我记了什么”时，调用相关的查询工具。
+3. 如果工具已经返回了结果，请务必将其视为最可信的实时数据来源。
 """
 
     # 2. 获取标准的 RAG 提问模板 (包含 [已知信息] 和 [问题] 占位符)
@@ -101,6 +103,16 @@ async def respond(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
 
     # 5. 调用 LLM
     chain = chat_prompt | model
+    
+    # 调试：打印实际发送给模型的消息
+    print("\n=== 发送给模型的消息 ===")
+    print(f"历史消息数量: {len(state.messages)}")
+    for i, msg in enumerate(state.messages):
+        print(f"  [{i}] {msg.type}: {msg.content[:100]}...")
+    print(f"\nContext: {final_context[:200]}...")
+    print(f"Question: {state.query if state.query else state.messages[-1].content}")
+    print("=" * 50 + "\n")
+    
     response = await chain.ainvoke({
         "context": final_context,
         "question": state.query if state.query else state.messages[-1].content,

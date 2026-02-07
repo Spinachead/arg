@@ -12,6 +12,7 @@ from chainlit.types import ThreadDict
 from logic.action import upload_document
 from knowledge_base.kb_api import init_default_kb
 from chainlit.input_widget import Select, Switch, Slider,TextInput
+from mcp import ClientSession
 
 
 load_dotenv()
@@ -25,7 +26,6 @@ async def start():
     # 初始化对话状态和图
     await onChatStart()
     
-    # 注意: ChatSettings 会在 onChatStart 中发送,以便加载用户之前保存的设置
 
 @cl.on_message
 async def main(message: cl.Message):
@@ -53,7 +53,6 @@ async def on_resume(thread: ThreadDict):
 async def on_action(action: cl.Action):
     await upload_document()
 
-from mcp import ClientSession
 
 @cl.on_mcp_connect
 async def on_mcp_connect(connection, session: ClientSession):

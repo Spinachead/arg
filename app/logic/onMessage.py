@@ -6,6 +6,7 @@ from core.state_graph.states.main_graph.router import Router
 from core.state_graph.states.main_graph.input_state import InputState
 from langsmith import traceable, get_current_run_tree
 from db.repository.message_repository import add_message_to_db
+from langchain_core.runnables.config import RunnableConfig
 
 @cl.step(type="llm", name="查询优化", show_input=False)
 async def generate_queries_step(data: dict):
@@ -28,20 +29,14 @@ async def retrieve_documents_step(data: dict):
 # @traceable(name="on_message")
 async def execute(message: cl.Message):
     graph: Runnable = cl.user_session.get("graph")
-    state: InputState = cl.user_session.get("state")
+    user = cl.user_session.get("user")
     
-    # # 安全检查：如果 state 或 graph 为 None（通常发生在服务器重启后的会话恢复），则重新初始化
-    # if state is None or graph is None:
-    #     from core.main_graph import build_main_graph
-    #     from core.state_graph.states.main_graph.input_state import InputState
-        
-    #     graph = build_main_graph()
-    #     state = InputState(messages=[])
-        
-    #     cl.user_session.set("graph", graph)
-    #     cl.user_session.set("state", state)
     question = message.content
-    state.messages += [HumanMessage(content=question)]
+    
+    # 准备输入状态，只包含当前的用户消息
+    # LangGraph 会自动从 checkpoint 加载历史消息
+    input_state = InputState(messages=[HumanMessage(content=question)])
+    
     upload_action = cl.Action(
         name="upload_document",     
         label="上传文档",
@@ -53,8 +48,11 @@ async def execute(message: cl.Message):
     # 用于追踪当前正在流式输出的消息气泡
     active_ui_message = None
     last_run_id = None
+    
+    # 使用 thread_id 来关联对话历史，checkpoint 会自动加载/保存
+    config = RunnableConfig({"configurable": {"thread_id": user.id}})
 
-    async for event in graph.astream_events(state, version="v2"):
+    async for event in graph.astream_events(input_state, version="v2", config=config):
         
         if event["event"] == "on_chain_end":
             if event["name"] == "generate_queries":
@@ -87,8 +85,8 @@ async def execute(message: cl.Message):
         active_ui_message = cl.Message(content="已完成处理", actions=[upload_action])
         await active_ui_message.send()
 
-    # 最后同步状态
-    state.messages += [AIMessage(content=active_ui_message.content)]
+    # 注意：不再需要手动同步 state.messages
+    # LangGraph 的 checkpoint 会自动保存对话历史
 
     # 获取 LangSmith Trace ID (如果有)
     trace_id = None

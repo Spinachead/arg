@@ -8,6 +8,10 @@ from core.state_graph.nodes.main_graph.respond import respond
 from core.state_graph.nodes.main_graph.mcp_tool_node import mcp_tool_node
 from langgraph.prebuilt import ToolNode
 from core.state_graph.nodes.main_graph.tools import GENERAL_TOOLS
+from langgraph.checkpoint.memory import InMemorySaver
+
+# 全局共享的 checkpoint，确保对话历史不会丢失
+_GLOBAL_CHECKPOINT = InMemorySaver()
 
 
 def route_tools(state: AgentState):
@@ -33,6 +37,7 @@ def route_tools(state: AgentState):
 
 
 def build_main_graph():
+    # 使用全局共享的 checkpoint，确保对话历史持久化
     builder = StateGraph(AgentState, input=InputState)
     builder.add_node("generate_queries", generate_queries)
     builder.add_node("retrieve_documents", retrieve_documents)
@@ -58,5 +63,4 @@ def build_main_graph():
     # 两个工具执行后都回到 response
     builder.add_edge("mcp_tools", "response")
     builder.add_edge("general_tools", "response")
-    
-    return builder.compile()
+    return builder.compile(checkpointer=_GLOBAL_CHECKPOINT)
