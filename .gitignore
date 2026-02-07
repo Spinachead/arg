@@ -13,3 +13,4 @@ app/data
 app/.chainlit/translations
 app/log/
 app/.files
+app/documents
