@@ -11,10 +11,13 @@ services:
       - ./app/log:/app/app/log
       - ./app/.env:/app/app/.env
     environment:
-      - CHATCHAT_ROOT=/app
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/langchain_chatchat
+      - CHATCHAT_ROOT=/app/app
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/langchain_chatchat
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
     depends_on:
       - db
+      - qdrant
     restart: unless-stopped
     networks:
       - arg_network
@@ -35,8 +38,21 @@ services:
     networks:
       - arg_network
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: arg_qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+    networks:
+      - arg_network
+
 volumes:
   postgres_data:
+  qdrant_data:
 
 networks:
   arg_network:

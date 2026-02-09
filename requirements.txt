@@ -10,6 +10,7 @@ pydantic-settings
 python-dotenv
 sqlalchemy
 psycopg2-binary
+asyncpg
 nltk
 pypdf
 python-docx
@@ -19,3 +20,17 @@ pandas
 numpy
 fastapi
 uvicorn
+qdrant-client
+memoization
+ruamel.yaml
+loguru
+langsmith
+mcp
+chardet
+langchain-ollama
+langchain-chroma
+langchain-text-splitters
+langchain-core
+pymilvus
+aiofiles
+pymysql

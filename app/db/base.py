@@ -1,28 +1,35 @@
 import json
-from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
 from sqlalchemy.orm import sessionmaker
 from settings import Settings
 
-# 使用同步引擎用于基础表创建和传统 ORM 操作
-# 注意：PostgreSQL 推荐使用 psycopg3 或 psycopg2
-# 这里从配置中获取连接字符串
+
 SQLALCHEMY_DATABASE_URI = Settings.basic_settings.SQLALCHEMY_DATABASE_URI
 
-# 适配处理：如果 URI 包含 asyncpg 前缀，则将其转换为同步协议，以便 create_engine (sync) 使用
-if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith("postgresql+asyncpg://"):
-    SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgresql+asyncpg://", "postgresql://")
+# 确保 URI 使用 asyncpg 协议
+if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith("postgresql://"):
+    SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgresql://", "postgresql+asyncpg://")
 
-engine = create_engine(
+# 创建异步引擎
+engine = create_async_engine(
     SQLALCHEMY_DATABASE_URI,
     json_serializer=lambda obj: json.dumps(obj, ensure_ascii=False),
     # 针对 PostgreSQL 的连接池配置
     pool_size=10,
     max_overflow=20,
-    pool_pre_ping=True
+    pool_pre_ping=True,
+    echo=False  # 设置为 True 可以看到 SQL 日志
 )
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# 创建异步会话工厂
+SessionLocal = sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    autocommit=False,
+    autoflush=False,
+    expire_on_commit=False
+)
 
 Base: DeclarativeMeta = declarative_base()
 
