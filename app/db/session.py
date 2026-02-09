@@ -3,14 +3,15 @@ from functools import wraps
 
 from sqlalchemy.orm import Session
 
-from db.base import SessionLocal, engine, Base, import_models
+from db.base import SessionLocal, engine, async_engine, Base, import_models
 
-def init_db():
+async def init_db():
     """
-    初始化数据库，创建所有缺失的表
+    初始化数据库,创建所有缺失的表
     """
     import_models()
-    Base.metadata.create_all(bind=engine)
+    async with async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     print("Database tables initialized successfully.")
 
 @contextmanager

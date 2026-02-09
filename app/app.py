@@ -1,6 +1,7 @@
 import chainlit as cl
 import os
 import io
+import asyncio
 from dotenv import load_dotenv
 from settings import Settings
 from db.session import init_db
@@ -18,7 +19,7 @@ from mcp import ClientSession
 load_dotenv()
 
 # 在启动时初始化数据库表
-init_db()
+asyncio.run(init_db())
 init_default_kb()
 
 @cl.on_chat_start

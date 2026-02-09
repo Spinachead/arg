@@ -34,3 +34,4 @@ langchain-core
 pymilvus
 aiofiles
 pymysql
+langchain-deepseek
