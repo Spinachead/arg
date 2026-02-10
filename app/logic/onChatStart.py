@@ -15,7 +15,6 @@ async def execute():
     
     # 加载用户保存的设置
     user = cl.user_session.get("user")
-    print("user", user)
 
     
     saved_settings = {}

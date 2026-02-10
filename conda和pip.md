@@ -42,7 +42,7 @@ docker tag arg-app:latest 47.119.147.245:1683/library/arg-app:v1.0
 # 4. 推送到 Harbor
 docker push 47.119.147.245:1683/library/arg-app:v1.0
 # 5. 在服务器上运行
- docker pull 47.119.147.245:1683/library/arg-app:v1.0
+docker pull 47.119.147.245:1683/library/arg-app:v1.0
 ```
 
 本地代码更新后

@@ -27,7 +27,7 @@ loguru
 langsmith
 mcp
 chardet
-langchain-ollama
+dashscope
 langchain-chroma
 langchain-text-splitters
 langchain-core

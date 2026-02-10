@@ -97,11 +97,27 @@ def get_Embeddings(
         embed_model: str = None,
         local_wrap: bool = False,  # use local wrapped api
 ) -> Embeddings:
-    from langchain_ollama import OllamaEmbeddings
-    embedding = OllamaEmbeddings(
-        model=get_default_embedding(),
-        base_url="http://localhost:11434"
+    """
+    获取嵌入模型实例
+    优先使用阿里云 DashScope 在线嵌入模型，不再依赖本地 Ollama
+    """
+    print(f"\033[92m开始使用Embeddings\033[0m")  # 绿色输出
+
+    from langchain_community.embeddings import DashScopeEmbeddings
+    
+    # 使用阿里云 DashScope 嵌入模型
+    # 支持的模型: text-embedding-v1, text-embedding-v2, text-embedding-v3
+    model_name = embed_model if embed_model else get_default_embedding()
+    model_name = "text-embedding-v2"
+    
+    # 如果传入的是 Ollama 模型名，替换为 DashScope 的模型名
+    if model_name and "ollama" in model_name.lower():
+        model_name = "text-embedding-v2"
+    
+    embedding = DashScopeEmbeddings(
+        model=model_name or "text-embedding-v2"
     )
+    print(f"\033[92mUsing embedding model: {model_name}\033[0m")  # 绿色输出
     return embedding
 
 
