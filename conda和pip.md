@@ -37,17 +37,17 @@ docker build -t arg-app:latest .
 
 # 3. 为镜像打上 Harbor 的 Tag
 # 格式: docker tag [本地镜像名]:[标签] [Harbor地址]/[项目名]/[镜像名]:[标签]
-docker tag arg-app:latest 47.119.147.245:1683/library/arg-app:v1.0
+docker tag arg-app:latest 47.119.147.245:1683/library/arg-app:v1.1
 
 # 4. 推送到 Harbor
-docker push 47.119.147.245:1683/library/arg-app:v1.0
+docker push 47.119.147.245:1683/library/arg-app:v1.1
 # 5. 在服务器上运行
-docker pull 47.119.147.245:1683/library/arg-app:v1.0
+docker pull 127.0.0.1:1683/library/arg-app:v1.1
 ```
 
 本地代码更新后
 ```bash
  docker build -t arg-app:v1.1 .
- docker tag arg-app:v1.1 47.119.147.245:1683/arg-project/arg-app:v1.1
- docker push 47.119.147.245:1683/arg-project/arg-app:v1.1
+ docker tag arg-app:v1.1 47.119.147.245:1683/library/arg-app:v1.1
+ docker push 47.119.147.245:1683/library/arg-app:v1.1
  ```
