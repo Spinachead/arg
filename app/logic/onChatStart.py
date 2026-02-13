@@ -9,13 +9,8 @@ from settings import Settings
 
 
 async def execute():
-    # 初始化 graph，但不需要初始化 state
-    # state 由 LangGraph 的 checkpoint 自动管理
     cl.user_session.set("graph", build_main_graph())
-    
-    # 加载用户保存的设置
     user = cl.user_session.get("user")
-
     
     saved_settings = {}
     
