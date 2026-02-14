@@ -32,51 +32,53 @@ async def execute():
     api_base = saved_settings.get("api_base", Settings.app_settings.openai_api_base)
     temperature = saved_settings.get("temperature", Settings.app_settings.temperature)
     streaming = saved_settings.get("streaming", Settings.app_settings.streaming)
+    knowledge_base = saved_settings.get("knowledge_base", Settings.kb_settings.DEFAULT_KNOWLEDGE_BASE)
 
     existing_kbs = list_kbs_from_db()
-    testKb = []
     # 提取知识库名称字符串列表
     kb_names = [kb.kbName if hasattr(kb, 'kbName') else str(kb) for kb in existing_kbs] if existing_kbs else []
-    if not testKb:
+    
+    # 如果没有知识库，提示用户创建
+    if not kb_names:
         element = cl.CustomElement(
-        name="KBConfig",
-        display="inline",
-        props={
-            "timeout": 60,
-            "title": "新建知识库",
-            "description": "配置新知识库的参数",
-            "fields": [
-                {"id": "kb_name", "label": "知识库名称", "type": "text", "required": True, "value": "samples"},
-                {
-                    "id": "kb_info",
-                    "label": "知识库简介",
-                    "type": "textarea",
-                    "required": False,
-                    "value": "",
-                    "maxLength": 300,
-                    "placeholder": "用于Agent选择知识库时的描述（最多300字）",
-                },
-                {
-                    "id": "embed_model",
-                    "label": "嵌入模型",
-                    "type": "select",
-                    "options": ["text-embedding-v1", "text-embedding-v2", "text-embedding-v3"],
-                    "value": "text-embedding-v1",
-                    "required": True,
-                },
-                {
-                    "id": "vs_type",
-                    "label": "向量库类型",
-                    "type": "select",
-                    "options": ["faiss", "milvus", "zilliz", "pg", "es", "relyt", "chromadb"],
-                    "value": "faiss",
-                    "required": True,
-                },
-            ],
-        },
-    )
+            name="KBConfig",
+            display="inline",
+            props={
+                "timeout": 300,
+                "title": "新建知识库",
+                "description": "配置新知识库的参数",
+                "fields": [
+                    {"id": "kb_name", "label": "知识库名称", "type": "text", "required": True, "value": "samples"},
+                    {
+                        "id": "kb_info",
+                        "label": "知识库简介",
+                        "type": "textarea",
+                        "required": False,
+                        "value": "",
+                        "maxLength": 300,
+                        "placeholder": "用于Agent选择知识库时的描述（最多300字）",
+                    },
+                    {
+                        "id": "embed_model",
+                        "label": "嵌入模型",
+                        "type": "select",
+                        "options": ["text-embedding-v1", "text-embedding-v2", "text-embedding-v3"],
+                        "value": "text-embedding-v1",
+                        "required": True,
+                    },
+                    {
+                        "id": "vs_type",
+                        "label": "向量库类型",
+                        "type": "select",
+                        "options": ["faiss", "milvus", "zilliz", "pg", "es", "relyt", "chromadb"],
+                        "value": "faiss",
+                        "required": True,
+                    },
+                ],
+            },
+        )
         res = await cl.AskElementMessage(
-            content="请配置新知识库参数:", element=element, timeout=60
+            content="请配置新知识库参数:", element=element, timeout=300
         ).send()
         if res:
             result = create_kb(
@@ -87,7 +89,13 @@ async def execute():
             )
             
             if result.code == 200:
-               await upload_document(res.get("kb_name", "samples"))
+                await cl.Message(
+                    content=f"✅ 知识库 '{res.get('kb_name', 'samples')}' 创建成功！现在请上传文档。"
+                ).send()
+                await upload_document(res.get("kb_name", "samples"))
+                # 更新知识库列表
+                existing_kbs = list_kbs_from_db()
+                kb_names = [kb.kbName if hasattr(kb, 'kbName') else str(kb) for kb in existing_kbs] if existing_kbs else []
             else:
                 await cl.Message(
                     content=f"❌ 创建知识库失败：{result.msg}"

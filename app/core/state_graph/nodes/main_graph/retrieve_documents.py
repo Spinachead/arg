@@ -1,3 +1,4 @@
+import chainlit as cl
 from settings import Settings
 from core.state_graph.states.main_graph.agent_state import AgentState
 from knowledge_base.kb_doc_api import search_docs
@@ -10,7 +11,10 @@ async def retrieve_documents(state: AgentState, *, config: RunnableConfig) -> Di
     query_kb_pairs = state.query_kb_pairs
     all_docs = []
     doc_id_set = set()
-    kb_name = Settings.kb_settings.DEFAULT_KNOWLEDGE_BASE
+    
+    # 从用户 session 中获取选择的知识库，如果没有则使用默认值
+    model_settings = cl.user_session.get("model_settings", {})
+    kb_name = model_settings.get("knowledge_base", Settings.kb_settings.DEFAULT_KNOWLEDGE_BASE)
     
     for pair in query_kb_pairs:
         q = pair["query"]
