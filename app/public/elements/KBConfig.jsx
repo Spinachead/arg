@@ -3,11 +3,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import React, { useEffect, useMemo, useState } from 'react';
 
-export default function JiraTicket() {
+export default function KBConfig() {
   const [timeLeft, setTimeLeft] = useState(props.timeout || 30);
   const [values, setValues] = useState(() => {
     const init = {};
@@ -41,7 +40,15 @@ export default function JiraTicket() {
     const value = values[field.id];
     switch (field.type) {
       case 'textarea':
-        return <Textarea id={field.id} value={value} onChange={(e) => handleChange(field.id, e.target.value)} />;
+        return (
+          <Textarea
+            id={field.id}
+            value={value}
+            maxLength={field.maxLength}
+            placeholder={field.placeholder || ''}
+            onChange={(e) => handleChange(field.id, e.target.value)}
+          />
+        );
       case 'select':
         return (
           <Select value={value} onValueChange={(val) => handleChange(field.id, val)}>
@@ -56,31 +63,6 @@ export default function JiraTicket() {
               ))}
             </SelectContent>
           </Select>
-        );
-      case 'switch':
-        return (
-          <div className="flex items-center space-x-2 pt-2">
-            <Switch
-              id={field.id}
-              checked={value}
-              onCheckedChange={(checked) => handleChange(field.id, checked)}
-            />
-            <span className="text-sm text-muted-foreground">
-              {value ? '开启' : '关闭'}
-            </span>
-          </div>
-        );
-      case 'number':
-        return (
-          <Input
-            type="number"
-            id={field.id}
-            value={value}
-            min={field.min}
-            max={field.max}
-            step={field.step}
-            onChange={(e) => handleChange(field.id, parseFloat(e.target.value))}
-          />
         );
       case 'date':
         return <Input type="date" id={field.id} value={value} onChange={(e) => handleChange(field.id, e.target.value)} />;

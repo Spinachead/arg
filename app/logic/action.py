@@ -16,7 +16,7 @@ from utils import build_logger, BaseResponse
 logger = build_logger()
 
 
-async def upload_document():
+async def upload_document(kb_name: str):
     files = await cl.AskFileMessage(
         content="请选择要上传的文件",
         accept=[
@@ -30,10 +30,7 @@ async def upload_document():
 
     if not files:
         return
-
-    kb_name = Settings.kb_settings.DEFAULT_KNOWLEDGE_BASE
     file_names = []
-
     async with cl.Step(name="文档上传与向量化") as step:
         try:
             step.output = f"正在保存 {len(files)} 个文件..."

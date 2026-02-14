@@ -6,6 +6,7 @@ from fastapi import Body, UploadFile, File, Form
 
 from db.repository.knowledge_base_repository import list_kbs_from_db
 from knowledge_base.kb_service.base import KBServiceFactory, get_kb_file_details
+from knowledge_base.kb_utils import validate_kb_name
 from knowledge_base.model.kb_document_model import DocumentWithVSId
 from settings import Settings
 from utils import build_logger, BaseResponse, get_default_embedding, ListResponse
@@ -16,14 +17,20 @@ def list_kbs():
     return BaseResponse(data=list_kbs_from_db())
 
 def create_kb(
-        knowledge_base_name: str = Body(..., examples=["samples"]),
-        vector_store_type: str = Body(Settings.kb_settings.DEFAULT_VS_TYPE),
-        kb_info: str = Body("", description="知识库内容简介,用于Agent选择知识库"),
-        embed_model: str = Body(get_default_embedding()),
+        knowledge_base_name: str = None,
+        vector_store_type: str = None,
+        kb_info: str = "",
+        embed_model: str = None,
 ) -> BaseResponse:
     # Create selected knowledge base
-    # if not validate_kb_name(knowledge_base_name):
-    #     return BaseResponse(code=403, msg="Don't attack me")
+    # 设置默认值
+    if vector_store_type is None:
+        vector_store_type = Settings.kb_settings.DEFAULT_VS_TYPE
+    if embed_model is None:
+        embed_model = get_default_embedding()
+    
+    if not validate_kb_name(knowledge_base_name):
+        return BaseResponse(code=403, msg="知识库名称包含非法字符，请使用字母、数字、空格、下划线或连字符")
     if knowledge_base_name is None or knowledge_base_name.strip() == "":
         return BaseResponse(code=404, msg="知识库名称不能为空，请重新填写知识库名称")
 

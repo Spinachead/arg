@@ -6,6 +6,11 @@ from chainlit.input_widget import Select, Switch, Slider, TextInput
 from db.session import session_scope
 from db.repository.user_repository import get_user_settings
 from settings import Settings
+from db.repository.knowledge_base_repository import list_kbs_from_db
+from knowledge_base.kb_api import create_kb
+from logic.action import upload_document
+
+
 
 
 async def execute():
@@ -27,6 +32,66 @@ async def execute():
     api_base = saved_settings.get("api_base", Settings.app_settings.openai_api_base)
     temperature = saved_settings.get("temperature", Settings.app_settings.temperature)
     streaming = saved_settings.get("streaming", Settings.app_settings.streaming)
+
+    existing_kbs = list_kbs_from_db()
+    testKb = []
+    # 提取知识库名称字符串列表
+    kb_names = [kb.kbName if hasattr(kb, 'kbName') else str(kb) for kb in existing_kbs] if existing_kbs else []
+    if not testKb:
+        element = cl.CustomElement(
+        name="KBConfig",
+        display="inline",
+        props={
+            "timeout": 60,
+            "title": "新建知识库",
+            "description": "配置新知识库的参数",
+            "fields": [
+                {"id": "kb_name", "label": "知识库名称", "type": "text", "required": True, "value": "samples"},
+                {
+                    "id": "kb_info",
+                    "label": "知识库简介",
+                    "type": "textarea",
+                    "required": False,
+                    "value": "",
+                    "maxLength": 300,
+                    "placeholder": "用于Agent选择知识库时的描述（最多300字）",
+                },
+                {
+                    "id": "embed_model",
+                    "label": "嵌入模型",
+                    "type": "select",
+                    "options": ["text-embedding-v1", "text-embedding-v2", "text-embedding-v3"],
+                    "value": "text-embedding-v1",
+                    "required": True,
+                },
+                {
+                    "id": "vs_type",
+                    "label": "向量库类型",
+                    "type": "select",
+                    "options": ["faiss", "milvus", "zilliz", "pg", "es", "relyt", "chromadb"],
+                    "value": "faiss",
+                    "required": True,
+                },
+            ],
+        },
+    )
+        res = await cl.AskElementMessage(
+            content="请配置新知识库参数:", element=element, timeout=60
+        ).send()
+        if res:
+            result = create_kb(
+                knowledge_base_name=res.get("kb_name", "samples"),
+                vector_store_type=res.get("vs_type", "faiss"),
+                kb_info=res.get("kb_info", ""),
+                embed_model=res.get("embed_model", "text-embedding-v1"),
+            )
+            
+            if result.code == 200:
+               await upload_document(res.get("kb_name", "samples"))
+            else:
+                await cl.Message(
+                    content=f"❌ 创建知识库失败：{result.msg}"
+                ).send()
     
     # 发送 ChatSettings 到前端
     settings = await cl.ChatSettings(
@@ -49,6 +114,13 @@ async def execute():
                 initial=api_base,
                 description="API 基础地址",
             ),
+            Select(
+                id="knowledge_base",
+                label="知识库选择",
+                values=kb_names,
+                initial_index=0,
+            ),
+            
             Slider(
                 id="temperature",
                 label="温度 (Temperature)",

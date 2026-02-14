@@ -85,9 +85,6 @@ async def execute(message: cl.Message):
         active_ui_message = cl.Message(content="已完成处理", actions=[upload_action])
         await active_ui_message.send()
 
-    # 注意：不再需要手动同步 state.messages
-    # LangGraph 的 checkpoint 会自动保存对话历史
-
     # 获取 LangSmith Trace ID (如果有)
     trace_id = None
     try:

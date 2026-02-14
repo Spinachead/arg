@@ -20,84 +20,25 @@ load_dotenv()
 
 # 在启动时初始化数据库表
 asyncio.run(init_db())
-init_default_kb()
+# init_default_kb()
 
 @cl.on_chat_start
 async def start():
-    element = cl.CustomElement(
-        name="KBConfig",
-        display="inline",
-        props={
-            "timeout": 60,
-            "title": "新建知识库",
-            "description": "配置新知识库的参数",
-            "fields": [
-                {"id": "DEFAULT_KNOWLEDGE_BASE", "label": "知识库名称", "type": "text", "required": True, "value": "samples"},
-                {
-                    "id": "DEFAULT_VS_TYPE",
-                    "label": "向量库类型",
-                    "type": "select",
-                    "options": ["faiss", "milvus", "zilliz", "pg", "es", "relyt", "chromadb"],
-                    "value": "faiss",
-                    "required": True,
-                },
-                {
-                    "id": "CHUNK_SIZE",
-                    "label": "单段文本长度 (100-2000)",
-                    "type": "number",
-                    "min": 100,
-                    "max": 2000,
-                    "step": 50,
-                    "value": 750,
-                    "required": True,
-                },
-                {
-                    "id": "OVERLAP_SIZE",
-                    "label": "相邻文本重合长度 (0-500)",
-                    "type": "number",
-                    "min": 0,
-                    "max": 500,
-                    "step": 10,
-                    "value": 150,
-                    "required": True,
-                },
-                {
-                    "id": "SCORE_THRESHOLD",
-                    "label": "匹配相关度阈值 (0-2)",
-                    "type": "number",
-                    "min": 0,
-                    "max": 2,
-                    "step": 0.1,
-                    "value": 2.0,
-                    "required": True,
-                },
-                {
-                    "id": "ZH_TITLE_ENHANCE",
-                    "label": "开启中文标题加强",
-                    "type": "switch",
-                    "value": False,
-                },
-            ],
-        },
-    )
-    res = await cl.AskElementMessage(
-        content="请配置新知识库参数:", element=element, timeout=60
-    ).send()
-    if res:
-        await cl.Message(
-            content=f"知识库配置已提交: {res}"
-        ).send()
-    # 初始化对话状态和图
     await onChatStart()
     
 @cl.set_starters
 async def set_starters():
     return [
          cl.Starter(
-            label="Morning routine ideation",
+            label="新建知识库",
             message="Can you help me create a personalized morning routine that would help increase my productivity throughout the day? Start by asking me about my current habits and what activities energize me in the morning.",
             icon="/public/cat.png",
-        )
+        ),
+         cl.Starter(
+            label="管理知识库",
+            message="Can you help me create a personalized morning routine that would help increase my productivity throughout the day? Start by asking me about my current habits and what activities energize me in the morning.",
+            icon="/public/cat.png",
+        ),
     ]
 
 @cl.on_message
