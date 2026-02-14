@@ -7,6 +7,8 @@ from core.state_graph.states.main_graph.input_state import InputState
 from langsmith import traceable, get_current_run_tree
 from db.repository.message_repository import add_message_to_db
 from langchain_core.runnables.config import RunnableConfig
+from settings import Settings
+
 
 @cl.step(type="llm", name="查询优化", show_input=False)
 async def generate_queries_step(data: dict):
@@ -30,11 +32,11 @@ async def retrieve_documents_step(data: dict):
 async def execute(message: cl.Message):
     graph: Runnable = cl.user_session.get("graph")
     user = cl.user_session.get("user")
+    model_settings = cl.user_session.get("model_settings", {})
+    kb_name = model_settings.get("knowledge_base", Settings.kb_settings.DEFAULT_KNOWLEDGE_BASE)
     
     question = message.content
     
-    # 准备输入状态，只包含当前的用户消息
-    # LangGraph 会自动从 checkpoint 加载历史消息
     input_state = InputState(messages=[HumanMessage(content=question)])
     
     upload_action = cl.Action(
@@ -42,7 +44,7 @@ async def execute(message: cl.Message):
         label="上传文档",
         value="any_value",
         icon="upload",
-        payload={"value": "example_value"}
+        payload={"kb_name": kb_name}
     )
     
     # 用于追踪当前正在流式输出的消息气泡

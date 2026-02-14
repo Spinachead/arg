@@ -126,7 +126,7 @@ async def execute():
                 id="knowledge_base",
                 label="知识库选择",
                 values=kb_names,
-                initial_index=0,
+                initial_value=knowledge_base if knowledge_base in kb_names else (kb_names[0] if kb_names else None),
             ),
             
             Slider(

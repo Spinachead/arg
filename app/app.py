@@ -65,7 +65,8 @@ async def on_resume(thread: ThreadDict):
 
 @cl.action_callback("upload_document")
 async def on_action(action: cl.Action):
-    await upload_document()
+    print(action.payload["kb_name"])
+    await upload_document(action.payload["kb_name"])
 
 
 @cl.on_mcp_connect

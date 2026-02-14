@@ -1,13 +1,34 @@
 from core.state_graph.states.main_graph.agent_state import AgentState
 from langchain.chat_models import init_chat_model
 from langchain_core.runnables import RunnableConfig
-from langchain_core.messages import ToolMessage
+from langchain_core.messages import ToolMessage, AIMessage, HumanMessage
 from settings import Settings
 from utils import get_prompt_template, History
-from typing import Dict, Any
+from typing import Dict, Any, List
 from langchain_core.prompts import ChatPromptTemplate
 import chainlit as cl
 from core.state_graph.nodes.main_graph.tools import GENERAL_TOOLS
+
+
+def convert_messages_for_model(messages: List) -> List:
+    """
+    将消息列表转换为模型可用的格式。
+    特别处理 ToolMessage，确保保留 tool_call_id。
+    """
+    converted = []
+    for msg in messages:
+        if isinstance(msg, ToolMessage):
+            # ToolMessage 需要保持原样，保留 tool_call_id
+            converted.append(msg)
+        elif isinstance(msg, AIMessage):
+            # AIMessage 可能包含 tool_calls，也需要保持原样
+            converted.append(msg)
+        elif isinstance(msg, HumanMessage):
+            converted.append(msg)
+        else:
+            # 其他消息类型，尝试转换
+            converted.append(msg)
+    return converted
 
 
 async def respond(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
@@ -78,8 +99,8 @@ async def respond(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
 3. 使用工具：当需要访问外部数据时，优先考虑使用可用的工具
 
 [工具使用指南]
-1. 当用户要求“记住”、“保存”某些信息时，调用相关的存储工具。
-2. 当用户询问“之前说过什么”、“我记了什么”时，调用相关的查询工具。
+1. 当用户要求"记住"、"保存"某些信息时，调用相关的存储工具。
+2. 当用户询问"之前说过什么"、"我记了什么"时，调用相关的查询工具。
 3. 如果工具已经返回了结果，请务必将其视为最可信的实时数据来源。
 """
 
@@ -92,9 +113,19 @@ async def respond(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
     
     # 遍历历史消息（排除掉最后一条，因为最后一条要用 RAG 模板包装）
     for msg in state.messages[:-1]:
-        h = History(role=msg.type, content=msg.content)
-        # is_raw=True 会用 {% raw %} 包装内容，防止历史消息中的特殊字符干扰解析
-        prompt_messages.append(h.to_msg_template(is_raw=True))
+        # 特殊处理 ToolMessage：直接使用原消息，不通过 History 转换
+        if isinstance(msg, ToolMessage):
+            prompt_messages.append(msg)
+        elif isinstance(msg, AIMessage):
+            # AIMessage 也直接保留，可能包含 tool_calls
+            prompt_messages.append(msg)
+        elif isinstance(msg, HumanMessage):
+            h = History(role="human", content=msg.content)
+            prompt_messages.append(h.to_msg_template(is_raw=True))
+        else:
+            # 其他类型消息使用 History 转换
+            h = History(role=msg.type, content=msg.content)
+            prompt_messages.append(h.to_msg_template(is_raw=True))
     
     # 最后一条：使用 RAG 模板，注意 is_raw=False，这样才能解析模板里的变量
     h_rag = History(role="user", content=prompt_template)
