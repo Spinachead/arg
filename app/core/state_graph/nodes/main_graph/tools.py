@@ -1,16 +1,30 @@
 from langchain_core.tools import tool
 import pymysql  # 或 psycopg2（PostgreSQL）
+import os
+from dotenv import load_dotenv
+
+# 加载环境变量
+load_dotenv()
 
 @tool
 def get_sn_table_count() -> int:
     """Get the total number of records in the 'sn' table."""
     try:
-        # MySQL 示例
+        # 从环境变量读取 MySQL 配置
+        host = os.getenv("MYSQL_DB_HOST", "localhost")
+        # 如果 host 包含端口，需要分离
+        if ":" in host:
+            host, port_str = host.split(":")
+            port = int(port_str)
+        else:
+            port = int(os.getenv("MYSQL_DB_PORT", "3306"))
+        
         connection = pymysql.connect(
-            host="localhost",
-            user="arg",
-            password="12345678",
-            database="arg"
+            host=host,
+            port=port,
+            user=os.getenv("MYSQL_DB_USERNAME", "root"),
+            password=os.getenv("MYSQL_DB_PASSWORD", ""),
+            database=os.getenv("MYSQL_DB_DATABASE", "arg")
         )
         with connection.cursor() as cursor:
             cursor.execute("SELECT COUNT(*) FROM sn")

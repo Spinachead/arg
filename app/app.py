@@ -20,7 +20,6 @@ load_dotenv()
 
 # 在启动时初始化数据库表
 asyncio.run(init_db())
-# init_default_kb()
 
 @cl.on_chat_start
 async def start():
@@ -115,6 +114,16 @@ async def setup_agent(settings):
             cl.user_session.set("model_settings", settings)
         else:
             print(f"保存用户设置失败")
+
+@cl.on_logout
+async def on_logout():
+    """Called when a user logs out"""
+    # 清空用户 session 中的所有数据
+    cl.user_session.set("user", None)
+    cl.user_session.set("graph", None)
+    # cl.user_session.set("model_settings", None)
+    # cl.user_session.set("mcp_tools", None)
+    print("用户已退出登录，session 已清空")
 
 if __name__ == "__main__":
     from chainlit.cli import run_chainlit

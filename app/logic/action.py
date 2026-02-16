@@ -26,6 +26,7 @@ async def upload_document(kb_name: str):
             "text/markdown",
         ],
         max_files=10,
+        max_size_mb=20,
     ).send()
 
     if not files:
@@ -74,7 +75,6 @@ async def upload_document(kb_name: str):
             error_detail = traceback.format_exc()
             print(error_detail)
             step.output = f"❌ 处理过程中发生错误: {str(e)}"
-            # 发送一个独立的错误消息以便用户查看详情
             await cl.Message(content=f"详细错误堆栈:\n```\n{error_detail}\n```").send()
 
 def update_kb_docs(

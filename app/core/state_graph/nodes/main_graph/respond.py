@@ -111,8 +111,18 @@ async def respond(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
     # 使用 History 类来确保使用 jinja2 引擎解析 {{context}} 和 {{question}}
     prompt_messages = [("system", system_prompt)]
     
-    # 遍历历史消息（排除掉最后一条，因为最后一条要用 RAG 模板包装）
-    for msg in state.messages[:-1]:
+    # 确定要处理的消息范围
+    # 如果是工具执行后的响应，需要包含完整历史（包括 ToolMessage）
+    # 否则排除最后一条用户消息，用 RAG 模板包装
+    if is_after_tool:
+        # 工具执行后：包含所有历史消息，最后一条 ToolMessage 作为上下文
+        messages_to_process = state.messages
+    else:
+        # 正常对话：排除最后一条用户消息
+        messages_to_process = state.messages[:-1]
+    
+    # 遍历历史消息
+    for msg in messages_to_process:
         # 特殊处理 ToolMessage：直接使用原消息，不通过 History 转换
         if isinstance(msg, ToolMessage):
             prompt_messages.append(msg)
@@ -128,8 +138,10 @@ async def respond(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
             prompt_messages.append(h.to_msg_template(is_raw=True))
     
     # 最后一条：使用 RAG 模板，注意 is_raw=False，这样才能解析模板里的变量
-    h_rag = History(role="user", content=prompt_template)
-    prompt_messages.append(h_rag.to_msg_template(is_raw=False))
+    # 只有在不是工具执行后的响应时才添加 RAG 模板作为最后一条
+    if not is_after_tool:
+        h_rag = History(role="user", content=prompt_template)
+        prompt_messages.append(h_rag.to_msg_template(is_raw=False))
 
     chat_prompt = ChatPromptTemplate.from_messages(prompt_messages)
 
