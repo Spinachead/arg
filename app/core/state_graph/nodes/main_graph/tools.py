@@ -1,9 +1,7 @@
 from langchain_core.tools import tool
-import pymysql  # 或 psycopg2（PostgreSQL）
+import pymysql
 import os
 from dotenv import load_dotenv
-
-# 加载环境变量
 load_dotenv()
 
 @tool
