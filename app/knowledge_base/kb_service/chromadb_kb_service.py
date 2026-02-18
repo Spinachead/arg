@@ -89,9 +89,6 @@ class ChromaKBService(KBService):
 
             collections = self.client.list_collections()
             collection_names = [c.name for c in collections]
-            print(f"现有集合: {collection_names}")
-            if "testBob" in collection_names:
-                print("testBob 集合确实存在")
             self.client.delete_collection(self.kb_name)
         except ValueError as e:
             if not str(e) == f"Collection {self.kb_name} does not exist.":
@@ -105,7 +102,6 @@ class ChromaKBService(KBService):
             top_k=top_k,
             score_threshold=score_threshold,
         )
-        print(f"这是chromadb retriever：{retriever}")
         docs = retriever.get_relevant_documents(query)
         return docs
 

@@ -20,9 +20,3 @@ class RapidOCRLoader(UnstructuredFileLoader):
         from unstructured.partition.text import partition_text
 
         return partition_text(text=text, **self.unstructured_kwargs)
-
-
-if __name__ == "__main__":
-    loader = RapidOCRLoader(file_path="../tests/samples/ocr_test.jpg")
-    docs = loader.load()
-    print(docs)

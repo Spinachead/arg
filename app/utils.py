@@ -101,8 +101,6 @@ def get_Embeddings(
     获取嵌入模型实例
     优先使用阿里云 DashScope 在线嵌入模型，不再依赖本地 Ollama
     """
-    print(f"\033[92m开始使用Embeddings\033[0m")  # 绿色输出
-
     from langchain_community.embeddings import DashScopeEmbeddings
     
     # 使用阿里云 DashScope 嵌入模型
@@ -314,9 +312,3 @@ class ListResponse(BaseResponse):
 def api_address(is_public: bool = False) -> str:
     """返回 API 地址"""
     return "http://127.0.0.1:7861"
-
-
-if __name__ == "__main__":
-    # for debug
-    print(get_default_embedding())
-

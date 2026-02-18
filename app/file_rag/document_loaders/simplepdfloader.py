@@ -42,15 +42,3 @@ class SimplePDFLoader(UnstructuredFileLoader):
         # 使用unstructured库的partition_text函数来处理文本
         from unstructured.partition.text import partition_text
         return partition_text(text=full_text, **self.unstructured_kwargs)
-
-
-if __name__ == "__main__":
-    import sys
-    if len(sys.argv) > 1:
-        loader = SimplePDFLoader(file_path=sys.argv[1])
-        docs = loader.load()
-        print(f"成功加载 {len(docs)} 个文档片段")
-        for i, doc in enumerate(docs[:3]):  # 只打印前3个片段
-            print(f"文档片段 {i+1}: {doc.page_content[:200]}...")  # 只显示前200个字符
-    else:
-        print("请提供PDF文件路径作为参数")

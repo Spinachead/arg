@@ -142,4 +142,3 @@ if __name__ == "__main__":
     faissService.add_doc(KnowledgeFile("README.md", "test"))
     faissService.delete_doc(KnowledgeFile("README.md", "test"))
     faissService.do_drop_kb()
-    print(faissService.search_docs("如何启动api服务"))

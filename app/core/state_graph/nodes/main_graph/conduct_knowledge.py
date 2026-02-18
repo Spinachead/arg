@@ -7,21 +7,13 @@ async def conduct_knowledge(state: AgentState) -> dict[str, Any]:
     """
     执行 knowledge_graph 子图节点
     """
-    # 从消息中提取用户最新的查询
-    query = ""
-    if state.messages:
-        # 获取最后一条用户消息
-        for msg in reversed(state.messages):
-            if hasattr(msg, 'type') and msg.type == 'human':
-                query = msg.content
-                break
     
     # 调用知识查询子图
     response = await knowledge_graph.ainvoke({
         "messages": state.messages,
-        "query": query,
     })
-    
+
+    print(f"conduct_knowledge:{response}")
     # 将子图的 context 返回给主图状态
     return {
         "context": response.get("context", ""),

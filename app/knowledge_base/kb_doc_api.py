@@ -35,7 +35,6 @@ def search_docs(
     if kb is not None:
         if query:
             docs = kb.search_docs(query, top_k, score_threshold)
-            # print(f"这是docs{docs}")
             # data = [DocumentWithVSId(**x[0].dict(), score=x[1], id=x[0].metadata.get("id")) for x in docs]
             data = [DocumentWithVSId(**{"id": x.metadata.get("id"), **x.dict()}) for x in docs]
         elif file_name or metadata:

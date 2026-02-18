@@ -23,5 +23,5 @@ async def respond_to_general_query(
     system_prompt = GENERAL_SYSTEM_PROMPT.format(logic=state.router.logic)
     print("---RESPONSE GENERATION---")
     messages = [{"role": "system", "content": system_prompt}] + state.messages
-    response = await model.ainvoke(messages)
+    response = await model.ainvoke(messages, config)
     return {"messages": [response]}

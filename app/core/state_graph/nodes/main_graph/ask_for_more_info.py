@@ -23,5 +23,5 @@ async def ask_for_more_info(
     )
     system_prompt = MORE_INFO_SYSTEM_PROMPT.format(logic=state.router.logic)
     messages = [{"role": "system", "content": system_prompt}] + state.messages
-    response = await model.ainvoke(messages)
+    response = await model.ainvoke(messages, config)
     return {"messages": [response]}

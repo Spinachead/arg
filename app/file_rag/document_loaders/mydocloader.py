@@ -76,4 +76,3 @@ class RapidOCRDocLoader(UnstructuredFileLoader):
 if __name__ == "__main__":
     loader = RapidOCRDocLoader(file_path="../tests/samples/ocr_test.docx")
     docs = loader.load()
-    print(docs)

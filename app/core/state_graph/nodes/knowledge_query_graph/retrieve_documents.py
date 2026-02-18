@@ -18,9 +18,8 @@ async def retrieve_documents(state: ResearcherState, *, config: RunnableConfig) 
     kb_name = model_settings.get("knowledge_base", Settings.kb_settings.DEFAULT_KNOWLEDGE_BASE)
     
     for pair in query_kb_pairs:
-        q = pair["query"]
         docs = search_docs(
-            query=q,
+            query=pair,
             knowledge_base_name=kb_name,
             top_k=5,
             score_threshold=2.0,

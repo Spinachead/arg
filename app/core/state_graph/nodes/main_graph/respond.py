@@ -29,9 +29,9 @@ async def respond(
         openai_api_base=Settings.app_settings.openai_api_base,
         openai_api_key=Settings.app_settings.openai_api_key,
     )
-    formatted_knowledge = "\n\n".join([item["content"] for item in state.knowledge])
-    prompt = RESPONSE_SYSTEM_PROMPT.format(context=formatted_knowledge)
+    prompt = RESPONSE_SYSTEM_PROMPT.format(context=state.context)
     messages = [{"role": "system", "content": prompt}] + state.messages
-    response = await model.ainvoke(messages)
+    response = await model.ainvoke(messages, config)
+    print(f"respond:{response}")
 
     return {"messages": [response]}

@@ -73,7 +73,6 @@ async def upload_document(kb_name: str):
 
         except Exception as e:
             error_detail = traceback.format_exc()
-            print(error_detail)
             step.output = f"❌ 处理过程中发生错误: {str(e)}"
             await cl.Message(content=f"详细错误堆栈:\n```\n{error_detail}\n```").send()
 

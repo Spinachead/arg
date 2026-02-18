@@ -319,7 +319,6 @@ def make_text_splitter(splitter_name, chunk_size, chunk_overlap):
                         chunk_size=chunk_size, chunk_overlap=chunk_overlap
                     )
     except Exception as e:
-        print(e)
         text_splitter_module = importlib.import_module("langchain_text_splitters")
         TextSplitter = getattr(text_splitter_module, "RecursiveCharacterTextSplitter")
         text_splitter = TextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
@@ -482,16 +481,3 @@ def files2docs_in_thread(
     ):
         yield result
 
-if __name__ == "__main__":
-    from pprint import pprint
-
-    kb_file = KnowledgeFile(
-        filename="E:\\LLM\\Data\\Test.md", knowledge_base_name="samples"
-    )
-    # kb_file.text_splitter_name = "RecursiveCharacterTextSplitter"
-    kb_file.text_splitter_name = "MarkdownHeaderTextSplitter"
-    docs = kb_file.file2docs()
-    # pprint(docs[-1])
-    texts = kb_file.docs2texts(docs)
-    for text in texts:
-        print(text)
