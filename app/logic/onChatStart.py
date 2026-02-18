@@ -1,5 +1,5 @@
 import chainlit as cl
-from core.main_graph import build_main_graph
+from core.state_graph.main_graph import build_main_graph
 from core.state_graph.states.main_graph.input_state import InputState
 from langchain_core.messages import HumanMessage, AIMessage
 from chainlit.input_widget import Select, Switch, Slider, TextInput

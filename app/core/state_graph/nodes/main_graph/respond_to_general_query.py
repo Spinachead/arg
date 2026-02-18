@@ -1,37 +1,27 @@
 from core.state_graph.states.main_graph.agent_state import AgentState
-from core.prompts import RESPONSE_SYSTEM_PROMPT
+from core.prompts import GENERAL_SYSTEM_PROMPT
 from langchain.chat_models import init_chat_model
 from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import BaseMessage
 from settings import Settings
 
 
-
-async def respond(
+async def respond_to_general_query(
     state: AgentState, *, config: RunnableConfig
 ) -> dict[str, list[BaseMessage]]:
     """
-    Generates a final response to the user based on the agent's accumulated knowledge and messages.
-
-    Args:
-        state (AgentState): The current state of the agent, including knowledge and messages.
-        config (RunnableConfig): Configuration for the runnable execution.
-
-    Returns:
-        dict[str, list[BaseMessage]]: A dictionary containing the generated response message(s).
+    Generates a response to a general user query based on the agent's current state and routing logic.
     """
-
     model = init_chat_model(
-        name="respond",
+        name="respond_to_general_query",
         model=Settings.app_settings.inference_model,
         temperature=Settings.app_settings.temperature,
         streaming=Settings.app_settings.streaming,
         openai_api_base=Settings.app_settings.openai_api_base,
         openai_api_key=Settings.app_settings.openai_api_key,
     )
-    formatted_knowledge = "\n\n".join([item["content"] for item in state.knowledge])
-    prompt = RESPONSE_SYSTEM_PROMPT.format(context=formatted_knowledge)
-    messages = [{"role": "system", "content": prompt}] + state.messages
+    system_prompt = GENERAL_SYSTEM_PROMPT.format(logic=state.router.logic)
+    print("---RESPONSE GENERATION---")
+    messages = [{"role": "system", "content": system_prompt}] + state.messages
     response = await model.ainvoke(messages)
-
     return {"messages": [response]}

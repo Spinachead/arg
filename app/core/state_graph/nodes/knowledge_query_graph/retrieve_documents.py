@@ -5,10 +5,11 @@ from knowledge_base.kb_doc_api import search_docs
 from utils import format_reference
 from langchain_core.runnables import RunnableConfig
 from typing import Dict, Any
+from core.state_graph.states.knowledge_query_graph.researcher_state import ResearcherState
 
-async def retrieve_documents(state: AgentState, *, config: RunnableConfig) -> Dict[str, Any]:
+async def retrieve_documents(state: ResearcherState, *, config: RunnableConfig) -> Dict[str, Any]:
     """使用多个查询变体检索文档并合并结果"""
-    query_kb_pairs = state.query_kb_pairs
+    query_kb_pairs = state.queries
     all_docs = []
     doc_id_set = set()
     
@@ -41,6 +42,5 @@ async def retrieve_documents(state: AgentState, *, config: RunnableConfig) -> Di
     context = "\n\n".join([doc.get("page_content", "") for doc in all_docs])
     return {
         "context": context,
-        "sources": source_documents,
     }
 
