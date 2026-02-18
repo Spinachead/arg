@@ -21,13 +21,11 @@ async def analyze_and_route_query(state: AgentState, *, config: RunnableConfig) 
         openai_api_base=Settings.app_settings.openai_api_base,
         openai_api_key=Settings.app_settings.openai_api_key,
     )
-
     messages = [{"role": "system", "content": ROUTER_SYSTEM_PROMPT}] + state.messages
-    print("---ANALYZE AND ROUTE QUERY---")
-    print(f"MESSAGES: {state.messages}")
     response = cast(
         Router, await model.with_structured_output(Router).ainvoke(messages)
     )
+    print(f"analyze_and_route_query:{response}")
     return {"router": response}
 
 

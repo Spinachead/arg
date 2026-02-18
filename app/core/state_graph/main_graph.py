@@ -51,9 +51,11 @@ def build_main_graph():
     builder.add_node(ask_for_more_info)
     builder.add_node(respond_to_general_query)
     builder.add_node(conduct_knowledge)
+    builder.add_node("respond", respond)
 
     builder.add_edge(START, "analyze_and_route_query")
     builder.add_conditional_edges("analyze_and_route_query", route_query)
-    builder.add_edge("conduct_knowledge", END)
+    
+    builder.add_edge("respond", END)
 
     return builder.compile(checkpointer=_GLOBAL_CHECKPOINT)

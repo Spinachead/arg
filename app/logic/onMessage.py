@@ -55,6 +55,7 @@ async def execute(message: cl.Message):
     config = RunnableConfig({"configurable": {"thread_id": user.id}})
 
     async for event in graph.astream_events(input_state, version="v2", config=config):
+        print(f"event:{event}")
         
         if event["event"] == "on_chain_end":
             if event["name"] == "generate_queries":
