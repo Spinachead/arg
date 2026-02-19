@@ -5,7 +5,6 @@ from langchain_core.messages import AIMessage
 from core.state_graph.states.sql_query_graph.sql_query import SQLQueryState
 from langchain.chat_models import init_chat_model
 from core.prompts import SQL_GENERATE_ANSWER_PROMPT
-from core.state_graph.tool.tools import execute_sql_query
 
 
 def generate_answer(state: SQLQueryState, *, config: RunnableConfig) -> dict:
@@ -19,18 +18,19 @@ def generate_answer(state: SQLQueryState, *, config: RunnableConfig) -> dict:
         streaming=Settings.app_settings.streaming,
         openai_api_base=Settings.app_settings.openai_api_base,
         openai_api_key=Settings.app_settings.openai_api_key,
-    ).bind_tools([execute_sql_query])
+    )
 
     # 基于查询结果生成自然语言回答
     prompt = ChatPromptTemplate.from_messages([
         ("system", SQL_GENERATE_ANSWER_PROMPT),
         MessagesPlaceholder("history"),
-        ("human", "{sql}")
+        ("human", "SQL查询语句: {sql}\n\n查询结果: {context}")
     ])
     chain = prompt | model
     response = chain.invoke({
         "history": state.messages,
-        "sql": state.sql
+        "sql": state.sql,
+        "context": state.context
     }, config)
     print(f"generate_answer: {response}")
-    return {"messages": [AIMessage(content=response.content)], "context": response.content}
+    return {"messages": [AIMessage(content=response.content)]}

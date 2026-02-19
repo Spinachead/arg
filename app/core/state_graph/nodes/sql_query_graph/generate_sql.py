@@ -30,4 +30,12 @@ async def generate_sql(state: SQLQueryState, *, config: RunnableConfig) -> dict:
         "DB_SCHEMA": DB_SCHEMA
         }, config)
     print(f"generate_sql: {response}")
-    return {"sql": response.content}
+    # 提取纯净的 SQL，去除 Markdown 代码块标记
+    sql = response.content.strip()
+    if sql.startswith("```sql"):
+        sql = sql[6:].strip()
+    elif sql.startswith("```"):
+        sql = sql[3:].strip()
+    if sql.endswith("```"):
+        sql = sql[:-3].strip()
+    return {"sql": sql}

@@ -77,7 +77,6 @@ def execute_sql_query(sql: str) -> str:
 # 1. 在上面定义工具函数（使用 @tool 装饰器）
 # 2. 将工具添加到下面的列表中
 GENERAL_TOOLS = [
-    get_sn_table_count,
     execute_sql_query,
     # 在这里添加更多工具...
     # new_tool_1,

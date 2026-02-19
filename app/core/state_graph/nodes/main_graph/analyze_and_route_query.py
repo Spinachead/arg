@@ -5,7 +5,8 @@ from langchain.chat_models import init_chat_model
 from settings import Settings
 from core.prompts import ROUTER_SYSTEM_PROMPT
 from typing import cast
-
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from db.db_schema import DB_SCHEMA
 
 
 async def analyze_and_route_query(state: AgentState, *, config: RunnableConfig) -> dict[str, Router]:
@@ -21,9 +22,18 @@ async def analyze_and_route_query(state: AgentState, *, config: RunnableConfig) 
         openai_api_base=Settings.app_settings.openai_api_base,
         openai_api_key=Settings.app_settings.openai_api_key,
     )
-    messages = [{"role": "system", "content": ROUTER_SYSTEM_PROMPT}] + state.messages
+    struct_model = model.with_structured_output(Router)
+    
+    chat_prompt = ChatPromptTemplate.from_messages([
+        ("system", ROUTER_SYSTEM_PROMPT),
+        MessagesPlaceholder("history"),
+    ])
+    chain = chat_prompt | struct_model
     response = cast(
-        Router, await model.with_structured_output(Router).ainvoke(messages)
+        Router, await chain.ainvoke({
+            "history": state.messages,
+            "DB_SCHEMA": DB_SCHEMA
+        })
     )
     print(f"analyze_and_route_query:{response}")
     return {"router": response}

@@ -10,7 +10,7 @@ TABLE `sn` (
   `status` int DEFAULT '1' COMMENT 'SN码状态',
   `createtime` int unsigned NOT NULL DEFAULT '0' COMMENT '上传时间',
   `batch` varchar(20) DEFAULT NULL COMMENT '批次',
-  `admin_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'sn码归属id',
+  `admin_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'auth_admin表主键id',
   `pid` int DEFAULT NULL COMMENT '父ID',
   `is_delete` tinyint(1) DEFAULT NULL COMMENT '是否删除1是0否',
   `is_reset` tinyint(1) DEFAULT '0' COMMENT '是否重置1是0否',
@@ -47,5 +47,50 @@ TABLE `sn` (
   KEY `batch` (`batch`)
 ) ENGINE=InnoDB AUTO_INCREMENT=121379 DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='设备SN';
 
+TABLE `batch` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `sn_ids` text COMMENT '多个sn码id',
+  `batch` varchar(255) NOT NULL DEFAULT '' COMMENT '名称',
+  `create_time` int NOT NULL COMMENT '创建时间',
+  `num` int DEFAULT NULL COMMENT '数量',
+  `admin_id` int NOT NULL COMMENT '用来区分是谁的 auth_admin表主键id',
+  `status` varchar(10) NOT NULL DEFAULT 'normal' COMMENT '批次状态',
+  `launcher_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'launcher表主键id',
+  `update_time` varchar(11) DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=513 DEFAULT CHARSET=utf8 COMMENT='批次';
+
+TABLE `auth_admin` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT '自增ID',
+  `username` varchar(128) NOT NULL DEFAULT '' COMMENT '用户名',
+  `password` varchar(128) NOT NULL DEFAULT '' COMMENT '密码',
+  `realname` varchar(100) NOT NULL DEFAULT '' COMMENT '真实姓名',
+  `avatar` varchar(255) DEFAULT '' COMMENT '用户头像',
+  `mobile` varchar(32) DEFAULT '' COMMENT '手机号',
+  `email` varchar(100) DEFAULT '' COMMENT '电子邮箱',
+  `last_login` decimal(16,0) unsigned DEFAULT '0' COMMENT '最后登录时间',
+  `last_ip` varchar(32) NOT NULL DEFAULT '' COMMENT '最后登录IP',
+  `try_time` tinyint unsigned NOT NULL DEFAULT '0' COMMENT '密码尝试次数',
+  `status` tinyint unsigned NOT NULL DEFAULT '1' COMMENT '账号状态 1:正常 2:禁止登陆',
+  `create_time` decimal(16,0) NOT NULL DEFAULT '0' COMMENT '数据插入时间',
+  `father_id` int NOT NULL DEFAULT '0' COMMENT '父id',
+  `auth_group_id` int unsigned NOT NULL DEFAULT '0' COMMENT '权限id',
+  `superior_id` int NOT NULL DEFAULT '0' COMMENT '上级id',
+  `vip_id` int NOT NULL DEFAULT '1' COMMENT '会员id',
+  `apk_num` int NOT NULL DEFAULT '0' COMMENT 'apk上传数量',
+  `login_status` int NOT NULL DEFAULT '0' COMMENT '1为在线，0不在线',
+  `examine` int DEFAULT '0' COMMENT '0未审核，1审核',
+  `distinguish` tinyint(1) DEFAULT '0' COMMENT '识别是否阅读系统更新 1是 0否',
+  `update_time` varchar(11) DEFAULT NULL COMMENT '更新时间',
+  `month_flow` int DEFAULT '200' COMMENT '当月流量GB',
+  `assist_id` int DEFAULT '0' COMMENT '辅助用户编号',
+  `address` varchar(255) DEFAULT NULL COMMENT '地址信息',
+  `platter_id` varchar(255) NOT NULL DEFAULT '' COMMENT 'platter表id 多个之间用英文逗号隔开',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`) USING BTREE,
+  UNIQUE KEY `mobile` (`mobile`) USING BTREE,
+  KEY `idx_auth_group_id` (`auth_group_id`) USING BTREE,
+  KEY `idx_vip_id` (`vip_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=313 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='运营后台用户列表';
 
 """
