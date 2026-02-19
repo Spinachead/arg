@@ -5,6 +5,7 @@ from core.state_graph.nodes.knowledge_query_graph.retrieve_documents import retr
 from core.state_graph.nodes.knowledge_query_graph.respond import respond
 
 
+
 def build_knowledge_graph():
     builder = StateGraph(ResearcherState)
     builder.add_node(generate_queries)

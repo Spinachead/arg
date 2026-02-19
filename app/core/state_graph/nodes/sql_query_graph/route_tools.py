@@ -19,6 +19,3 @@ def route_tools(state: AgentState):
     
     if tool_name in general_tool_names:
         return "general_tools"
-    else:
-        # 默认路由到 MCP 工具节点
-        return "mcp_tools"

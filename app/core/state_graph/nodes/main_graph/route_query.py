@@ -4,7 +4,7 @@ from typing import Literal
 
 def route_query(
     state: AgentState,
-) -> Literal["conduct_knowledge", "ask_for_more_info", "respond_to_general_query"]:
+) -> Literal["conduct_knowledge", "conduct_sql", "ask_for_more_info", "respond_to_general_query"]:
     """
     Determines the next action for the agent based on the router type in the current state.
 
@@ -22,7 +22,7 @@ def route_query(
     if _type == "valid_knowledge_base":
         return "conduct_knowledge"
     elif _type == "valid_sql_query":
-        return "conduct_knowledge"
+        return "conduct_sql"
     elif _type == "valid_log_query":
         return "conduct_knowledge"
     elif _type == "more-info":

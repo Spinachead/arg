@@ -1,15 +1,12 @@
-from core.state_graph.states.research_graph.query_state import QueryState
 from langchain_core.runnables import RunnableConfig
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from settings import Settings
 from langchain.chat_models import init_chat_model
-from utils import History, build_logger
+from core.state_graph.states.sql_query_graph.sql_query import SQLQueryState
+from core.prompts import GENERATE_SQL_PROMPT
+from db.db_schema import DB_SCHEMA
 
-logger = build_logger()
-
-
-
-async def generate_sql(state: QueryState, *, config: RunnableConfig) -> dict:
+async def generate_sql(state: SQLQueryState, *, config: RunnableConfig) -> dict:
     """
     生成sql查询语句
     """
@@ -23,25 +20,13 @@ async def generate_sql(state: QueryState, *, config: RunnableConfig) -> dict:
     )
 
     prompt = ChatPromptTemplate.from_messages([
-        ("system", f"你是一个MySQL专家。根据用户原始查询和以下数据库schema生成SQL查询语句：\n{DB_SCHEMA}\n只输出合法的SELECT SQL，不要解释。"),
-        ("human", "原始查询: {query}")
-
+        ("system", GENERATE_SQL_PROMPT),
+        MessagesPlaceholder("history"),
     ])
-
     chain = prompt | model
-
-    query = state.messages[-1].content
-    try:
-        result = await chain.ainvoke(
-            prompt.format(
-                query=query, 
-            ),
-            config,
-        )
-       
-        return {"sql": result, "query": query}
-    except Exception as e:
-        logger.warning(f"生成SQL失败: {e}")
-        return {"sql": "", "query": query}
-
-
+    response = await chain.ainvoke({
+        "history": state.messages,
+        "DB_SCHEMA": DB_SCHEMA
+        }, config)
+    print(f"generate_sql: {response}")
+    return {"sql": response}

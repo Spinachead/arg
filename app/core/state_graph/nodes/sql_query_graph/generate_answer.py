@@ -1,10 +1,13 @@
-from core.state_graph.states.research_graph.query_state import QueryState
 from langchain_core.runnables import RunnableConfig
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from settings import Settings
 from langchain_core.messages import AIMessage
+from core.state_graph.states.sql_query_graph.sql_query import SQLQueryState
+from langchain.chat_models import init_chat_model
+from core.prompts import SQL_GENERATE_ANSWER_PROMPT
 
-def generate_answer(state: QueryState) -> dict:
+
+def generate_answer(state: SQLQueryState, *, config: RunnableConfig) -> dict:
     """
     把sql查询结果生成自然语言回答
     """
@@ -16,19 +19,16 @@ def generate_answer(state: QueryState) -> dict:
         openai_api_base=Settings.app_settings.openai_api_base,
         openai_api_key=Settings.app_settings.openai_api_key,
     )
-
-    if state.get("sql_result") is None:
-        # 直接回答
-        response = model.invoke(state["messages"])
-        return {"messages": [response]}
     
     # 基于查询结果生成自然语言回答
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "你是一个助手，请根据查询结果用中文简洁回答用户问题。"),
-        ("human", "用户问题：{question}\n查询结果：{result}"),
+        ("system", SQL_GENERATE_ANSWER_PROMPT),
+        MessagesPlaceholder("history"),
     ])
     chain = prompt | model
-    question = state["messages"][-1].content
-    result_str = str(state["query_result"])[:1000]  # 防止过长
-    response = chain.invoke({"question": question, "result": result_str})
-    return {"messages": state["messages"] + [AIMessage(content=response.content)]}
+    response = chain.invoke({
+        "history": state.messages,
+    }, config)
+    print(f"generate_answer: {response}")
+    return {"context": response.content}
+   

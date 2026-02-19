@@ -7,7 +7,7 @@ from utils import get_prompt_template, History
 from typing import Dict, Any, List
 from langchain_core.prompts import ChatPromptTemplate
 import chainlit as cl
-from core.state_graph.nodes.main_graph.tools import GENERAL_TOOLS
+from core.state_graph.tool.tools import GENERAL_TOOLS
 
 
 def convert_messages_for_model(messages: List) -> List:
