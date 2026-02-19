@@ -8,8 +8,9 @@ from db.db_schema import DB_SCHEMA
 
 async def generate_sql(state: SQLQueryState, *, config: RunnableConfig) -> dict:
     """
-    生成sql查询语句
+    生成sql查询语句，并调用工具执行
     """
+    # 绑定工具，让模型可以调用 execute_sql_query
     model = init_chat_model(
         name="generate_sql",
         model=Settings.app_settings.inference_model,
@@ -29,4 +30,4 @@ async def generate_sql(state: SQLQueryState, *, config: RunnableConfig) -> dict:
         "DB_SCHEMA": DB_SCHEMA
         }, config)
     print(f"generate_sql: {response}")
-    return {"sql": response}
+    return {"sql": response.content}

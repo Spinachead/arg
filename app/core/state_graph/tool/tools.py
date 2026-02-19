@@ -16,7 +16,7 @@ def get_sn_table_count() -> int:
             port = int(port_str)
         else:
             port = int(os.getenv("MYSQL_DB_PORT", "3306"))
-        
+
         connection = pymysql.connect(
             host=host,
             port=port,
@@ -34,6 +34,43 @@ def get_sn_table_count() -> int:
         return f"Error querying sn table: {str(e)}"
 
 
+@tool
+def execute_sql_query(sql: str) -> str:
+    """执行sql查询语句并且返回结果.
+
+    Args:
+        sql: The SQL query string to execute
+    """
+    try:
+        host = os.getenv("MYSQL_DB_HOST", "localhost")
+        if ":" in host:
+            host, port_str = host.split(":")
+            port = int(port_str)
+        else:
+            port = int(os.getenv("MYSQL_DB_PORT", "3306"))
+
+        connection = pymysql.connect(
+            host=host,
+            port=port,
+            user=os.getenv("MYSQL_DB_USERNAME", "root"),
+            password=os.getenv("MYSQL_DB_PASSWORD", ""),
+            database=os.getenv("MYSQL_DB_DATABASE", "arg")
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+            # 如果是 SELECT 查询，获取结果
+            if sql.strip().upper().startswith("SELECT"):
+                results = cursor.fetchall()
+                connection.close()
+                return str(results)
+            else:
+                connection.commit()
+                connection.close()
+                return "Query executed successfully"
+    except Exception as e:
+        return f"Error executing SQL: {str(e)}"
+
+
 
 # 在这里集中管理所有普通工具
 # 添加新工具时，只需：
@@ -41,6 +78,7 @@ def get_sn_table_count() -> int:
 # 2. 将工具添加到下面的列表中
 GENERAL_TOOLS = [
     get_sn_table_count,
+    execute_sql_query,
     # 在这里添加更多工具...
     # new_tool_1,
     # new_tool_2,

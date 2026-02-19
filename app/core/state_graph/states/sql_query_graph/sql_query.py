@@ -7,6 +7,5 @@ from core.state_graph.states.main_graph.input_state import InputState
 class SQLQueryState(InputState):
     """State of the SQLQuery graph."""
     sql: str = field(default="")
-    sql_result: str = field(default="")
     context: str = field(default="")
 
