@@ -9,7 +9,7 @@ TABLE `sn` (
   `store_version` varchar(200) DEFAULT NULL COMMENT '管教易版本号',
   `status` int DEFAULT '1' COMMENT 'SN码状态',
   `createtime` int unsigned NOT NULL DEFAULT '0' COMMENT '上传时间',
-  `batch` varchar(20) DEFAULT NULL COMMENT '批次',
+  `batch` varchar(20) DEFAULT NULL COMMENT '批次id batch表主键id',
   `admin_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'auth_admin表主键id',
   `pid` int DEFAULT NULL COMMENT '父ID',
   `is_delete` tinyint(1) DEFAULT NULL COMMENT '是否删除1是0否',
@@ -45,12 +45,12 @@ TABLE `sn` (
   KEY `admin_id` (`admin_id`),
   KEY `is_online` (`is_online`),
   KEY `batch` (`batch`)
-) ENGINE=InnoDB AUTO_INCREMENT=121379 DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='设备SN';
+) ENGINE=InnoDB AUTO_INCREMENT=121379 DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='设备SN表';
 
 TABLE `batch` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID',
   `sn_ids` text COMMENT '多个sn码id',
-  `batch` varchar(255) NOT NULL DEFAULT '' COMMENT '名称',
+  `batch` varchar(255) NOT NULL DEFAULT '' COMMENT '批次名称',
   `create_time` int NOT NULL COMMENT '创建时间',
   `num` int DEFAULT NULL COMMENT '数量',
   `admin_id` int NOT NULL COMMENT '用来区分是谁的 auth_admin表主键id',
@@ -58,7 +58,7 @@ TABLE `batch` (
   `launcher_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'launcher表主键id',
   `update_time` varchar(11) DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=513 DEFAULT CHARSET=utf8 COMMENT='批次';
+) ENGINE=InnoDB AUTO_INCREMENT=513 DEFAULT CHARSET=utf8 COMMENT='批次表';
 
 TABLE `auth_admin` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT '自增ID',

@@ -28,7 +28,7 @@ async def retrieve_documents_step(data: dict):
     cl.context.current_step.output = f"检索完成：共找到 {count} 份相关内容"
    
 
-# @traceable(name="on_message")
+@traceable(name="on_message")
 async def execute(message: cl.Message):
     graph: Runnable = cl.user_session.get("graph")
     user = cl.user_session.get("user")
