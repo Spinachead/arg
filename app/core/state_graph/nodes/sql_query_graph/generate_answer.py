@@ -32,5 +32,5 @@ def generate_answer(state: SQLQueryState, *, config: RunnableConfig) -> dict:
         "sql": state.sql,
         "context": state.context
     }, config)
-    print(f"generate_answer: {response}")
+    print(f"\033[92mUsing generate_answer: {response}\033[0m")  # 绿色输出
     return {"messages": [AIMessage(content=response.content)]}

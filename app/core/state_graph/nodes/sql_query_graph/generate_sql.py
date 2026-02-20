@@ -29,7 +29,8 @@ async def generate_sql(state: SQLQueryState, *, config: RunnableConfig) -> dict:
         "history": state.messages,
         "DB_SCHEMA": DB_SCHEMA
         }, config)
-    print(f"generate_sql: {response}")
+    print(f"\033[92mUsing generate_sql: {response}\033[0m")  # 绿色输出
+    
     # 提取纯净的 SQL，去除 Markdown 代码块标记
     sql = response.content.strip()
     if sql.startswith("```sql"):

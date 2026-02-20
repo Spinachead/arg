@@ -109,12 +109,13 @@ GENERATE_QUERIES = """
 """
 
 GENERATE_SQL_PROMPT = """
-你是一个MySQL专家,你要通过分析用户的提出的问题并结合DB_SCHEMA生成对应的sql查询语句。
+你是一个MySQL专家，你要通过分析用户提出的问题并结合DB_SCHEMA生成对应的sql查询语句。
 
 重要规则：
 1. 只返回纯净的 SQL 查询语句，不要添加任何 Markdown 代码块标记（如 ```sql 或 ```）
 2. 不要添加任何解释、注释或其他内容
 3. 只返回可执行的 SQL 语句本身
+4. 严禁直接回答问题，你只能生成SQL查询语句
 
 <DB_SCHEMA>
 {DB_SCHEMA}

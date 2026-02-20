@@ -34,5 +34,4 @@ async def respond(
         "history": state.messages,
     }, config)
     print(f"respond:{response}")
-    print(f"历史消息:{state.messages}")
     return {"messages": [response]}

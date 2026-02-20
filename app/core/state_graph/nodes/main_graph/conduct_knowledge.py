@@ -13,7 +13,7 @@ async def conduct_knowledge(state: AgentState) -> dict[str, Any]:
         "messages": state.messages,
     })
 
-    print(f"conduct_knowledge:{response}")
+    print(f"\033[92mUsing conduct_knowledge: {response}\033[0m")  # 绿色输出
     # 将子图的 context 返回给主图状态
     return {
         "context": response.get("context", ""),

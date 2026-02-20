@@ -21,7 +21,7 @@ async def respond_to_general_query(
         openai_api_key=Settings.app_settings.openai_api_key,
     )
     system_prompt = GENERAL_SYSTEM_PROMPT.format(logic=state.router.logic)
-    print("---RESPONSE GENERATION---")
     messages = [{"role": "system", "content": system_prompt}] + state.messages
     response = await model.ainvoke(messages, config)
+    print(f"\033[92mUsing respond_to_general_query: {response}\033[0m")  # 绿色输出
     return {"messages": [response]}

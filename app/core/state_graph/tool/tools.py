@@ -57,6 +57,7 @@ def execute_sql_query(sql: str) -> str:
             database=os.getenv("MYSQL_DB_DATABASE", "arg")
         )
         with connection.cursor() as cursor:
+            print(f"执行的sql:{sql}")
             cursor.execute(sql)
             # 如果是 SELECT 查询，获取结果
             if sql.strip().upper().startswith("SELECT"):

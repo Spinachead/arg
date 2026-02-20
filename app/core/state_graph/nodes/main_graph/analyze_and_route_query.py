@@ -35,7 +35,7 @@ async def analyze_and_route_query(state: AgentState, *, config: RunnableConfig) 
             "DB_SCHEMA": DB_SCHEMA
         })
     )
-    print(f"analyze_and_route_query:{response}")
+    print(f"\033[92mUsing analyze_and_route_query: {response}\033[0m")  # 绿色输出
     return {"router": response}
 
 
