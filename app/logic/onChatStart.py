@@ -89,10 +89,15 @@ async def execute():
             )
             
             if result.code == 200:
+                new_kb_name = res.get("kb_name", "samples")
                 await cl.Message(
-                    content=f"✅ 知识库 '{res.get('kb_name', 'samples')}' 创建成功！现在请上传文档。"
+                    content=f"✅ 知识库 '{new_kb_name}' 创建成功！现在请上传文档。"
                 ).send()
-                await upload_document(res.get("kb_name", "samples"))
+                # 更新 session 中的知识库设置
+                model_settings = cl.user_session.get("model_settings", {})
+                model_settings["knowledge_base"] = new_kb_name
+                cl.user_session.set("model_settings", model_settings)
+                await upload_document(new_kb_name)
                 # 更新知识库列表
                 existing_kbs = list_kbs_from_db()
                 kb_names = [kb.kbName if hasattr(kb, 'kbName') else str(kb) for kb in existing_kbs] if existing_kbs else []

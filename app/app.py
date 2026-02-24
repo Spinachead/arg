@@ -25,20 +25,6 @@ asyncio.run(init_db())
 async def start():
     await onChatStart()
     
-@cl.set_starters
-async def set_starters():
-    return [
-         cl.Starter(
-            label="新建知识库",
-            message="Can you help me create a personalized morning routine that would help increase my productivity throughout the day? Start by asking me about my current habits and what activities energize me in the morning.",
-            icon="/public/cat.png",
-        ),
-         cl.Starter(
-            label="管理知识库",
-            message="Can you help me create a personalized morning routine that would help increase my productivity throughout the day? Start by asking me about my current habits and what activities energize me in the morning.",
-            icon="/public/cat.png",
-        ),
-    ]
 
 @cl.on_message
 async def main(message: cl.Message):
@@ -63,9 +49,12 @@ async def on_resume(thread: ThreadDict):
     await onChatStart()
 
 @cl.action_callback("upload_document")
-async def on_action(action: cl.Action):
-    print(action.payload["kb_name"])
-    await upload_document(action.payload["kb_name"])
+async def on_upload_document_action(action: cl.Action):
+    # 从 session 中实时获取当前知识库设置，而不是使用 action 创建时的 payload
+    model_settings = cl.user_session.get("model_settings", {})
+    kb_name = model_settings.get("knowledge_base", Settings.kb_settings.DEFAULT_KNOWLEDGE_BASE)
+    print(f"上传文档到知识库: {kb_name}")
+    await upload_document(kb_name)
 
 
 @cl.on_mcp_connect
