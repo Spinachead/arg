@@ -35,3 +35,6 @@ pymilvus
 aiofiles
 pymysql
 langchain-deepseek
+unstructured
+opencv-python
+rapidocr-onnxruntime

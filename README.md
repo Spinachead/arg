@@ -57,33 +57,18 @@ cd /d D:\python\arg\app
 python -m chainlit run app.py -w
 ```
 
-**我是用的mcp**
-```bash
-npx -y @modelcontextprotocol/server-filesystem
-npx -y @modelcontextprotocol/server-filesystem E:/pythonPro/mcp_server E:/pythonPro/arg
-```
-
-**docker打包镜像到Harbor**
-```bash
-# 1. 登录 Harbor (只需执行一次)
-docker login 47.119.147.245:1683 要先进入docker deskstop设置 insecure-registries
-
-# 2. 构建镜像 (基于你项目根目录的 Dockerfile)
-docker build -t arg-app:latest .
-
-# 3. 为镜像打上 Harbor 的 Tag
-# 格式: docker tag [本地镜像名]:[标签] [Harbor地址]/[项目名]/[镜像名]:[标签]
-docker tag arg-app:latest 47.119.147.245:1683/library/arg-app:v1.1
-
-# 4. 推送到 Harbor
-docker push 47.119.147.245:1683/library/arg-app:v1.1
-# 5. 在服务器上运行
-docker pull 127.0.0.1:1683/library/arg-app:v1.1
-```
 
 **本地代码更新后**
 ```bash
- docker build -t arg-app:v1.1 .
- docker tag arg-app:v1.1 47.119.147.245:1683/library/arg-app:v1.1
- docker push 47.119.147.245:1683/library/arg-app:v1.1
+# 1. 登录 Harbor (只需执行一次)
+docker login 47.119.147.245:1683 要先进入docker deskstop设置 insecure-registries
+# 2. 构建镜像 (基于你项目根目录的 Dockerfile)
+docker build -t arg-app:latest .
+# 格式: docker tag [本地镜像名]:[标签] [Harbor地址]/[项目名]/[镜像名]:[标签]
+docker tag arg-app:latest 47.119.147.245:1683/library/arg-app:latest
+# 4. 推送到 Harbor
+docker push 47.119.147.245:1683/library/arg-app:latest
+# 5. 在服务器上运行
+docker pull 47.119.147.245:1683/library/arg-app:latest
  ```
+
