@@ -93,30 +93,31 @@ class Embeddings(ABC):
         return await run_in_executor(None, self.embed_query, text)
 
 
-def get_Embeddings(
-        embed_model: str = None,
-        local_wrap: bool = False,  # use local wrapped api
-) -> Embeddings:
-    """
-    获取嵌入模型实例
-    优先使用阿里云 DashScope 在线嵌入模型，不再依赖本地 Ollama
-    """
+def get_Embeddings(embed_model: str = None) -> Embeddings:
     from langchain_community.embeddings import DashScopeEmbeddings
-    
-    # 使用阿里云 DashScope 嵌入模型
-    # 支持的模型: text-embedding-v1, text-embedding-v2, text-embedding-v3
-    model_name = embed_model if embed_model else get_default_embedding()
-    model_name = "text-embedding-v2"
-    
-    # 如果传入的是 Ollama 模型名，替换为 DashScope 的模型名
-    if model_name and "ollama" in model_name.lower():
+    from dotenv import load_dotenv
+    import os
+
+    env_paths = [
+        "/app/app/.env",
+        os.path.join(os.path.dirname(__file__), ".env"),
+        ".env",
+    ]
+    for env_path in env_paths:
+        if os.path.exists(env_path):
+            load_dotenv(env_path, override=True)
+            break
+
+    model_name = embed_model or get_default_embedding()
+    if not model_name or "ollama" in model_name.lower():
         model_name = "text-embedding-v2"
-    
-    embedding = DashScopeEmbeddings(
-        model=model_name or "text-embedding-v2"
+
+    dashscope_api_key = os.getenv("DASHSCOPE_API_KEY")
+
+    return DashScopeEmbeddings(
+        model=model_name,
+        dashscope_api_key=dashscope_api_key
     )
-    print(f"\033[92mUsing embedding model: {model_name}\033[0m")  # 绿色输出
-    return embedding
 
 
 def format_reference(kb_name: str, docs: List[Dict], api_base_url: str = "") -> List[Dict]:
