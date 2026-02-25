@@ -25,7 +25,10 @@ RUN pip install --no-cache-dir -r requirements.txt -i https://pypi.tuna.tsinghua
 COPY . .
 
 # 创建必要的目录
-RUN mkdir -p /app/app/data/knowledge_base /app/app/log
+RUN mkdir -p /app/app/data/knowledge_base /app/app/log /app/app/data/nltk_data
+
+# 预下载 nltk 数据（使用国内镜像）
+RUN python3 -c "import nltk; nltk.download('averaged_perceptron_tagger_eng', download_dir='/app/app/data/nltk_data', quiet=True); nltk.download('punkt', download_dir='/app/app/data/nltk_data', quiet=True)" || echo "NLTK download failed, will retry at runtime"
 
 # 暴露端口
 EXPOSE 8000
