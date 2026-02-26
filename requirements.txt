@@ -38,3 +38,8 @@ langchain-deepseek
 unstructured
 opencv-python
 rapidocr-onnxruntime
+rapidocr-paddle
+jieba
+tqdm
+PyMuPDF
+modelscope

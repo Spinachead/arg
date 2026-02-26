@@ -174,32 +174,10 @@ LANGSMITH_TRACING=false
 docker-compose up -d
 ```
 
-#### 4. 配置 Nginx 反向代理（宝塔面板）
 
-1. 登录宝塔面板，进入 **网站** → **添加站点**
-2. 填写域名（如 `rag.yourdomain.com`），选择 **纯静态**
-3. 进入站点设置 → **反向代理** → **添加反向代理**
-   - 目标 URL：`http://127.0.0.1:8000`
-   - 发送域名：`$host`
-4. 修改反向代理配置，添加 WebSocket 支持：
+4. 申请 SSL 证书并开启 HTTPS
 
-```nginx
-location / {
-    proxy_pass http://127.0.0.1:8000;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_cache_bypass $http_upgrade;
-}
-```
-
-5. 申请 SSL 证书并开启 HTTPS
-
-#### 5. 验证部署
+#### 4. 验证部署
 
 ```bash
 # 检查容器状态
