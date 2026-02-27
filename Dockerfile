@@ -30,6 +30,12 @@ RUN mkdir -p /app/app/data/knowledge_base /app/app/log /app/app/data/nltk_data
 # 预下载 nltk 数据（使用国内镜像）
 RUN python3 -c "import nltk; nltk.download('averaged_perceptron_tagger_eng', download_dir='/app/app/data/nltk_data', quiet=True); nltk.download('punkt', download_dir='/app/app/data/nltk_data', quiet=True)" || echo "NLTK download failed, will retry at runtime"
 
+# 预下载 Spacy 中文模型（避免运行时下载）
+RUN python3 -m spacy download zh_core_web_sm || echo "Spacy model download failed, will use fallback"
+
+# 预下载 RapidOCR 模型（避免运行时下载）
+RUN python3 -c "from rapidocr_onnxruntime import RapidOCR; RapidOCR()" || echo "RapidOCR init failed, will retry at runtime"
+
 # 暴露端口
 EXPOSE 8000
 

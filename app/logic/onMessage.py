@@ -42,7 +42,6 @@ async def execute(message: cl.Message):
     upload_action = cl.Action(
         name="upload_document",     
         label="上传文档",
-        value="any_value",
         icon="upload",
         payload={"kb_name": kb_name}
     )
@@ -118,7 +117,6 @@ async def execute1(message: cl.Message):
     upload_action = cl.Action(
         name="upload_document",     
         label="上传文档",
-        value="any_value",
         icon="upload",
         payload={"value": "example_value"}
     )

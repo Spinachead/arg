@@ -273,7 +273,10 @@ def run_in_thread_pool(
     请确保任务中的所有操作是线程安全的，任务函数请全部使用关键字参数。
     """
     tasks = []
-    with ThreadPoolExecutor() as pool:
+    # 根据 CPU 核心数设置线程池大小，充分利用多核性能
+    import os
+    max_workers = min(32, (os.cpu_count() or 1) + 4)
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
         for kwargs in params:
             tasks.append(pool.submit(func, **kwargs))
 

@@ -117,8 +117,8 @@ def list_files_from_folder(kb_name: str):
 LOADER_DICT = {
     "UnstructuredHTMLLoader": [".html", ".htm"],
     "MHTMLLoader": [".mhtml"],
-    "TextLoader": [".md"],
     "UnstructuredMarkdownLoader": [".md"],
+    "TextLoader": [".md"],
     "JSONLoader": [".json"],
     "JSONLinesLoader": [".jsonl"],
     "CSVLoader": [".csv"],
@@ -245,7 +245,8 @@ def make_text_splitter(splitter_name, chunk_size, chunk_overlap):
     """
     根据参数获取特定的分词器
     """
-    splitter_name = splitter_name or "SpacyTextSplitter"
+    # 默认使用 ChineseRecursiveTextSplitter，避免 Spacy 模型加载开销
+    splitter_name = splitter_name or "ChineseRecursiveTextSplitter"
     try:
         if (
                 splitter_name == "MarkdownHeaderTextSplitter"
@@ -350,10 +351,13 @@ class KnowledgeFile:
         self.docs = None
         self.splited_docs = None
         self.document_loader_name = get_LoaderClass(self.ext)
+        # 默认使用 ChineseRecursiveTextSplitter，避免 Spacy 模型加载开销
         self.text_splitter_name = "ChineseRecursiveTextSplitter"
 
     def file2docs(self, refresh: bool = False):
+        print(f"[DEBUG] file2docs called for {self.filename}, loader={self.document_loader_name}")
         if self.docs is None or refresh:
+            print(f"[DEBUG] Loading file with {self.document_loader_name}: {self.filepath}")
             loader = get_loader(
                 loader_name=self.document_loader_name,
                 file_path=self.filepath,
@@ -361,9 +365,9 @@ class KnowledgeFile:
             )
             if isinstance(loader, TextLoader):
                 loader.encoding = "utf8"
-                self.docs = loader.load()
-            else:
-                self.docs = loader.load()
+            print(f"[DEBUG] Starting loader.load() for {self.filename}")
+            self.docs = loader.load()
+            print(f"[DEBUG] Loaded {len(self.docs)} docs from {self.filename}")
         return self.docs
 
     def docs2texts(
@@ -375,20 +379,26 @@ class KnowledgeFile:
             chunk_overlap: int = 150,
             text_splitter: TextSplitter = None,
     ):
+        print(f"[DEBUG] docs2texts called for {self.filename}")
         docs = docs or self.file2docs(refresh=refresh)
         if not docs:
+            print(f"[DEBUG] No docs to split for {self.filename}")
             return []
         if self.ext not in [".csv"]:
             if text_splitter is None:
+                print(f"[DEBUG] Creating text splitter: {self.text_splitter_name}")
                 text_splitter = make_text_splitter(
                     splitter_name=self.text_splitter_name,
                     chunk_size=chunk_size,
                     chunk_overlap=chunk_overlap,
                 )
+                print(f"[DEBUG] Text splitter created")
+            print(f"[DEBUG] Splitting documents for {self.filename}")
             if self.text_splitter_name == "MarkdownHeaderTextSplitter":
                 docs = text_splitter.split_text(docs[0].page_content)
             else:
                 docs = text_splitter.split_documents(docs)
+            print(f"[DEBUG] Split into {len(docs)} chunks")
 
         if not docs:
             return []
@@ -432,8 +442,11 @@ class KnowledgeFile:
 def files2docs_in_thread_file2docs(
         *, file: KnowledgeFile, **kwargs
 ) -> Tuple[bool, Tuple[str, str, List[Document]]]:
+    print(f"[DEBUG] Processing file in thread: {file.kb_name}/{file.filename}")
     try:
-        return True, (file.kb_name, file.filename, file.file2text(**kwargs))
+        result = file.file2text(**kwargs)
+        print(f"[DEBUG] File {file.filename} processed successfully, got {len(result)} chunks")
+        return True, (file.kb_name, file.filename, result)
     except Exception as e:
         msg = f"从文件 {file.kb_name}/{file.filename} 加载文档时出错：{e}"
         logger.error(f"{e.__class__.__name__}: {msg}")

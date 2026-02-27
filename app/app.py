@@ -50,10 +50,11 @@ async def on_resume(thread: ThreadDict):
 
 @cl.action_callback("upload_document")
 async def on_upload_document_action(action: cl.Action):
+    print(f"[DEBUG] upload_document action triggered! payload={action.payload}")
     # 从 session 中实时获取当前知识库设置，而不是使用 action 创建时的 payload
     model_settings = cl.user_session.get("model_settings", {})
     kb_name = model_settings.get("knowledge_base", Settings.kb_settings.DEFAULT_KNOWLEDGE_BASE)
-    print(f"上传文档到知识库: {kb_name}")
+    print(f"[DEBUG] 上传文档到知识库: {kb_name}")
     await upload_document(kb_name)
 
 

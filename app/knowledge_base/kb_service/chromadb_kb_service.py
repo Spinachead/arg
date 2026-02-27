@@ -108,20 +108,33 @@ class ChromaKBService(KBService):
 
 
     def do_add_doc(self, docs: List[Document], **kwargs) -> List[Dict]:
+        if not docs:
+            return []
+        
         doc_infos = []
         embed_func = get_Embeddings(self.embed_model)
         texts = [doc.page_content for doc in docs]
         metadatas = [doc.metadata for doc in docs]
+        
+        # 批量获取 embeddings
         embeddings = embed_func.embed_documents(texts=texts)
         ids = [str(uuid.uuid1()) for _ in range(len(texts))]
-        for _id, text, embedding, metadata in zip(ids, texts, embeddings, metadatas):
-            # 对 metadata 进行清洗，确保所有值都是 ChromaDB 支持的类型
-            sanitized_metadata = sanitize_metadata(metadata)
-            # logger.info(f"这是metadata: {sanitized_metadata}")
-            self.chroma._collection.add(
-                ids=_id, embeddings=embedding, metadatas=sanitized_metadata, documents=text
-            )
+        
+        # 批量清洗 metadata
+        sanitized_metadatas = [sanitize_metadata(m) for m in metadatas]
+        
+        # 批量添加到 ChromaDB（一次性添加所有文档）
+        self.chroma._collection.add(
+            ids=ids, 
+            embeddings=embeddings, 
+            metadatas=sanitized_metadatas, 
+            documents=texts
+        )
+        
+        # 构建返回信息
+        for _id, metadata in zip(ids, metadatas):
             doc_infos.append({"id": _id, "metadata": metadata})
+        
         return doc_infos
 
     def get_doc_by_ids(self, ids: List[str]) -> List[Document]:

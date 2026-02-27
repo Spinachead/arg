@@ -17,20 +17,24 @@ logger = build_logger()
 
 
 async def upload_document(kb_name: str):
+    print(f"[DEBUG] upload_document called with kb_name={kb_name}")
     files = await cl.AskFileMessage(
         content="请选择要上传的文件",
-        accept=[
-            "text/plain",
-            "application/pdf",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "text/markdown",
-        ],
+        accept={
+            "text/plain": [".txt"],
+            "application/pdf": [".pdf"],
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+            "text/markdown": [".md", ".markdown"],
+        },
         max_files=10,
         max_size_mb=20,
     ).send()
 
     if not files:
+        print("[DEBUG] No files selected, returning")
         return
+    
+    print(f"[DEBUG] Received {len(files)} files: {[f.name for f in files]}")
     file_names = []
     async with cl.Step(name="文档上传与向量化") as step:
         try:
@@ -52,6 +56,8 @@ async def upload_document(kb_name: str):
                 file_names.append(file.name)
 
             step.output = f"文件已保存，正在进行向量化处理..."
+            print(f"[DEBUG] Starting vectorization for files: {file_names}")
+            
             # 2. 调用公用向量化逻辑
             res = await cl.make_async(update_kb_docs)(
                 knowledge_base_name=kb_name,
@@ -61,6 +67,8 @@ async def upload_document(kb_name: str):
                 chunk_overlap=Settings.kb_settings.OVERLAP_SIZE,
                 zh_title_enhance=Settings.kb_settings.ZH_TITLE_ENHANCE,
             )
+            
+            print(f"[DEBUG] Vectorization result: code={res.code}, msg={res.msg}")
 
             if res.code == 200:
                 failed = res.data.get("failed_files", {})
@@ -73,8 +81,29 @@ async def upload_document(kb_name: str):
 
         except Exception as e:
             error_detail = traceback.format_exc()
+            print(f"[DEBUG] Error in upload_document: {e}")
+            print(f"[DEBUG] Traceback: {error_detail}")
             step.output = f"❌ 处理过程中发生错误: {str(e)}"
             await cl.Message(content=f"详细错误堆栈:\n```\n{error_detail}\n```").send()
+
+def _clean_document_content(doc: Document) -> Document:
+    """清洗文档内容，移除控制字符和特殊 Unicode"""
+    if not doc.page_content:
+        return None
+    
+    content = doc.page_content
+    # 移除控制字符 (0-31, 127)
+    content = re.sub(r'[\x00-\x1f\x7f]', '', content)
+    # 移除零宽字符等特殊 Unicode
+    content = re.sub(r'[\u200b-\u200f\uFEFF\u202a-\u202e]', '', content)
+    content = content.strip()
+    
+    if not content:
+        return None
+    
+    doc.page_content = content
+    return doc
+
 
 def update_kb_docs(
         knowledge_base_name: str,
@@ -89,8 +118,11 @@ def update_kb_docs(
     """
     更新知识库文档
     """
+    print(f"[DEBUG] update_kb_docs called: kb={knowledge_base_name}, files={file_names}")
+    
     kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
     if kb is None:
+        print(f"[DEBUG] Knowledge base not found: {knowledge_base_name}")
         return BaseResponse(code=404, msg=f"未找到知识库 {knowledge_base_name}")
 
     failed_files = {}
@@ -115,6 +147,12 @@ def update_kb_docs(
                 logger.error(f"{e.__class__.__name__}: {msg}")
                 failed_files[file_name] = msg
 
+    print(f"[DEBUG] Created {len(kb_files)} KnowledgeFile objects")
+    
+    # 收集所有文档，批量处理
+    all_docs_to_add = []
+    processed_count = 0
+    
     # 从文件生成docs，并进行向量化
     for status, result in files2docs_in_thread(
             kb_files,
@@ -122,63 +160,80 @@ def update_kb_docs(
             chunk_overlap=chunk_overlap,
             zh_title_enhance=zh_title_enhance,
     ):
+        processed_count += 1
+        print(f"[DEBUG] Processing file {processed_count}/{len(kb_files)}: status={status}")
+        
         if status:
             kb_name, file_name, new_docs = result
+            print(f"[DEBUG] File {file_name} parsed, got {len(new_docs)} docs")
 
-            # 过滤无效段落并清洗文本，防止 Ollama Embedding 产生 NaN 报错
-            valid_docs = []
-            for d in new_docs:
-                if not d.page_content:
-                    continue
-                # 更彻底地清洗文本：移除所有控制字符、零宽字符、以及非 UTF-8 兼容字符
-                content = d.page_content
-                # 移除控制字符 (0-31, 127)
-                content = re.sub(r'[\x00-\x1f\x7f]', '', content)
-                # 移除零宽字符等特殊 Unicode
-                content = re.sub(r'[\u200b-\u200f\uFEFF\u202a-\u202e]', '', content)
-                content = content.strip()
-                
-                if content:
-                    d.page_content = content
-                    valid_docs.append(d)
+            # 过滤无效段落并清洗文本
+            valid_docs = [_clean_document_content(d) for d in new_docs]
+            valid_docs = [d for d in valid_docs if d is not None]
 
             if not valid_docs:
                 logger.warning(f"文件 {file_name} 向量化后没有有效文本段落，跳过。")
                 continue
 
-            kb_file = KnowledgeFile(
-                filename=file_name, knowledge_base_name=knowledge_base_name
-            )
-            # 显式传递 docs=valid_docs，确保底层直接使用过滤后的内容
-            kb.update_doc(kb_file, docs=valid_docs, not_refresh_vs_cache=True)
+            # 设置文档 source 元数据
+            for doc in valid_docs:
+                doc.metadata.setdefault("source", file_name)
+            
+            all_docs_to_add.extend(valid_docs)
+            print(f"[DEBUG] Added {len(valid_docs)} valid docs, total={len(all_docs_to_add)}")
         else:
             kb_name, file_name, error = result
+            print(f"[DEBUG] File {file_name} failed: {error}")
             failed_files[file_name] = error
 
+    # 批量添加所有文档到向量库（一次性调用，减少 IO 次数）
+    if all_docs_to_add:
+        try:
+            kb.do_add_doc(all_docs_to_add)
+            # 批量记录文件到数据库
+            for file_name in file_names:
+                if file_name not in failed_files:
+                    try:
+                        kb_file = KnowledgeFile(
+                            filename=file_name, knowledge_base_name=knowledge_base_name
+                        )
+                        from db.repository.knowledge_file_repository import add_file_to_db
+                        add_file_to_db(kb_file, custom_docs=False, docs_count=0, doc_infos=[])
+                    except Exception as e:
+                        logger.warning(f"记录文件 {file_name} 到数据库时出错: {e}")
+        except Exception as e:
+            logger.error(f"批量添加文档时出错: {e}")
+            # 如果批量添加失败，回退到逐个添加
+            for doc in all_docs_to_add:
+                try:
+                    kb.do_add_doc([doc])
+                except Exception as e2:
+                    logger.error(f"单个文档添加失败: {e2}")
+
     # 将自定义的docs进行向量化
+    custom_docs_to_add = []
     for file_name, v in docs_dict.items():
         try:
             v = [x if isinstance(x, Document) else Document(**x) for x in v]
-            # 同样对自定义 docs 进行强力清洗和过滤
-            cleaned_v = []
-            for d in v:
-                if d.page_content:
-                    content = re.sub(r'[\x00-\x1f\x7f]', '', d.page_content)
-                    content = re.sub(r'[\u200b-\u200f\uFEFF\u202a-\u202e]', '', content).strip()
-                    if content:
-                        d.page_content = content
-                        cleaned_v.append(d)
-            if not cleaned_v:
-                continue
-                
-            kb_file = KnowledgeFile(
-                filename=file_name, knowledge_base_name=knowledge_base_name
-            )
-            kb.update_doc(kb_file, docs=cleaned_v, not_refresh_vs_cache=True)
+            # 清洗自定义 docs
+            cleaned_v = [_clean_document_content(d) for d in v]
+            cleaned_v = [d for d in cleaned_v if d is not None]
+            
+            if cleaned_v:
+                for doc in cleaned_v:
+                    doc.metadata.setdefault("source", file_name)
+                custom_docs_to_add.extend(cleaned_v)
         except Exception as e:
             msg = f"为 {file_name} 添加自定义docs时出错：{e}"
             logger.error(f"{e.__class__.__name__}: {msg}")
             failed_files[file_name] = msg
+    
+    # 批量添加自定义文档
+    if custom_docs_to_add:
+        try:
+            kb.do_add_doc(custom_docs_to_add)
+        except Exception as e:
+            logger.error(f"批量添加自定义文档时出错: {e}")
 
     if not not_refresh_vs_cache:
         kb.save_vector_store()

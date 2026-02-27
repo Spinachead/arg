@@ -49,53 +49,58 @@ class RapidOCRPDFLoader(UnstructuredFileLoader):
             ocr = get_ocr()
             doc = fitz.open(filepath)
             resp = ""
-
-            b_unit = tqdm.tqdm(
-                total=doc.page_count, desc="RapidOCRPDFLoader context page index: 0"
-            )
+            
+            # 使用更高效的页面遍历方式，移除 tqdm 进度条减少开销
             for i, page in enumerate(doc):
-                b_unit.set_description(
-                    "RapidOCRPDFLoader context page index: {}".format(i)
-                )
-                b_unit.refresh()
                 try:
-                    text = page.get_text("")
-                    resp += text + "\n"
+                    # 使用更高效的方式提取文本
+                    text = page.get_text("text")
+                    if text:
+                        resp += text + "\n"
 
+                    # 只在需要时处理图片 OCR
                     img_list = page.get_image_info(xrefs=True)
-                    for img in img_list:
-                        if xref := img.get("xref"):
-                            bbox = img["bbox"]
-                            # 检查图片尺寸是否超过设定的阈值
-                            if (bbox[2] - bbox[0]) / (page.rect.width) < PDF_OCR_THRESHOLD[
-                                0
-                            ] or (bbox[3] - bbox[1]) / (
-                                    page.rect.height
-                            ) < PDF_OCR_THRESHOLD[1]:
-                                continue
-                            pix = fitz.Pixmap(doc, xref)
-                            samples = pix.samples
-                            if int(page.rotation) != 0:  # 如果Page有旋转角度，则旋转图片
-                                img_array = np.frombuffer(
-                                    pix.samples, dtype=np.uint8
-                                ).reshape(pix.height, pix.width, -1)
-                                tmp_img = Image.fromarray(img_array)
-                                ori_img = cv2.cvtColor(np.array(tmp_img), cv2.COLOR_RGB2BGR)
-                                rot_img = rotate_img(img=ori_img, angle=360 - page.rotation)
-                                img_array = cv2.cvtColor(rot_img, cv2.COLOR_RGB2BGR)
-                            else:
-                                img_array = np.frombuffer(
-                                    pix.samples, dtype=np.uint8
-                                ).reshape(pix.height, pix.width, -1)
-
-                            result, _ = ocr(img_array)
-                            if result:
-                                ocr_result = [line[1] for line in result]
-                                resp += "\n".join(ocr_result)
+                    if img_list:
+                        for img in img_list:
+                            if xref := img.get("xref"):
+                                bbox = img["bbox"]
+                                # 检查图片尺寸是否超过设定的阈值
+                                img_width_ratio = (bbox[2] - bbox[0]) / page.rect.width
+                                img_height_ratio = (bbox[3] - bbox[1]) / page.rect.height
+                                
+                                if (img_width_ratio < PDF_OCR_THRESHOLD[0] or 
+                                    img_height_ratio < PDF_OCR_THRESHOLD[1]):
+                                    continue
+                                    
+                                try:
+                                    pix = fitz.Pixmap(doc, xref)
+                                    if pix.n > 4:  # CMYK: convert to RGB
+                                        pix = fitz.Pixmap(fitz.csRGB, pix)
+                                    
+                                    # 优化图片处理：减少不必要的转换
+                                    img_array = np.frombuffer(
+                                        pix.samples, dtype=np.uint8
+                                    ).reshape(pix.height, pix.width, pix.n)
+                                    
+                                    if int(page.rotation) != 0:
+                                        tmp_img = Image.fromarray(img_array)
+                                        ori_img = cv2.cvtColor(np.array(tmp_img), cv2.COLOR_RGB2BGR)
+                                        rot_img = rotate_img(ori_img, angle=360 - page.rotation)
+                                        img_array = cv2.cvtColor(rot_img, cv2.COLOR_BGR2RGB)
+                                    
+                                    result, _ = ocr(img_array)
+                                    if result:
+                                        ocr_result = [line[1] for line in result]
+                                        resp += "\n".join(ocr_result) + "\n"
+                                    
+                                    pix = None  # 释放资源
+                                except Exception as img_e:
+                                    logger.warning(f"处理PDF图片时出错: {img_e}")
+                                    continue
                 except Exception as e:
                     logger.error(f"处理PDF页面 {i} 时出错: {e}")
-                # 更新进度
-                b_unit.update(1)
+            
+            doc.close()  # 显式关闭文档
             return resp
 
         text = pdf2text(self.file_path)

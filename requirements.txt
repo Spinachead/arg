@@ -43,3 +43,4 @@ jieba
 tqdm
 PyMuPDF
 modelscope
+rank_bm25
