@@ -1,14 +1,16 @@
+import asyncio
 from langchain_core.runnables import RunnableConfig
-from core.state_graph.states.main_graph.router import Router
 from langchain.chat_models import init_chat_model
 from settings import Settings
-from core.prompts import ROUTER_SYSTEM_PROMPT
+from core.prompts import *
 from typing import cast
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from db.db_schema import DB_SCHEMA
 from core.state_graph.states.flow import *
-from langchain_core.messages import BaseMessage, AIMessage
+from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
 from core.state_graph.knowledge_query_graph import knowledge_graph
+from typing import Any
+from core.state_graph.states.main_graph.router import Router
 
 
 
@@ -99,7 +101,7 @@ async def create_plan(state: AgentState, *, config: RunnableConfig) -> dict:
     )
     struct_model = model.with_structured_output(Plan)
     chat_prompt = ChatPromptTemplate.from_messages([
-        MessagesPlaceholder("history"),
+        ("system", PLAN_PROMPT),
     ])
     chain = chat_prompt | struct_model
 
@@ -108,7 +110,8 @@ async def create_plan(state: AgentState, *, config: RunnableConfig) -> dict:
             "history": state.messages,
         })
     )
-    return {"plan": response.steps}
+    print(f"\033[92mUsing create_plan: {response}\033[0m")
+    return {"plan": response["steps"]}
 
 
 async def conduct_knowledge(state: AgentState) -> dict[str, Any]:
@@ -296,11 +299,25 @@ async def deliver(state: AgentState, config: RunnableConfig) -> Dict:
         "messages": [AIMessage(content=state.final_output)],
     }
 
+from langgraph.graph import END, START, StateGraph
 
 
+def build_main_graph():
+    builder = StateGraph(AgentState, input=InputState)
+    builder.add_node("create_plan", create_plan)
+    builder.add_edge(START, "create_plan")
+    builder.add_edge("create_plan", END)
+    return builder.compile()
 
 
-
+if __name__ == "__main__":
+    async def main():
+        main_graph = build_main_graph()
+        result = await main_graph.ainvoke(input={"messages": [HumanMessage(content="如何创建一个MySQL数据库？")]})
+        print(result)
+    
+    asyncio.run(main())
+    
 
 
 
